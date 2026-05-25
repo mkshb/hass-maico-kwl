@@ -9,7 +9,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
+from .bus_feed import BusFeeder
 from .const import (
+    BUS_FEEDS,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -23,6 +25,7 @@ from .const import (
 from .coordinator import MaicoCoordinator
 from .discovery import async_discover
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
+from .register_defs import REGISTERS_BY_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +36,7 @@ class MaicoRuntimeData:
 
     hub: MaicoModbusHub
     coordinator: MaicoCoordinator
+    feeder: BusFeeder
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -62,8 +66,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = MaicoCoordinator(hass, hub, present, profile, scan_interval)
     await coordinator.async_config_entry_first_refresh()
 
+    feeds = [
+        (REGISTERS_BY_KEY[reg_key], entity_id)
+        for reg_key, conf_key, _device_class in BUS_FEEDS
+        if (entity_id := entry.options.get(conf_key)) and reg_key in present
+    ]
+    feeder = BusFeeder(hass, hub, feeds)
+    await feeder.async_start()
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = MaicoRuntimeData(
-        hub=hub, coordinator=coordinator
+        hub=hub, coordinator=coordinator, feeder=feeder
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -76,6 +88,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         runtime: MaicoRuntimeData = hass.data[DOMAIN].pop(entry.entry_id)
+        runtime.feeder.async_stop()
         await runtime.hub.close()
     return unload_ok
 

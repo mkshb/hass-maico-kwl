@@ -17,6 +17,25 @@ def test_unsigned_scaling():
     assert reg.encode(52.3) == [523]
 
 
+def test_room_temp_bus_write_only():
+    reg = rd.REGISTERS_BY_KEY["room_temp_bus"]  # write-only s16, scale 0.1
+    assert reg.readable is False
+    assert reg.writable is True
+    assert reg.platform == rd.NUMBER
+    assert reg.scale == 0.1
+    assert reg.encode(21.5) == [215]
+    assert reg.decode([0xFFD3]) == -4.5  # signed decode still works
+
+
+def test_bus_inputs_write_only_unscaled():
+    hum = rd.REGISTERS_BY_KEY["humidity_bus"]  # u16, scale 1.0
+    assert hum.readable is False and hum.platform == rd.NUMBER
+    assert hum.encode(44) == [44] and hum.decode([44]) == 44
+    aq = rd.REGISTERS_BY_KEY["air_quality_bus"]  # u16, scale 1.0
+    assert aq.readable is False and aq.platform == rd.NUMBER
+    assert aq.encode(800) == [800] and aq.decode([800]) == 800
+
+
 def test_humidity_unscaled():
     # This device returns humidity as a plain percent (not x10); see device memory.
     reg = rd.REGISTERS_BY_KEY["humidity_exhaust"]

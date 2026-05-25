@@ -68,6 +68,7 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
             REGISTERS_BY_KEY[key]
             for key in present
             if REGISTERS_BY_KEY[key].platform != BUTTON
+            and REGISTERS_BY_KEY[key].readable
         ]
         self._blocks = build_blocks(read_defs)
 

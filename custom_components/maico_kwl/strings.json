@@ -23,8 +23,12 @@
     "step": {
       "init": {
         "title": "Maico KWL options",
+        "description": "Optionally choose source entities whose values are sent to the unit cyclically (the matching source, e.g. room temperature, must be set to \"Bus\"). Leave empty to control the value manually.",
         "data": {
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan interval (seconds)",
+          "room_temp_source_entity": "Room temperature source entity",
+          "humidity_source_entity": "Humidity source entity",
+          "air_quality_source_entity": "Air quality source entity"
         }
       }
     }
@@ -91,6 +95,15 @@
       },
       "room_setpoint": {
         "name": "Room temperature setpoint"
+      },
+      "room_temp_bus": {
+        "name": "Room temperature (bus)"
+      },
+      "humidity_bus": {
+        "name": "Humidity (bus)"
+      },
+      "air_quality_bus": {
+        "name": "Air quality (bus)"
       },
       "room_temp_max": {
         "name": "Room temperature max"

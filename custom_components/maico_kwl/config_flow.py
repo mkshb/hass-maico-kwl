@@ -13,8 +13,10 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (
+    BUS_FEEDS,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -104,17 +106,33 @@ class MaicoOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
+            # Keys left empty are omitted -> the corresponding feed is cleared.
             return self.async_create_entry(title="", data=user_input)
 
-        current = self._entry.options.get(
+        opts = self._entry.options
+        scan_current = opts.get(
             CONF_SCAN_INTERVAL,
             self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        schema = vol.Schema(
-            {
-                vol.Optional(CONF_SCAN_INTERVAL, default=current): vol.All(
-                    vol.Coerce(int), vol.Range(min=5, max=3600)
-                )
-            }
+        fields: dict = {
+            vol.Optional(CONF_SCAN_INTERVAL, default=scan_current): vol.All(
+                vol.Coerce(int), vol.Range(min=5, max=3600)
+            )
+        }
+        for _reg_key, conf_key, device_class in BUS_FEEDS:
+            config = (
+                EntitySelectorConfig(domain="sensor", device_class=device_class)
+                if device_class
+                else EntitySelectorConfig(domain="sensor")
+            )
+            current = opts.get(conf_key)
+            marker = (
+                vol.Optional(conf_key, description={"suggested_value": current})
+                if current
+                else vol.Optional(conf_key)
+            )
+            fields[marker] = EntitySelector(config)
+
+        return self.async_show_form(
+            step_id="init", data_schema=vol.Schema(fields)
         )
-        return self.async_show_form(step_id="init", data_schema=schema)

@@ -90,6 +90,8 @@ class RegisterDef:
     # For write-only registers that cannot be read-probed: presence is inferred
     # from another register's presence (its key).
     probe_via: str | None = None
+    # Write-only registers (read access "-" in the CSV) cannot be polled.
+    readable: bool = True
     bits: tuple = field(default=())  # reserved; unused for now
 
     @property
@@ -301,6 +303,14 @@ REGISTERS: list[RegisterDef] = [
     RegisterDef("temp_exhaust_air", 706, "Temperature exhaust air", SENSOR,
                 data_type="s16", scale=0.1, unit=TEMP_C,
                 device_class="temperature", state_class="measurement"),
+    # Write-only: room temperature fed in over Modbus ("Bus" source). Only used
+    # by the device when room_temp_source (109) is set to "bus". Needs periodic
+    # rewrites (device note: write cycle >= 10 min) -> handled in number.py.
+    RegisterDef("room_temp_bus", 707, "Room temperature (bus)", NUMBER,
+                data_type="s16", scale=0.1, writable=True, readable=False,
+                unit=TEMP_C, device_class="temperature", native_min=0,
+                native_max=40, native_step=0.1, probe_via="room_temp_source",
+                icon="mdi:thermometer"),
     # --- Sensor data (750-762) ---
     RegisterDef("humidity_exhaust", 750, "Humidity exhaust", SENSOR, scale=1.0,
                 unit=PERCENT, device_class="humidity", state_class="measurement"),
@@ -308,6 +318,17 @@ REGISTERS: list[RegisterDef] = [
                   scale=1.0),
     *_sensor_bank(755, "co2_sensor", "CO2 sensor", PPM, "carbon_dioxide"),
     *_sensor_bank(759, "voc_sensor", "VOC sensor", PPM, VOC),
+    # Write-only bus inputs (host feeds these; only used in "bus" sensor modes).
+    # Note: humidity/air-quality here are NOT x10 (raw = real value).
+    RegisterDef("humidity_bus", 763, "Humidity (bus)", NUMBER, data_type="u16",
+                scale=1.0, writable=True, readable=False, unit=PERCENT,
+                device_class="humidity", native_min=0, native_max=100,
+                native_step=1, probe_via="room_temp_source",
+                icon="mdi:water-percent"),
+    RegisterDef("air_quality_bus", 764, "Air quality (bus)", NUMBER,
+                data_type="u16", scale=1.0, writable=True, readable=False,
+                unit=PPM, native_min=0, native_max=5000, native_step=1,
+                probe_via="room_temp_source", icon="mdi:air-filter"),
     # --- Switch states (800-808) ---
     RegisterDef("fan_supply_active", 800, "Fan supply active", BINARY_SENSOR,
                 device_class="running"),

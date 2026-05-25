@@ -23,8 +23,12 @@
     "step": {
       "init": {
         "title": "Maico-KWL-Optionen",
+        "description": "Optional Quell-Entitäten wählen, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Leer lassen, um den Wert manuell zu steuern.",
         "data": {
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "room_temp_source_entity": "Quell-Entität Raumtemperatur",
+          "humidity_source_entity": "Quell-Entität Feuchte",
+          "air_quality_source_entity": "Quell-Entität Luftgüte"
         }
       }
     }
@@ -91,6 +95,15 @@
       },
       "room_setpoint": {
         "name": "Raumtemperatur Sollwert"
+      },
+      "room_temp_bus": {
+        "name": "Raumtemperatur Bus"
+      },
+      "humidity_bus": {
+        "name": "Feuchte Bus"
+      },
+      "air_quality_bus": {
+        "name": "Luftgüte Bus"
       },
       "room_temp_max": {
         "name": "Raumtemperatur Max."

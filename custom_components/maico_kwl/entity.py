@@ -46,7 +46,7 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         if not super().available:
             return False
         # Buttons / write-only registers have no polled value.
-        if self._reg.platform == BUTTON:
+        if self._reg.platform == BUTTON or not self._reg.readable:
             return True
         return self._reg.key in self.coordinator.data
 

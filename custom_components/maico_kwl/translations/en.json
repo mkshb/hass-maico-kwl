@@ -167,6 +167,15 @@
       }
     },
     "sensor": {
+      "room_temp_bus_sent": {
+        "name": "Room temperature bus (sent)"
+      },
+      "humidity_bus_sent": {
+        "name": "Humidity bus (sent)"
+      },
+      "air_quality_bus_sent": {
+        "name": "Air quality bus (sent)"
+      },
       "airflow_exhaust": {
         "name": "Airflow exhaust"
       },

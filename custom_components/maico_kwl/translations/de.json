@@ -167,6 +167,15 @@
       }
     },
     "sensor": {
+      "room_temp_bus_sent": {
+        "name": "Raumtemperatur Bus (gesendet)"
+      },
+      "humidity_bus_sent": {
+        "name": "Feuchte Bus (gesendet)"
+      },
+      "air_quality_bus_sent": {
+        "name": "Luftgüte Bus (gesendet)"
+      },
       "airflow_exhaust": {
         "name": "Volumenstrom Abluft"
       },

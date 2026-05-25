@@ -34,6 +34,10 @@ profile of the unit is derived from the registers it finds.
   be changed later via the options.
 - **Read and write**: live sensors plus controllable entities (operating mode, ventilation level,
   setpoint temperature, airflow rates, filter intervals and much more).
+- **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
+  temperature, humidity or air quality) into the unit's write-only "bus" input registers — written
+  on every change and refreshed cyclically (~9 min) to satisfy the device's write-cycle
+  requirement. No automation needed.
 - **Correct decoding** per the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
   High-/Low-word pairs, enum states, bitfield fault codes.
 - **Efficient polling**: contiguous registers are read in blocks (with a per-register fallback on
@@ -48,7 +52,7 @@ profile of the unit is derived from the registers it finds.
 |------------------|----------|
 | `sensor`         | Temperatures (room, supply, extract, exhaust, intake …), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code, current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
 | `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived “Problem” sensor (from fault code) |
-| `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p |
+| `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
 | `button`         | Reset filter (device/outdoor/room), reset errors |
@@ -92,6 +96,19 @@ UI tidy – they can be enabled individually when needed.
    - **Scan interval**: default `30` seconds (changeable later via the options)
 3. The integration tests the connection, probes the registers and creates the entities.
 
+### Options (cyclic bus feed)
+
+Use **Configure** on the integration to:
+
+- change the **scan interval**, and
+- pick a **source entity** for each "bus" input (room temperature, humidity, air quality).
+
+When a source entity is selected, its value is written to the matching Modbus register on every
+change and refreshed about every 9 minutes — no automation required. The corresponding device
+source must be set to **"Bus"** (e.g. the *Room temperature source* select for room temperature).
+While a source entity is configured, the manual bus `number` is hidden ("source has priority");
+leave the option empty to set the value manually instead.
+
 ## Notes & limitations
 
 - **Register addressing** is assumed to be 0-based (documented decimal code = protocol address).
@@ -105,6 +122,8 @@ UI tidy – they can be enabled individually when needed.
 - **State values are slugs**: select and enum sensors store internal slugs (e.g. `manual`,
   `reduced`, `summer`) and display the translated text. Automations/templates should compare
   against the **slug**, not the displayed text.
+- **Bus feed units**: a source entity's numeric state is sent as-is (assumed to match the
+  register unit — °C / % / ppm). Make sure the source reports in the device's unit.
 
 ## Data source
 

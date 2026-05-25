@@ -1,5 +1,5 @@
 blueprint:
-  name: Maico KWL – Summer night cooling (free cooling)
+  name: "Maico KWL: Summer night cooling (free cooling)"
   description: >
     Switches the Maico KWL to a supply-air mode when the outdoor air is cooler
     than the room (e.g. on a cool night after a hot day) to bring in fresh, cool
@@ -86,6 +86,15 @@ blueprint:
         entity:
           filter:
             - domain: input_boolean
+    notify_service:
+      name: Notification service (optional)
+      description: >
+        Notify service to call when cooling starts and stops, e.g.
+        notify.mobile_app_phone or notify.persistent_notification. Leave empty
+        to disable notifications.
+      default: ""
+      selector:
+        text:
 
 mode: single
 
@@ -98,6 +107,7 @@ variables:
   cooling_mode: !input cooling_mode
   revert_mode: !input revert_mode
   enable_helper: !input enable_helper
+  notify_service: !input notify_service
   room_t: "{{ states(room_temp) | float('nan') }}"
   outdoor_t: "{{ states(outdoor_temp) | float('nan') }}"
   enabled: >
@@ -129,6 +139,15 @@ action:
               entity_id: !input operating_mode
             data:
               option: "{{ cooling_mode }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_service not in [none, ''] }}"
+            then:
+              - action: "{{ notify_service }}"
+                data:
+                  title: "Maico KWL"
+                  message: >
+                    Free cooling started (room {{ room_t | round(1) }} °C, outdoor {{ outdoor_t | round(1) }} °C).
       - conditions:
           - condition: template
             value_template: "{{ not should_cool and is_state(operating_mode, cooling_mode) }}"
@@ -138,4 +157,12 @@ action:
               entity_id: !input operating_mode
             data:
               option: "{{ revert_mode }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_service not in [none, ''] }}"
+            then:
+              - action: "{{ notify_service }}"
+                data:
+                  title: "Maico KWL"
+                  message: "Free cooling stopped."
     default: []

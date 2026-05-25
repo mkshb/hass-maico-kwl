@@ -1,0 +1,141 @@
+blueprint:
+  name: Maico KWL – Summer night cooling (free cooling)
+  description: >
+    Switches the Maico KWL to a supply-air mode when the outdoor air is cooler
+    than the room (e.g. on a cool night after a hot day) to bring in fresh, cool
+    air, and switches it back when it is no longer worthwhile. Pure Home
+    Assistant control via the unit's "Operating mode" select entity.
+  domain: automation
+  author: hass-maico-kwl
+  input:
+    operating_mode:
+      name: Operating mode select
+      description: The Maico KWL "Operating mode" select entity.
+      selector:
+        entity:
+          filter:
+            - domain: select
+              integration: maico_kwl
+    room_temp:
+      name: Room temperature sensor
+      description: Indoor temperature to cool down (e.g. the Maico room temperature).
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: temperature
+    outdoor_temp:
+      name: Outdoor temperature sensor
+      description: Outdoor/intake temperature (Maico air-intake sensor or an external one).
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: temperature
+    comfort_threshold:
+      name: Comfort threshold
+      description: Only cool while the room is above this temperature.
+      default: 23
+      selector:
+        number:
+          min: 18
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+          mode: box
+    delta:
+      name: Minimum indoor-outdoor difference
+      description: Outdoor must be at least this many kelvin below the room.
+      default: 2
+      selector:
+        number:
+          min: 0.5
+          max: 10
+          step: 0.5
+          unit_of_measurement: "K"
+          mode: box
+    cooling_mode:
+      name: Cooling mode
+      description: Operating mode to set while cooling.
+      default: eco_supply_air
+      selector:
+        select:
+          options:
+            - "manual"
+            - "eco_supply_air"
+            - "eco_exhaust_air"
+            - "auto_sensor"
+    revert_mode:
+      name: Revert mode
+      description: Operating mode to return to when cooling stops.
+      default: auto_sensor
+      selector:
+        select:
+          options:
+            - "auto_sensor"
+            - "auto_time"
+            - "manual"
+            - "off"
+    enable_helper:
+      name: Enable toggle (optional)
+      description: >
+        Optional input_boolean to gate this automation (e.g. only in summer).
+        Leave empty to always run.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+
+mode: single
+
+variables:
+  operating_mode: !input operating_mode
+  room_temp: !input room_temp
+  outdoor_temp: !input outdoor_temp
+  comfort_threshold: !input comfort_threshold
+  delta: !input delta
+  cooling_mode: !input cooling_mode
+  revert_mode: !input revert_mode
+  enable_helper: !input enable_helper
+  room_t: "{{ states(room_temp) | float('nan') }}"
+  outdoor_t: "{{ states(outdoor_temp) | float('nan') }}"
+  enabled: >
+    {{ true if enable_helper in [none, ''] else is_state(enable_helper, 'on') }}
+  should_cool: >
+    {{ enabled
+       and room_t == room_t and outdoor_t == outdoor_t
+       and room_t > (comfort_threshold | float)
+       and outdoor_t <= (room_t - (delta | float)) }}
+
+trigger:
+  - platform: state
+    entity_id: !input room_temp
+  - platform: state
+    entity_id: !input outdoor_temp
+  - platform: time_pattern
+    minutes: "/10"
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ should_cool and not is_state(operating_mode, cooling_mode) }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "{{ cooling_mode }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ not should_cool and is_state(operating_mode, cooling_mode) }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "{{ revert_mode }}"
+    default: []

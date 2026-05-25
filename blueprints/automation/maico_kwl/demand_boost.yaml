@@ -1,0 +1,122 @@
+blueprint:
+  name: Maico KWL – Demand boost from any sensor
+  description: >
+    Boosts the Maico KWL to intensive ventilation when a Home Assistant sensor
+    (e.g. CO2 or humidity from any room) rises above a threshold, and returns to
+    a normal mode when it falls below the lower threshold (hysteresis). Lets you
+    do demand-controlled ventilation with freely chosen HA sensors.
+  domain: automation
+  author: hass-maico-kwl
+  input:
+    operating_mode:
+      name: Operating mode select
+      description: The Maico KWL "Operating mode" select entity.
+      selector:
+        entity:
+          filter:
+            - domain: select
+              integration: maico_kwl
+    level:
+      name: Ventilation level select
+      description: The Maico KWL "Ventilation level" select entity.
+      selector:
+        entity:
+          filter:
+            - domain: select
+              integration: maico_kwl
+    sensor:
+      name: Trigger sensor
+      description: Sensor whose value drives the boost (e.g. CO2 in ppm or humidity in %).
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    threshold_high:
+      name: Upper threshold
+      description: At or above this value, boost to intensive.
+      default: 1000
+      selector:
+        number:
+          min: 0
+          max: 5000
+          step: 10
+          mode: box
+    threshold_low:
+      name: Lower threshold
+      description: At or below this value, return to normal (hysteresis).
+      default: 800
+      selector:
+        number:
+          min: 0
+          max: 5000
+          step: 10
+          mode: box
+    boost_level:
+      name: Boost level
+      default: intensive
+      selector:
+        select:
+          options:
+            - "nominal"
+            - "intensive"
+    revert_mode:
+      name: Revert mode
+      description: Operating mode to return to when the value drops.
+      default: auto_sensor
+      selector:
+        select:
+          options:
+            - "auto_sensor"
+            - "auto_time"
+            - "manual"
+
+mode: single
+
+variables:
+  operating_mode: !input operating_mode
+  level: !input level
+  sensor: !input sensor
+  threshold_high: !input threshold_high
+  threshold_low: !input threshold_low
+  boost_level: !input boost_level
+  revert_mode: !input revert_mode
+  value: "{{ states(sensor) | float('nan') }}"
+
+trigger:
+  - platform: state
+    entity_id: !input sensor
+
+condition:
+  - condition: template
+    value_template: "{{ value == value }}"  # skip unknown/unavailable (NaN)
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ value >= (threshold_high | float)
+                 and not (is_state(operating_mode, 'manual') and is_state(level, boost_level)) }}
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "manual"
+          - action: select.select_option
+            target:
+              entity_id: !input level
+            data:
+              option: "{{ boost_level }}"
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ value <= (threshold_low | float)
+                 and is_state(operating_mode, 'manual') }}
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "{{ revert_mode }}"
+    default: []

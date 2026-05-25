@@ -1,0 +1,93 @@
+blueprint:
+  name: Maico KWL – Reduce ventilation when a window is open
+  description: >
+    Reduces the Maico KWL ventilation while one or more windows/doors are open
+    (to avoid pulling unconditioned air), and restores normal operation once all
+    are closed.
+  domain: automation
+  author: hass-maico-kwl
+  input:
+    operating_mode:
+      name: Operating mode select
+      description: The Maico KWL "Operating mode" select entity.
+      selector:
+        entity:
+          filter:
+            - domain: select
+              integration: maico_kwl
+    level:
+      name: Ventilation level select
+      description: The Maico KWL "Ventilation level" select entity.
+      selector:
+        entity:
+          filter:
+            - domain: select
+              integration: maico_kwl
+    windows:
+      name: Window/door contacts
+      description: One or more binary sensors that are "on" when open.
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: binary_sensor
+    open_level:
+      name: Level while open
+      default: reduced
+      selector:
+        select:
+          options:
+            - "off"
+            - "humidity_protection"
+            - "reduced"
+    restore_mode:
+      name: Restore mode when closed
+      description: Operating mode to return to once all contacts are closed.
+      default: auto_sensor
+      selector:
+        select:
+          options:
+            - "auto_sensor"
+            - "auto_time"
+            - "manual"
+
+mode: single
+
+variables:
+  operating_mode: !input operating_mode
+  level: !input level
+  windows: !input windows
+  open_level: !input open_level
+  restore_mode: !input restore_mode
+  any_open: "{{ expand(windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
+
+trigger:
+  - platform: state
+    entity_id: !input windows
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ any_open and not (is_state(operating_mode, 'manual') and is_state(level, open_level)) }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "manual"
+          - action: select.select_option
+            target:
+              entity_id: !input level
+            data:
+              option: "{{ open_level }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ not any_open and is_state(operating_mode, 'manual') }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input operating_mode
+            data:
+              option: "{{ restore_mode }}"
+    default: []

@@ -109,6 +109,34 @@ source must be set to **"Bus"** (e.g. the *Room temperature source* select for r
 While a source entity is configured, the manual bus `number` is hidden ("source has priority");
 leave the option empty to set the value manually instead.
 
+## Automations
+
+The integration is a clean **control surface** — the control *policy* (when to change mode/level)
+is best done with Home Assistant automations, which can react to anything (presence, windows,
+schedule, outdoor temperature, electricity price, sensors from other rooms). That is more flexible
+than the unit's built-in *Auto-Sensor* mode, which only uses the sensors configured on the device.
+
+**Control (use as actions):** `select` *Operating mode* and *Ventilation level*, `switch` *Boost
+ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration*, `select` *Season*.
+Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
+
+**Triggers (read):** temperatures (room, supply, extract, exhaust, air intake), *Current ventilation
+level*, fan speeds / airflow, *Summer bypass*, the *Problem* binary sensor.
+
+### Example blueprints
+
+Ready-to-import blueprints live in [`blueprints/automation/maico_kwl/`](blueprints/automation/maico_kwl):
+
+| Blueprint | What it does |
+|-----------|--------------|
+| `summer_night_cooling.yaml` | Switches to a supply-air mode (free cooling) when the outdoor air is cooler than the room after a hot day; reverts when no longer worthwhile. |
+| `demand_boost.yaml` | Boosts to intensive when any HA sensor (CO2/humidity/…) exceeds a threshold; reverts below the lower threshold (hysteresis). |
+| `window_open_reduce.yaml` | Reduces ventilation while a window/door contact is open; restores when all are closed. |
+
+Import via **Settings → Automations & Scenes → Blueprints → Import Blueprint** using the raw URL, e.g.
+`https://github.com/mkshb/hass-maico-kwl/blob/main/blueprints/automation/maico_kwl/summer_night_cooling.yaml`.
+These are starting points — copy and adapt them to your home.
+
 ## Notes & limitations
 
 - **Register addressing** is assumed to be 0-based (documented decimal code = protocol address).

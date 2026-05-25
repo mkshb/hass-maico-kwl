@@ -1,0 +1,394 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Maico KWL",
+        "description": "Connect to your Maico ventilation unit over Modbus TCP. The integration will probe the device and create entities only for the registers it actually implements.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Modbus address",
+          "scan_interval": "Scan interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the device."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Maico KWL options",
+        "data": {
+          "scan_interval": "Scan interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "base_board_contact": {
+        "name": "Base board contact"
+      },
+      "fan_exhaust_active": {
+        "name": "Fan exhaust active"
+      },
+      "fan_supply_active": {
+        "name": "Fan supply active"
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "ptc_heater_active": {
+        "name": "PTC heater active"
+      },
+      "reheating_relay_active": {
+        "name": "Reheating relay active"
+      },
+      "summer_bypass_open": {
+        "name": "Summer bypass open"
+      }
+    },
+    "button": {
+      "error_reset": {
+        "name": "Reset errors"
+      },
+      "filter_reset_device": {
+        "name": "Reset device filter"
+      },
+      "filter_reset_outdoor": {
+        "name": "Reset outdoor filter"
+      },
+      "filter_reset_room": {
+        "name": "Reset room filter"
+      }
+    },
+    "number": {
+      "airflow_intensive": {
+        "name": "Airflow intensive"
+      },
+      "airflow_nominal": {
+        "name": "Airflow nominal"
+      },
+      "airflow_reduced": {
+        "name": "Airflow reduced"
+      },
+      "filter_dp_allowed": {
+        "name": "Allowed filter delta-p"
+      },
+      "filter_runtime_device": {
+        "name": "Filter interval device"
+      },
+      "filter_runtime_outdoor": {
+        "name": "Filter interval outdoor"
+      },
+      "filter_runtime_room": {
+        "name": "Filter interval room"
+      },
+      "room_setpoint": {
+        "name": "Room temperature setpoint"
+      },
+      "room_temp_max": {
+        "name": "Room temperature max"
+      },
+      "room_temp_offset": {
+        "name": "Room temperature offset"
+      },
+      "supply_temp_min_cooling": {
+        "name": "Supply temp min cooling"
+      },
+      "vent_level_duration": {
+        "name": "Ventilation level duration"
+      }
+    },
+    "select": {
+      "language": {
+        "name": "Language",
+        "state": {
+          "german": "German",
+          "english": "English",
+          "french": "French",
+          "italian": "Italian"
+        }
+      },
+      "operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "off": "Off",
+          "manual": "Manual",
+          "auto_time": "Auto time",
+          "auto_sensor": "Auto sensor",
+          "eco_supply_air": "Eco supply air",
+          "eco_exhaust_air": "Eco exhaust air"
+        }
+      },
+      "room_temp_source": {
+        "name": "Room temperature source",
+        "state": {
+          "comfort_bde": "Comfort BDE",
+          "external": "External",
+          "internal": "Internal",
+          "bus": "Bus"
+        }
+      },
+      "season": {
+        "name": "Season",
+        "state": {
+          "winter": "Winter",
+          "summer": "Summer"
+        }
+      },
+      "ventilation_level": {
+        "name": "Ventilation level",
+        "state": {
+          "off": "Off",
+          "humidity_protection": "Humidity protection",
+          "reduced": "Reduced",
+          "nominal": "Nominal",
+          "intensive": "Intensive"
+        }
+      }
+    },
+    "sensor": {
+      "airflow_exhaust": {
+        "name": "Airflow exhaust"
+      },
+      "airflow_supply": {
+        "name": "Airflow supply"
+      },
+      "brine_pump_state": {
+        "name": "Brine pump state",
+        "state": {
+          "off": "Off",
+          "heating": "Heating",
+          "cooling": "Cooling"
+        }
+      },
+      "co2_sensor_1": {
+        "name": "CO2 sensor 1"
+      },
+      "co2_sensor_2": {
+        "name": "CO2 sensor 2"
+      },
+      "co2_sensor_3": {
+        "name": "CO2 sensor 3"
+      },
+      "co2_sensor_4": {
+        "name": "CO2 sensor 4"
+      },
+      "current_vent_level": {
+        "name": "Current ventilation level",
+        "state": {
+          "off": "Off",
+          "humidity_protection": "Humidity protection",
+          "reduced": "Reduced",
+          "nominal": "Nominal",
+          "intensive": "Intensive"
+        }
+      },
+      "enocean_co2_id0": {
+        "name": "EnOcean CO2 ID0"
+      },
+      "enocean_co2_id1": {
+        "name": "EnOcean CO2 ID1"
+      },
+      "enocean_co2_id2": {
+        "name": "EnOcean CO2 ID2"
+      },
+      "enocean_co2_id3": {
+        "name": "EnOcean CO2 ID3"
+      },
+      "enocean_co2_id4": {
+        "name": "EnOcean CO2 ID4"
+      },
+      "enocean_co2_id5": {
+        "name": "EnOcean CO2 ID5"
+      },
+      "enocean_co2_id6": {
+        "name": "EnOcean CO2 ID6"
+      },
+      "enocean_co2_id7": {
+        "name": "EnOcean CO2 ID7"
+      },
+      "enocean_humidity_id0": {
+        "name": "EnOcean humidity ID0"
+      },
+      "enocean_humidity_id1": {
+        "name": "EnOcean humidity ID1"
+      },
+      "enocean_humidity_id2": {
+        "name": "EnOcean humidity ID2"
+      },
+      "enocean_humidity_id3": {
+        "name": "EnOcean humidity ID3"
+      },
+      "enocean_humidity_id4": {
+        "name": "EnOcean humidity ID4"
+      },
+      "enocean_humidity_id5": {
+        "name": "EnOcean humidity ID5"
+      },
+      "enocean_humidity_id6": {
+        "name": "EnOcean humidity ID6"
+      },
+      "enocean_humidity_id7": {
+        "name": "EnOcean humidity ID7"
+      },
+      "enocean_voc_id0": {
+        "name": "EnOcean VOC ID0"
+      },
+      "enocean_voc_id1": {
+        "name": "EnOcean VOC ID1"
+      },
+      "enocean_voc_id2": {
+        "name": "EnOcean VOC ID2"
+      },
+      "enocean_voc_id3": {
+        "name": "EnOcean VOC ID3"
+      },
+      "enocean_voc_id4": {
+        "name": "EnOcean VOC ID4"
+      },
+      "enocean_voc_id5": {
+        "name": "EnOcean VOC ID5"
+      },
+      "enocean_voc_id6": {
+        "name": "EnOcean VOC ID6"
+      },
+      "enocean_voc_id7": {
+        "name": "EnOcean VOC ID7"
+      },
+      "fan_speed_exhaust": {
+        "name": "Fan speed exhaust"
+      },
+      "fan_speed_supply": {
+        "name": "Fan speed supply"
+      },
+      "fault_code": {
+        "name": "Fault code"
+      },
+      "filter_remaining_device": {
+        "name": "Filter remaining device"
+      },
+      "filter_remaining_outdoor": {
+        "name": "Filter remaining outdoor"
+      },
+      "filter_remaining_room": {
+        "name": "Filter remaining room"
+      },
+      "humidity_exhaust": {
+        "name": "Humidity exhaust"
+      },
+      "humidity_sensor_1": {
+        "name": "Humidity sensor 1"
+      },
+      "humidity_sensor_2": {
+        "name": "Humidity sensor 2"
+      },
+      "humidity_sensor_3": {
+        "name": "Humidity sensor 3"
+      },
+      "humidity_sensor_4": {
+        "name": "Humidity sensor 4"
+      },
+      "notice_code": {
+        "name": "Notice code"
+      },
+      "op_hours_brine_pump": {
+        "name": "Operating hours brine pump"
+      },
+      "op_hours_humidity_protection": {
+        "name": "Operating hours humidity protection"
+      },
+      "op_hours_intensive": {
+        "name": "Operating hours intensive"
+      },
+      "op_hours_nominal": {
+        "name": "Operating hours nominal"
+      },
+      "op_hours_reduced": {
+        "name": "Operating hours reduced"
+      },
+      "op_hours_reheating_relay": {
+        "name": "Operating hours reheating relay"
+      },
+      "op_hours_switch_contact": {
+        "name": "Operating hours switch contact"
+      },
+      "op_hours_three_way_damper": {
+        "name": "Operating hours three-way damper"
+      },
+      "op_hours_total": {
+        "name": "Operating hours total"
+      },
+      "op_hours_zone_damper": {
+        "name": "Operating hours zone damper"
+      },
+      "temp_air_intake": {
+        "name": "Temperature air intake"
+      },
+      "temp_exhaust_air": {
+        "name": "Temperature exhaust air"
+      },
+      "temp_extract_air": {
+        "name": "Temperature extract air"
+      },
+      "temp_outdoor_pre_egh": {
+        "name": "Temperature outdoor before EGH"
+      },
+      "temp_room": {
+        "name": "Temperature room"
+      },
+      "temp_room_external": {
+        "name": "Temperature room external"
+      },
+      "temp_supply_air": {
+        "name": "Temperature supply air"
+      },
+      "three_way_damper_state": {
+        "name": "Three-way damper state",
+        "state": {
+          "off": "Off",
+          "heating": "Heating",
+          "cooling": "Cooling"
+        }
+      },
+      "voc_sensor_1": {
+        "name": "VOC sensor 1"
+      },
+      "voc_sensor_2": {
+        "name": "VOC sensor 2"
+      },
+      "voc_sensor_3": {
+        "name": "VOC sensor 3"
+      },
+      "voc_sensor_4": {
+        "name": "VOC sensor 4"
+      },
+      "zone_damper_state": {
+        "name": "Zone damper state",
+        "state": {
+          "off": "Off",
+          "zone_1": "Zone 1",
+          "zone_2": "Zone 2",
+          "zone_sensor": "Zone sensor"
+        }
+      }
+    },
+    "switch": {
+      "bde_lock": {
+        "name": "Lock control panel"
+      },
+      "boost_ventilation": {
+        "name": "Boost ventilation"
+      },
+      "off_lock": {
+        "name": "Disable off level"
+      }
+    }
+  }
+}

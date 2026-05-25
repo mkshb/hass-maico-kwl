@@ -1,0 +1,1244 @@
+Modbus Type;Signal Name;EXOL Type;Modbus Address;Default Value;Function;Description
+Coil;VentSettings.S_AlaAcknowAll;L;1;0;Alarms;Alarms
+Input Registers;AlaData.Ala_MalfunctionSAF1_Status;X;1;1;Alarms;Malfunction SAF 1
+Input Registers;AlaData.Ala_MalfunctionSAF2_Status;X;2;1;Alarms;Malfunction SAF 2
+Input Registers;AlaData.Ala_MalfunctionSAF3_Status;X;3;1;Alarms;Malfunction SAF 3
+Input Registers;AlaData.Ala_MalfunctionSAF4_Status;X;4;1;Alarms;Malfunction SAF 4
+Input Registers;AlaData.Ala_MalfunctionSAF5_Status;X;5;1;Alarms;Malfunction SAF 5
+Input Registers;AlaData.Ala_MalfunctionEAF1_Status;X;6;1;Alarms;Malfunction EAF 1
+Input Registers;AlaData.Ala_MalfunctionEAF2_Status;X;7;1;Alarms;Malfunction EAF 2
+Input Registers;AlaData.Ala_MalfunctionEAF3_Status;X;8;1;Alarms;Malfunction EAF 3
+Input Registers;AlaData.Ala_MalfunctionEAF4_Status;X;9;1;Alarms;Malfunction EAF 4
+Input Registers;AlaData.Ala_MalfunctionEAF5_Status;X;10;1;Alarms;Malfunction EAF 5
+Input Registers;AlaData.Ala_AlarmSAF1_Status;X;11;1;Alarms;Alarm frequency converter SAF 1
+Input Registers;AlaData.Ala_AlarmSAF2_Status;X;12;1;Alarms;Alarm frequency converter SAF 2
+Input Registers;AlaData.Ala_AlarmSAF3_Status;X;13;1;Alarms;Alarm frequency converter SAF 3
+Input Registers;AlaData.Ala_AlarmSAF4_Status;X;14;1;Alarms;Alarm frequency converter SAF 4
+Input Registers;AlaData.Ala_AlarmSAF5_Status;X;15;1;Alarms;Alarm frequency converter SAF 5
+Input Registers;AlaData.Ala_AlarmEAF1_Status;X;16;1;Alarms;Alarm frequency converter EAF 1
+Input Registers;AlaData.Ala_AlarmEAF2_Status;X;17;1;Alarms;Alarm frequency converter EAF 2
+Input Registers;AlaData.Ala_AlarmEAF3_Status;X;18;1;Alarms;Alarm frequency converter EAF 3
+Input Registers;AlaData.Ala_AlarmEAF4_Status;X;19;1;Alarms;Alarm frequency converter EAF 4
+Input Registers;AlaData.Ala_AlarmEAF5_Status;X;20;1;Alarms;Alarm frequency converter EAF 5
+Input Registers;AlaData.Ala_WarningSAF1_Status;X;21;1;Alarms;Warning frequency converter SAF 1
+Input Registers;AlaData.Ala_WarningSAF2_Status;X;22;1;Alarms;Warning frequency converter SAF 2
+Input Registers;AlaData.Ala_WarningSAF3_Status;X;23;1;Alarms;Warning frequency converter SAF 3
+Input Registers;AlaData.Ala_WarningSAF4_Status;X;24;1;Alarms;Warning frequency converter SAF 4
+Input Registers;AlaData.Ala_WarningSAF5_Status;X;25;1;Alarms;Warning frequency converter SAF 5
+Input Registers;AlaData.Ala_WarningEAF1_Status;X;26;1;Alarms;Warning frequency converter EAF 1
+Input Registers;AlaData.Ala_WarningEAF2_Status;X;27;1;Alarms;Warning frequency converter EAF 2
+Input Registers;AlaData.Ala_WarningEAF3_Status;X;28;1;Alarms;Warning frequency converter EAF 3
+Input Registers;AlaData.Ala_WarningEAF4_Status;X;29;1;Alarms;Warning frequency converter EAF 4
+Input Registers;AlaData.Ala_WarningEAF5_Status;X;30;1;Alarms;Warning frequency converter EAF 5
+Input Registers;AlaData.Ala_ExternalRunSAF_Status;X;31;1;Alarms;External operation SAF
+Input Registers;AlaData.Ala_ExternalRunEAF_Status;X;32;1;Alarms;External operation EAF
+Input Registers;AlaData.Ala_ExternalRunMotor1_Status;X;33;1;Alarms;Motor control 1 external operation
+Input Registers;AlaData.Ala_ExternalRunMotor2_Status;X;34;1;Alarms;Motor control 2 external operation
+Input Registers;AlaData.Ala_MalfunctionPumpHeater_Status;X;35;1;Alarms;Malfunction pump heater
+Input Registers;AlaData.Ala_MalfunctionPumpCooler_Status;X;36;1;Alarms;Malfunction pump cooler
+Input Registers;AlaData.Ala_MalfunctionPumpExchanger_Status;X;37;1;Alarms;Malfunction pump exchanger
+Input Registers;AlaData.Ala_MalfunctionFireDamper_Status;X;38;1;Alarms;Malfunction fire damper
+Input Registers;AlaData.Ala_MalfunctionDamper_Status;X;39;1;Alarms;Malfunction damper
+Input Registers;AlaData.Ala_MalfunctionMotor1_Status;X;40;1;Alarms;Malfunction motor control 1
+Input Registers;AlaData.Ala_MalfunctionMotor2_Status;X;41;1;Alarms;Malfunction motor control 2
+Input Registers;AlaData.Ala_FireDamperExerciseStop_Status;X;42;1;Alarms;Fire damper exercise stop
+Input Registers;AlaData.Ala_MalfunctionPumpSequence1_Status;X;43;1;Alarms;Malfunction pump seq. A
+Input Registers;AlaData.Ala_MalfunctionPumpSequence2_Status;X;44;1;Alarms;Malfunction pump seq. B
+Input Registers;AlaData.Ala_MalfunctionPumpSequence3_Status;X;45;1;Alarms;Malfunction pump seq. C
+Input Registers;AlaData.Ala_MalfunctionPumpSequence4_Status;X;46;1;Alarms;Malfunction pump seq. D
+Input Registers;AlaData.Ala_MalfunctionPumpSequence5_Status;X;47;1;Alarms;Malfunction pump seq. E
+Input Registers;AlaData.Ala_MalfunctionPumpSequence6_Status;X;48;1;Alarms;Malfunction pump seq. F
+Input Registers;AlaData.Ala_MalfunctionPumpSequence7_Status;X;49;1;Alarms;Malfunction pump seq. G
+Input Registers;AlaData.Ala_MalfunctionPumpSequence8_Status;X;50;1;Alarms;Malfunction pump seq. H
+Input Registers;AlaData.Ala_MalfunctionPumpSequence9_Status;X;51;1;Alarms;Malfunction pump seq. I
+Input Registers;AlaData.Ala_MalfunctionPumpSequence10_Status;X;52;1;Alarms;Malfunction pump seq. J
+Input Registers;AlaData.Ala_FilterGuard1_Status;X;53;1;Alarms;Filter guard 1
+Input Registers;AlaData.Ala_FilterGuard2_Status;X;54;1;Alarms;Filter guard 2
+Input Registers;AlaData.Ala_FlowGuard_Status;X;55;1;Alarms;Flow guard
+Input Registers;AlaData.Ala_ExternalFrostGuard_Status;X;56;1;Alarms;External frost guard
+Input Registers;AlaData.Ala_DeicingGuard_Status;X;57;1;Alarms;Deicing pressure guard
+Input Registers;AlaData.Ala_FireAlarm_Status;X;58;1;Alarms;Fire alarm
+Input Registers;AlaData.Ala_SmokeAlarm_Status;X;59;1;Alarms;Smoke detector alarm
+Input Registers;AlaData.Ala_ExternalSwitch_Status;X;60;1;Alarms;External switch
+Input Registers;AlaData.Ala_ExternalAlarm_Status;X;61;1;Alarms;External alarm
+Input Registers;AlaData.Ala_ServiceStop_Status;X;62;1;Alarms;Service stop
+Input Registers;AlaData.Ala_ElectricOverheat_Status;X;63;1;Alarms;Electric heating is overheated
+Input Registers;AlaData.Ala_FrostRisk_Status;X;64;1;Alarms;Frost risk
+Input Registers;AlaData.Ala_LowEfficiency_Status;X;65;1;Alarms;Low efficiency
+Input Registers;AlaData.Ala_AnalogueDeicing_Status;X;66;1;Alarms;Analogue deicing
+Input Registers;AlaData.Ala_RotationguardExchanger_Status;X;67;1;Alarms;Rotation guard exchanger
+Input Registers;AlaData.Ala_ExtraAlarm1_Status;X;68;1;Alarms;Extra alarm 1
+Input Registers;AlaData.Ala_ExtraAlarm2_Status;X;69;1;Alarms;Extra alarm 2
+Input Registers;AlaData.Ala_ExtraAlarm3_Status;X;70;1;Alarms;Extra alarm 3
+Input Registers;AlaData.Ala_ExtraAlarm4_Status;X;71;1;Alarms;Extra alarm 4
+Input Registers;AlaData.Ala_ExtraAlarm5_Status;X;72;1;Alarms;Extra alarm 5
+Input Registers;AlaData.Ala_ExtraAlarm6_Status;X;73;1;Alarms;Extra alarm 6
+Input Registers;AlaData.Ala_ExtraAlarm7_Status;X;74;1;Alarms;Extra alarm 7
+Input Registers;AlaData.Ala_ExtraAlarm8_Status;X;75;1;Alarms;Extra alarm 8
+Input Registers;AlaData.Ala_ExtraAlarm9_Status;X;76;1;Alarms;Extra alarm 9
+Input Registers;AlaData.Ala_ExtraAlarm10_Status;X;77;1;Alarms;Extra alarm 10
+Input Registers;AlaData.Ala_BatteryFail_Status;X;78;1;Alarms;Internal battery error
+Input Registers;AlaData.Ala_Service_Status;X;79;1;Alarms;Time for service
+Input Registers;AlaData.Ala_RestartBlocked_Status;X;80;1;Alarms;Restart blocked after power on
+Input Registers;AlaData.Ala_ControlErrorSupplyTemp_Status;X;81;1;Alarms;Supply air temp control error
+Input Registers;AlaData.Ala_ControlErrorSAF_Status;X;82;1;Alarms;SAF control error
+Input Registers;AlaData.Ala_ControlErrorEAF_Status;X;83;1;Alarms;EAF control error
+Input Registers;AlaData.Ala_ControlErrorHumidity_Status;X;84;1;Alarms;Humidity control error
+Input Registers;AlaData.Ala_ControlErrorExtraController_Status;X;85;1;Alarms;Extra controller control error
+Input Registers;AlaData.Ala_HighTempSupply_Status;X;86;1;Alarms;High supply air temp
+Input Registers;AlaData.Ala_LowTempSupply_Status;X;87;1;Alarms;Low supply air temp
+Input Registers;AlaData.Ala_MaxLimitTempSupply_Status;X;88;1;Alarms;Supply air temp max limit
+Input Registers;AlaData.Ala_MinLimitTempSupply_Status;X;89;1;Alarms;Supply air temp min limit
+Input Registers;AlaData.Ala_HighTempRoom_Status;X;90;1;Alarms;High room temp
+Input Registers;AlaData.Ala_LowTempRoom_Status;X;91;1;Alarms;Low room temp
+Input Registers;AlaData.Ala_HighTempExtract_Status;X;92;1;Alarms;High extract air temp
+Input Registers;AlaData.Ala_LowTempExtract_Status;X;93;1;Alarms;Low extract air temp
+Input Registers;AlaData.Ala_HighTempOutdoor_Status;X;94;1;Alarms;High outdoor air temp
+Input Registers;AlaData.Ala_LowTempOutdoor_Status;X;95;1;Alarms;Low outdoor air temp
+Input Registers;AlaData.Ala_LowTempFrostGuard1_Status;X;96;1;Alarms;Low frost guard temp 1
+Input Registers;AlaData.Ala_LowTempFrostGuard2_Status;X;97;1;Alarms;Low frost guard temp 2
+Input Registers;AlaData.Ala_LowTempFrostGuard3_Status;X;98;1;Alarms;Low frost guard temp 3
+Input Registers;AlaData.Ala_HighTempExtraSensor1_Status;X;99;1;Alarms;High temp extra sensor 1
+Input Registers;AlaData.Ala_LowTempExtraSensor1_Status;X;100;1;Alarms;Low temp extra sensor 1
+Input Registers;AlaData.Ala_HighTempExtraSensor2_Status;X;101;1;Alarms;High temp extra sensor 2
+Input Registers;AlaData.Ala_LowTempExtraSensor2_Status;X;102;1;Alarms;Low temp extra sensor 2
+Input Registers;AlaData.Ala_HighTempExtraSensor3_Status;X;103;1;Alarms;High temp extra sensor 3
+Input Registers;AlaData.Ala_LowTempExtraSensor3_Status;X;104;1;Alarms;Low temp extra sensor 3
+Input Registers;AlaData.Ala_HighTempExtraSensor4_Status;X;105;1;Alarms;High temp extra sensor 4
+Input Registers;AlaData.Ala_LowTempExtraSensor4_Status;X;106;1;Alarms;Low temp extra sensor 4
+Input Registers;AlaData.Ala_HighTempExtraSensor5_Status;X;107;1;Alarms;High temp extra sensor 5
+Input Registers;AlaData.Ala_LowTempExtraSensor5_Status;X;108;1;Alarms;Low temp extra sensor 5
+Input Registers;AlaData.Ala_HighTempSelectedSensor1_Status;X;109;1;Alarms;High temp selected sensor 1
+Input Registers;AlaData.Ala_LowTempSelectedSensor1_Status;X;110;1;Alarms;Low temp selected sensor 1
+Input Registers;AlaData.Ala_HighTempSelectedSensor2_Status;X;111;1;Alarms;High temp selected sensor 2
+Input Registers;AlaData.Ala_LowTempSelectedSensor2_Status;X;112;1;Alarms;Low temp selected sensor 2
+Input Registers;AlaData.Ala_ManualControlUnit_Status;X;113;1;Alarms;Manual control air unit
+Input Registers;AlaData.Ala_ManualControlSupply_Status;X;114;1;Alarms;Manual control supply air
+Input Registers;AlaData.Ala_ManualControlSAF_Status;X;115;1;Alarms;Manual control SAF
+Input Registers;AlaData.Ala_ManualControlEAF_Status;X;116;1;Alarms;Manual control EAF
+Input Registers;AlaData.Ala_ManualControlHeater_Status;X;117;1;Alarms;Manual control heater
+Input Registers;AlaData.Ala_ManualControlExchanger_Status;X;118;1;Alarms;Manual control exchanger
+Input Registers;AlaData.Ala_ManualControlCooler_Status;X;119;1;Alarms;Manual control cooler
+Input Registers;AlaData.Ala_ManualControlDamper_Status;X;120;1;Alarms;Manual control damper
+Input Registers;AlaData.Ala_ManualControlPumpHeater_Status;X;121;1;Alarms;Manual control heater pump
+Input Registers;AlaData.Ala_ManualControlPumpExchanger_Status;X;122;1;Alarms;Manual control exchanger pump
+Input Registers;AlaData.Ala_ManualControlPumpCooler_Status;X;123;1;Alarms;Manual control cooler pump
+Input Registers;AlaData.Ala_ManualControlDamperRecirculation_Status;X;124;1;Alarms;Manual control recirculation air damper
+Input Registers;AlaData.Ala_ManualControlDamperOutdoor_Status;X;125;1;Alarms;Manual control fresh air damper
+Input Registers;AlaData.Ala_ManualControlDamperExhaust_Status;X;126;1;Alarms;Manual control exhaust air damper
+Input Registers;AlaData.Ala_ManualControlDamperFire_Status;X;127;1;Alarms;Manual control fire damper
+Input Registers;AlaData.Ala_ManualControlSequence1_Status;X;128;1;Alarms;Manual control seq. A
+Input Registers;AlaData.Ala_ManualControlSequence2_Status;X;129;1;Alarms;Manual control seq. B
+Input Registers;AlaData.Ala_ManualControlSequence3_Status;X;130;1;Alarms;Manual control seq. C
+Input Registers;AlaData.Ala_ManualControlSequence4_Status;X;131;1;Alarms;Manual control seq. D
+Input Registers;AlaData.Ala_ManualControlSequence5_Status;X;132;1;Alarms;Manual control seq. E
+Input Registers;AlaData.Ala_ManualControlSequence6_Status;X;133;1;Alarms;Manual control seq. F
+Input Registers;AlaData.Ala_ManualControlSequence7_Status;X;134;1;Alarms;Manual control seq. G
+Input Registers;AlaData.Ala_ManualControlSequence8_Status;X;135;1;Alarms;Manual control seq. H
+Input Registers;AlaData.Ala_ManualControlSequence9_Status;X;136;1;Alarms;Manual control seq. I
+Input Registers;AlaData.Ala_ManualControlSequence10_Status;X;137;1;Alarms;Manual control seq. J
+Input Registers;AlaData.Ala_ManualControlOutput_Status;X;138;1;Alarms;Output in manual control
+Input Registers;AlaData.Ala_ManualControlInput_Status;X;139;1;Alarms;Input in manual control
+Input Registers;AlaData.Ala_ManualControlExtraController_Status;X;140;1;Alarms;Manual control extra controller
+Input Registers;AlaData.Ala_ManualControlMotor1_Status;X;141;1;Alarms;Manual control motor control 1
+Input Registers;AlaData.Ala_ManualControlMotor2_Status;X;142;1;Alarms;Manual control motor control 2
+Input Registers;AlaData.Ala_ManualControlPretreatment_Status;X;143;1;Alarms;Manual control pretreatment
+Input Registers;AlaData.Ala_SensorErrorTempOutdoor_Status;X;144;1;Alarms;Sensor error outdoor air temp
+Input Registers;AlaData.Ala_SensorErrorTempIntake_Status;X;145;1;Alarms;Sensor error intake air temp
+Input Registers;AlaData.Ala_SensorErrorTempSupply_Status;X;146;1;Alarms;Sensor error supply air temp
+Input Registers;AlaData.Ala_SensorErrorTempExhaust_Status;X;147;1;Alarms;Sensor error exhaust air temp
+Input Registers;AlaData.Ala_SensorErrorTempExtract_Status;X;148;1;Alarms;Sensor error extract air temp
+Input Registers;AlaData.Ala_SensorErrorTempRoom1_Status;X;149;1;Alarms;Sensor error room temp 1
+Input Registers;AlaData.Ala_SensorErrorTempRoom2_Status;X;150;1;Alarms;Sensor error room temp 2
+Input Registers;AlaData.Ala_SensorErrorTempRoom3_Status;X;151;1;Alarms;Sensor error room temp 3
+Input Registers;AlaData.Ala_SensorErrorTempRoom4_Status;X;152;1;Alarms;Sensor error room temp 4
+Input Registers;AlaData.Ala_SensorErrorTempRoom5_Status;X;153;1;Alarms;Sensor error room temp 5
+Input Registers;AlaData.Ala_SensorErrorTempRoom6_Status;X;154;1;Alarms;Sensor error room temp 6
+Input Registers;AlaData.Ala_SensorErrorTempRoom7_Status;X;155;1;Alarms;Sensor error room temp 7
+Input Registers;AlaData.Ala_SensorErrorTempRoom8_Status;X;156;1;Alarms;Sensor error room temp 8
+Input Registers;AlaData.Ala_SensorErrorTempRoom9_Status;X;157;1;Alarms;Sensor error room temp 9
+Input Registers;AlaData.Ala_SensorErrorTempRoom10_Status;X;158;1;Alarms;Sensor error room temp 10
+Input Registers;AlaData.Ala_SensorErrorTempRoom11_Status;X;159;1;Alarms;Sensor error room temp 11
+Input Registers;AlaData.Ala_SensorErrorTempRoom12_Status;X;160;1;Alarms;Sensor error room temp 12
+Input Registers;AlaData.Ala_SensorErrorTempRoom13_Status;X;161;1;Alarms;Sensor error room temp 13
+Input Registers;AlaData.Ala_SensorErrorTempRoom14_Status;X;162;1;Alarms;Sensor error room temp 14
+Input Registers;AlaData.Ala_SensorErrorTempRoom15_Status;X;163;1;Alarms;Sensor error room temp 15
+Input Registers;AlaData.Ala_SensorErrorTempRoom16_Status;X;164;1;Alarms;Sensor error room temp 16
+Input Registers;AlaData.Ala_SensorErrorPressureSAF_Status;X;165;1;Alarms;Sensor error SAF pressure
+Input Registers;AlaData.Ala_SensorErrorPressureEAF_Status;X;166;1;Alarms;Sensor error EAF pressure
+Input Registers;AlaData.Ala_SensorErrorFlowSAF_Status;X;167;1;Alarms;Sensor error SAF flow
+Input Registers;AlaData.Ala_SensorErrorFlowEAF_Status;X;168;1;Alarms;Sensor error EAF flow
+Input Registers;AlaData.Ala_SensorPressureExchangerSAF_Status;X;169;1;Alarms;Sensor error exchanger pressure SAF
+Input Registers;AlaData.Ala_SensorPressureExchangerEAF_Status;X;170;1;Alarms;Sensor error exchanger pressure EAF
+Input Registers;AlaData.Ala_SensorErrorTempDeicing_Status;X;171;1;Alarms;Sensor error deicing temp
+Input Registers;AlaData.Ala_SensorErrorTempFrost1_Status;X;172;1;Alarms;Sensor error frost protection 1
+Input Registers;AlaData.Ala_SensorErrorTempFrost2_Status;X;173;1;Alarms;Sensor error frost protection 2
+Input Registers;AlaData.Ala_SensorErrorTempFrost3_Status;X;174;1;Alarms;Sensor error frost protection 3
+Input Registers;AlaData.Ala_SensorErrorCO2_Status;X;175;1;Alarms;Sensor error CO2
+Input Registers;AlaData.Ala_SensorErrorHumidityRoom_Status;X;176;1;Alarms;Sensor error humidity room
+Input Registers;AlaData.Ala_SensorErrorHumidityDuct_Status;X;177;1;Alarms;Sensor error humidity duct
+Input Registers;AlaData.Ala_SensorErrorTempExtraController_Status;X;178;1;Alarms;Sensor error extra controller
+Input Registers;AlaData.Ala_SensorErrorExtCtrlSAF_Status;X;179;1;Alarms;Sensor error external control SAF
+Input Registers;AlaData.Ala_SensorErrorExtCtrlEAF_Status;X;180;1;Alarms;Sensor error external control EAF
+Input Registers;AlaData.Ala_SensorErrorHumidityOutdoor_Status;X;181;1;Alarms;Sensor error outdoor humidity
+Input Registers;AlaData.Ala_SensorErrorTempExtraSensor1_Status;X;182;1;Alarms;Sensor error extra sensor 1
+Input Registers;AlaData.Ala_SensorErrorTempExtraSensor2_Status;X;183;1;Alarms;Sensor error extra sensor 2
+Input Registers;AlaData.Ala_SensorErrorTempExtraSensor3_Status;X;184;1;Alarms;Sensor error extra sensor 3
+Input Registers;AlaData.Ala_SensorErrorTempExtraSensor4_Status;X;185;1;Alarms;Sensor error extra sensor 4
+Input Registers;AlaData.Ala_SensorErrorTempExtraSensor5_Status;X;186;1;Alarms;Sensor error extra sensor 5
+Input Registers;AlaData.Ala_SensorErrorExtSupplySetp_Status;X;187;1;Alarms;Sensor error external supply setpoint
+Input Registers;AlaData.Ala_SensorErrorExtFlowSetpoint_Status;X;188;1;Alarms;Sensor error external flow setpoint
+Input Registers;AlaData.Ala_SensorErrorFilterGuard1_Status;X;189;1;Alarms;Sensor error filter guard 1
+Input Registers;AlaData.Ala_SensorErrorFilterGuard2_Status;X;190;1;Alarms;Sensor error filter guard 2
+Input Registers;AlaData.Ala_SensorErrorTempEfficiency_Status;X;191;1;Alarms;Sensor error efficiency temp
+Input Registers;AlaData.Ala_CommErrorDevice_Status;X;192;1;Alarms;Fault communication device
+Input Registers;AlaData.Ala_MalfunctionExtraController_Status;X;193;1;Alarms;Malfunction Extra Controller
+Input Registers;AlaData.Ala_InternalError_Status;X;194;1;Alarms;Internal error
+Input Registers;VentActual.A_AnalogInput(1);R;251;;Inputs/Outputs;The scaled and filtered value of AI1
+Input Registers;VentActual.A_AnalogInput(2);R;252;;Inputs/Outputs;The scaled and filtered value of AI2
+Input Registers;VentActual.A_AnalogInput(3);R;253;;Inputs/Outputs;The scaled and filtered value of AI3
+Input Registers;VentActual.A_AnalogInput(4);R;254;;Inputs/Outputs;The scaled and filtered value of AI4
+Input Registers;VentActual.A_AnalogInput(5);R;255;;Inputs/Outputs;The scaled and filtered value of UAI1
+Input Registers;VentActual.A_AnalogInput(6);R;256;;Inputs/Outputs;The scaled and filtered value of UAI2
+Input Registers;VentActual.A_AnalogInput(7);R;257;;Inputs/Outputs;The scaled and filtered value of UAI3
+Input Registers;VentActual.A_AnalogInput(8);R;258;;Inputs/Outputs;The scaled and filtered value of UAI4
+Input Registers;VentActual.A_AnalogInputExp1(1);R;259;;Inputs/Outputs;The scaled and filtered value of AI1 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(2);R;260;;Inputs/Outputs;The scaled and filtered value of AI2 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(3);R;261;;Inputs/Outputs;The scaled and filtered value of AI3 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(4);R;262;;Inputs/Outputs;The scaled and filtered value of AI4 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(5);R;263;;Inputs/Outputs;The scaled and filtered value of UAI1 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(6);R;264;;Inputs/Outputs;The scaled and filtered value of UAI2 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(7);R;265;;Inputs/Outputs;The scaled and filtered value of UAI3 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp1(8);R;266;;Inputs/Outputs;The scaled and filtered value of UAI4 Exp.Unit 1
+Input Registers;VentActual.A_AnalogInputExp2(1);R;267;;Inputs/Outputs;The scaled and filtered value of AI1 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(2);R;268;;Inputs/Outputs;The scaled and filtered value of AI2 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(3);R;269;;Inputs/Outputs;The scaled and filtered value of AI3 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(4);R;270;;Inputs/Outputs;The scaled and filtered value of AI4 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(5);R;271;;Inputs/Outputs;The scaled and filtered value of UAI1 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(6);R;272;;Inputs/Outputs;The scaled and filtered value of UAI2 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(7);R;273;;Inputs/Outputs;The scaled and filtered value of UAI3 Exp.Unit 2
+Input Registers;VentActual.A_AnalogInputExp2(8);R;274;;Inputs/Outputs;The scaled and filtered value of UAI4 Exp.Unit 2
+Input Registers;VentActual.A_AI_OutDoorTemp;R;291;;Inputs/Outputs;Outdoor temperature
+Input Registers;VentActual.A_AI_SupplyAirTemp;R;293;;Inputs/Outputs;Supply air temperature
+Input Registers;VentActual.A_AI_ExhaustAirTemp;R;294;;Inputs/Outputs;Exhaust air temp
+Input Registers;VentActual.A_AI_RoomTemp1(0);R;296;;Inputs/Outputs;Room temperature 1
+Input Registers;VentActual.A_AI_SAFPressure;R;312;;Inputs/Outputs;Supply air fan pressure 
+Input Registers;VentActual.A_AI_EAFPressure;R;313;;Inputs/Outputs;Extract air fan pressure 
+Input Registers;VentActual.A_AI_SAFFlow;R;314;;Inputs/Outputs;Supply air fan flow. Scale factor = 1
+Input Registers;VentActual.A_AI_EAFFlow;R;315;;Inputs/Outputs;Extract air fan flow  Scale factor = 1
+Input Registers;VentActual.A_AI_DeIcingTemp;R;318;;Inputs/Outputs;De-icing temp exchanger
+Input Registers;VentActual.A_SAFAirFlow;R;360;;Ventilation  Actual/Setpoint;Counted air flow m3/h supply air
+Input Registers;VentActual.A_EAFAirFlow;R;361;;Ventilation  Actual/Setpoint;Counted air flow m3/h extract air
+Input Registers;VentActual.A_AO_SequenceY1;R;364;;Ventilation  Manual/Auto;Sequence A output (%)
+Input Registers;VentActual.A_AO_SequenceY2;R;365;;Ventilation  Manual/Auto;Sequence B output (%)
+Input Registers;VentActual.A_AO_SAF(0);R;376;;Ventilation  Manual/Auto;Supply air fan control
+Input Registers;VentActual.A_AO_EAF;R;377;;Ventilation  Manual/Auto;Extract air fan control
+Input Registers;VentActual.A_AnalogOutput(1);R;403;;Inputs/Outputs;The value on analog output 1
+Input Registers;VentActual.A_AnalogOutput(2);R;404;;Inputs/Outputs;The value on analog output 2
+Input Registers;VentActual.A_AnalogOutput(3);R;405;;Inputs/Outputs;The value on analog output 3
+Input Registers;VentActual.A_AnalogOutput(4);R;406;;Inputs/Outputs;The value on analog output 4
+Input Registers;VentActual.A_AnalogOutput(5);R;407;;Inputs/Outputs;The value on analog output 5
+Input Registers;VentActual.A_AnalogOutputExp1(1);R;408;;Inputs/Outputs;Value of AO1 Exp. Unit 1
+Input Registers;VentActual.A_AnalogOutputExp1(2);R;409;;Inputs/Outputs;Value of AO2 Exp. Unit 1
+Input Registers;VentActual.A_AnalogOutputExp1(3);R;410;;Inputs/Outputs;Value of AO3 Exp. Unit 1
+Input Registers;VentActual.A_AnalogOutputExp1(4);R;411;;Inputs/Outputs;Value of AO4 Exp. Unit 1
+Input Registers;VentActual.A_AnalogOutputExp1(5);R;412;;Inputs/Outputs;Value of AO5 Exp. Unit 1
+Input Registers;VentActual.A_AnalogOutputExp2(1);R;413;;Inputs/Outputs;Value of AO1 Exp. Unit 2
+Input Registers;VentActual.A_AnalogOutputExp2(2);R;414;;Inputs/Outputs;Value of AO2 Exp. Unit 2
+Input Registers;VentActual.A_AnalogOutputExp2(3);R;415;;Inputs/Outputs;Value of AO3 Exp. Unit 2
+Input Registers;VentActual.A_AnalogOutputExp2(4);R;416;;Inputs/Outputs;Value of AO4 Exp. Unit 2
+Input Registers;VentActual.A_AnalogOutputExp2(5);R;417;;Inputs/Outputs;Value of AO5 Exp. Unit 2
+Input Registers;VentActual.A_Efficiency;R;428;;Ventilation  Actual/Setpoint;Efficiency in % for exchanger
+Input Registers;VentActual.A_UnitMode;X;429;;Ventilation  Status;0=Stop, 1=Starting up, 2=Low speed run, 3=Normal speed run, 4=High speed run, 5=Heating support run, 6=Cooling support run, 7=CO2 Run, 8=Free cool run, 9=Fan stop run, 10=Fire run, 11=Smoke run, 12=Recirculation run, 13=DeIcing run
+Input Registers;VentActual.A_UnitModeControl;X;430;;Ventilation  Status;Indicates what is triggering the current run mode 1=Time schedule, 2=Manual run, 3=Digital Input, 4=Alarm, 5=External control, 6=Service stop
+Input Registers;VentActual.A_ActiveSeqType;X;431;0;Ventilation  Status;Active seq. type (0 = heating, 1 = cooling)
+Input Registers;VentActual.A_ActiveHeatSeqStep;X;432;1;Ventilation  Status;Current heat sequence step that's active
+Input Registers;VentActual.A_ActiveCoolSeqStep;X;433;0;Ventilation  Status;Current cool sequence step that's active
+Input Registers;VentActual.A_ActiveYSeq;X;434;0;Ventilation  Status;Current Y sequence that's active and controlling
+Input Registers;VentActual.A_SAFRunTime;R;435;;Ventilation  Fan control;Running time (hour) supply air fan
+Input Registers;VentActual.A_EAFRunTime;R;436;;Ventilation  Fan control;Running time (hour) extract air fan
+Input Registers;VentActual.A_DeIcingTime;X;437;;Ventilation  Temperature control;Number of minutes for ongoing de-icing
+Input Registers;VentActual.A_Y1Sequence;R;440;;Ventilation  Status;Control signal Y1 
+Input Registers;VentActual.A_Y2Sequence;R;441;;Ventilation  Status;Control signal Y2
+Input Registers;VentActual.A_Y4Sequence;R;443;;Ventilation  Status;Control signal Y4
+Input Registers;VentActual.A_SAF;R;450;;Ventilation  Actual/Setpoint;Control signal supply air fan 
+Input Registers;VentActual.A_EAF;R;451;;Ventilation  Actual/Setpoint;Control signal extract air fan 
+Input Registers;VentActual.A_SAFSpeed;X;452;;Ventilation  Fan control;SAF speed in auto and manual mode (0 = Off, 1 = Low speed, 2 = normal speed, 3 = high speed, 4 = Special)
+Input Registers;VentActual.A_EAFSpeed;X;453;;Ventilation  Fan control;EAF speed in auto and manual mode
+Input Registers;VentActual.A_CompLowSpeedSAF(0);R;654;;Ventilation  Fan control;Total comp. low speed SAF (for flow)
+Input Registers;VentActual.A_CompNormalSpeedSAF;R;655;;Ventilation  Fan control;Total comp. normal speed SAF (for flow)
+Input Registers;VentActual.A_CompHighSpeedSAF;R;656;;Ventilation  Fan control;Total comp. high speed SAF (for flow)
+Input Registers;VentActual.A_CompLowSpeedEAF(0);R;657;;Ventilation  Fan control;Total comp. low speed EAF (for flow)
+Input Registers;VentActual.A_CompNormalSpeedEAF;R;658;;Ventilation  Fan control;Total comp. normal speed EAF (for flow)
+Input Registers;VentActual.A_CompHighSpeedEAF;R;659;;Ventilation  Fan control;Total comp. high speed EAF (for flow)
+Input Registers;VentActual.A_AlarmACount(0);X;460;;Alarms;Number of A alarms
+Input Registers;VentActual.A_AlarmBCount;X;461;;Alarms;Number of B alarms
+Input Registers;VentActual.A_AlarmCCount;X;462;;Alarms;Number of C alarms
+Input Registers;VentActual.A_SumAlarm1Count(0);X;463;;Alarms;Number of SumAlarm1 alarms
+Input Registers;VentActual.A_SumAlarm2Count;X;464;;Alarms;Number of SumAlarm2 alarms
+Input Registers;VentActual.A_SupplyPID_SetP;R;465;;Ventilation  Actual/Setpoint;Calculated setpoint supply air temperature when outdoor compensated control function
+Input Registers;VentActual.A_SAFPID_SetP;R;660;;Ventilation  Actual/Setpoint;Actual setp. SAF (for flow)
+Input Registers;VentActual.A_EAFPID_SetP;R;661;;Ventilation  Actual/Setpoint;Actual setpoint EAF
+Input Registers;VentActual.A_DeIcePID_Output;R;472;;Ventilation  Temperature control;De-icing controller output
+Input Registers;VentActual.A_SFP;R;474;;Ventilation  Fan control;Actual SFP
+Input Registers;VentActual.A_SFPDay;R;475;;Ventilation  Fan control;Day average SFP
+Input Registers;VentActual.A_SFPMonth;R;476;;Ventilation  Fan control;Month average (30 day average) SFP
+Input Registers;VentComActual.CA_MotorSpeedHzSAF(1);R;477;;Ventilation  Actual/Setpoint;SAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzSAF(2);R;478;;Ventilation  Actual/Setpoint;SAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzSAF(3);R;479;;Ventilation  Actual/Setpoint;SAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzSAF(4);R;480;;Ventilation  Actual/Setpoint;SAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzSAF(5);R;481;;Ventilation  Actual/Setpoint;SAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzEAF(1);R;482;;Ventilation  Actual/Setpoint;EAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzEAF(2);R;483;;Ventilation  Actual/Setpoint;EAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzEAF(3);R;484;;Ventilation  Actual/Setpoint;EAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzEAF(4);R;485;;Ventilation  Actual/Setpoint;EAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedHzEAF(5);R;486;;Ventilation  Actual/Setpoint;EAF Motor speed Hz
+Input Registers;VentComActual.CA_MotorSpeedRpmSAF(1);R;487;;Ventilation  Actual/Setpoint;SAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmSAF(3);R;489;;Ventilation  Actual/Setpoint;SAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmSAF(4);R;490;;Ventilation  Actual/Setpoint;SAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmSAF(5);R;491;;Ventilation  Actual/Setpoint;SAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmEAF(1);R;492;;Ventilation  Actual/Setpoint;EAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmEAF(2);R;493;;Ventilation  Actual/Setpoint;EAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmEAF(3);R;494;;Ventilation  Actual/Setpoint;EAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmEAF(4);R;495;;Ventilation  Actual/Setpoint;EAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorSpeedRpmEAF(5);R;496;;Ventilation  Actual/Setpoint;EAF Motor speed RPM
+Input Registers;VentComActual.CA_MotorCurrentSAF(1);R;497;;Ventilation  Actual/Setpoint;SAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentSAF(2);R;498;;Ventilation  Actual/Setpoint;SAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentSAF(3);R;499;;Ventilation  Actual/Setpoint;SAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentSAF(4);R;500;;Ventilation  Actual/Setpoint;SAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentSAF(5);R;501;;Ventilation  Actual/Setpoint;SAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentEAF(1);R;502;;Ventilation  Actual/Setpoint;EAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentEAF(2);R;503;;Ventilation  Actual/Setpoint;EAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentEAF(3);R;504;;Ventilation  Actual/Setpoint;EAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentEAF(4);R;505;;Ventilation  Actual/Setpoint;EAF Motor current
+Input Registers;VentComActual.CA_MotorCurrentEAF(5);R;506;;Ventilation  Actual/Setpoint;EAF Motor current
+Input Registers;VentComActual.CA_MotorPowerSAF(1);R;507;;Ventilation  Actual/Setpoint;SAF Motor power
+Input Registers;VentComActual.CA_MotorPowerSAF(2);R;508;;Ventilation  Actual/Setpoint;SAF Motor power
+Input Registers;VentComActual.CA_MotorPowerSAF(3);R;509;;Ventilation  Actual/Setpoint;SAF Motor power
+Input Registers;VentComActual.CA_MotorPowerSAF(4);R;510;;Ventilation  Actual/Setpoint;SAF Motor power
+Input Registers;VentComActual.CA_MotorPowerSAF(5);R;511;;Ventilation  Actual/Setpoint;SAF Motor power
+Input Registers;VentComActual.CA_MotorPowerEAF(1);R;512;;Ventilation  Actual/Setpoint;EAF Motor power
+Input Registers;VentComActual.CA_MotorPowerEAF(2);R;513;;Ventilation  Actual/Setpoint;EAF Motor power
+Input Registers;VentComActual.CA_MotorPowerEAF(3);R;514;;Ventilation  Actual/Setpoint;EAF Motor power
+Input Registers;VentComActual.CA_MotorPowerEAF(4);R;515;;Ventilation  Actual/Setpoint;EAF Motor power
+Input Registers;VentComActual.CA_MotorPowerEAF(5);R;516;;Ventilation  Actual/Setpoint;EAF Motor power
+Input Registers;VentComActual.CA_ActiveFaultSAF(1);I;517;;Ventilation  Actual/Setpoint;SAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultSAF(2);I;518;;Ventilation  Actual/Setpoint;SAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultSAF(3);I;519;;Ventilation  Actual/Setpoint;SAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultSAF(4);I;520;;Ventilation  Actual/Setpoint;SAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultSAF(5);I;521;;Ventilation  Actual/Setpoint;SAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultEAF(1);I;522;;Ventilation  Actual/Setpoint;EAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultEAF(2);I;523;;Ventilation  Actual/Setpoint;EAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultEAF(3);I;524;;Ventilation  Actual/Setpoint;EAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultEAF(4);I;525;;Ventilation  Actual/Setpoint;EAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActiveFaultEAF(5);I;526;;Ventilation  Actual/Setpoint;EAF Active fault (bit masked)
+Input Registers;VentComActual.CA_ActualSpeedSAF(1);R;527;;Ventilation  Actual/Setpoint;SAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedSAF(3);R;529;;Ventilation  Actual/Setpoint;SAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedSAF(4);R;530;;Ventilation  Actual/Setpoint;SAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedSAF(5);R;531;;Ventilation  Actual/Setpoint;SAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedEAF(1);R;532;;Ventilation  Actual/Setpoint;EAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedEAF(2);R;533;;Ventilation  Actual/Setpoint;EAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedEAF(3);R;534;;Ventilation  Actual/Setpoint;EAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedEAF(4);R;535;;Ventilation  Actual/Setpoint;EAF Actual speed
+Input Registers;VentComActual.CA_ActualSpeedEAF(5);R;536;;Ventilation  Actual/Setpoint;EAF Actual speed
+Input Registers;VentComActual.CA_AccumPowerSAF(1);R;537;;Ventilation  Actual/Setpoint;SAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerSAF(3);R;539;;Ventilation  Actual/Setpoint;SAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerSAF(4);R;540;;Ventilation  Actual/Setpoint;SAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerSAF(5);R;541;;Ventilation  Actual/Setpoint;SAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerEAF(1);R;542;;Ventilation  Actual/Setpoint;EAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerEAF(2);R;543;;Ventilation  Actual/Setpoint;EAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerEAF(3);R;544;;Ventilation  Actual/Setpoint;EAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerEAF(4);R;545;;Ventilation  Actual/Setpoint;EAF Accumulated power
+Input Registers;VentComActual.CA_AccumPowerEAF(5);R;546;;Ventilation  Actual/Setpoint;EAF Accumulated power
+Input Registers;VentActual.A_EnergyFanDay(0);R;558;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(1);R;560;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(2);R;562;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(3);R;564;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(4);R;566;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(5);R;568;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(6);R;570;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanDay(7);R;572;;Ventilation  Energy consumption;Sum of today and last 7 days total energy (kWh). Index 0 = today, 1=yesterday, 2=....
+Input Registers;VentActual.A_EnergyFanMonth(1);R;574;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(2);R;576;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(3);R;578;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(4);R;580;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(5);R;582;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(6);R;584;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(7);R;586;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(8);R;588;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(9);R;590;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(10);R;592;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(11);R;594;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(12);R;596;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(13);R;598;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(14);R;600;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(15);R;602;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(16);R;604;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(17);R;606;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(18);R;608;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(19);R;610;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(20);R;612;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(21);R;614;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(22);R;616;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(23);R;618;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(24);R;620;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(25);R;622;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(26);R;624;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(27);R;626;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(28);R;628;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(29);R;630;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(30);R;632;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(31);R;634;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(32);R;636;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(33);R;638;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(34);R;640;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(35);R;642;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanMonth(36);R;644;;Ventilation  Energy consumption;Sum of month total energy used (kWh). Index 1-12 = month this year. Index 13-24 = month last year. Index 25-36 = month 2years ago
+Input Registers;VentActual.A_EnergyFanYear(0);R;646;;Ventilation  Energy consumption;Sum of year total energu used (MWh). Index 0 = this year. Index 1 = previous year. Index 2 = 2 years ago.
+Input Registers;VentActual.A_EnergyFanYear(1);R;648;;Ventilation  Energy consumption;Sum of year total energu used (MWh). Index 0 = this year. Index 1 = previous year. Index 2 = 2 years ago.
+Input Registers;VentActual.A_EnergyFanYear(2);R;650;;Ventilation  Energy consumption;Sum of year total energu used (MWh). Index 0 = this year. Index 1 = previous year. Index 2 = 2 years ago.
+Input Registers;VentActual.A_ExchPressureSAF;R;316;;;Exchanger SAF pressure sensor
+Input Registers;VentActual.A_EnergyFanPwr;R;652;;Ventilation  Energy consumption;Current fans total power (kW)
+Holding Register;TimeDp.Posts(0).T1;R;1;00.00;Time settings  Fan low speed;Start time period 1 Monday low speed (HH.MM)
+Holding Register;TimeDp.Posts(0).T2;R;2;00.00;Time settings  Fan low speed;Stop time period 1 Monday low speed
+Holding Register;TimeDp.Posts(0).T3;R;3;;Time settings  Fan low speed;Start time period 2 Monday low speed
+Holding Register;TimeDp.Posts(0).T4;R;4;;Time settings  Fan low speed;Stop time period 2 Monday low speed
+Holding Register;TimeDp.Posts(0).T5;R;5;;Time settings  Fan low speed;Start time period 3 Monday low speed
+Holding Register;TimeDp.Posts(0).T6;R;6;;Time settings  Fan low speed;Stop time period 3 Monday low speed
+Holding Register;TimeDp.Posts(0).T7;R;7;;Time settings  Fan low speed;Start time period 4 Monday low speed
+Holding Register;TimeDp.Posts(0).T8;R;8;;Time settings  Fan low speed;Stop time period 4 Monday low speed
+Holding Register;TimeDp.Posts(1).T1;R;9;00.00;Time settings  Fan low speed;Start time period 1 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T2;R;10;00.00;Time settings  Fan low speed;Stop time period 1 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T3;R;11;;Time settings  Fan low speed;Start time period 2 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T4;R;12;;Time settings  Fan low speed;Stop time period 2 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T5;R;13;;Time settings  Fan low speed;Start time period 3 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T6;R;14;;Time settings  Fan low speed;Stop time period 3 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T7;R;15;;Time settings  Fan low speed;Start time period 4 Tuesday low speed
+Holding Register;TimeDp.Posts(1).T8;R;16;;Time settings  Fan low speed;Stop time period 4 Tuesday low speed
+Holding Register;TimeDp.Posts(2).T1;R;17;00.00;Time settings  Fan low speed;Start time period 1 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T2;R;18;00.00;Time settings  Fan low speed;Stop time period 1 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T3;R;19;;Time settings  Fan low speed;Start time period 2 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T4;R;20;;Time settings  Fan low speed;Stop time period 2 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T5;R;21;;Time settings  Fan low speed;Start time period 3 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T6;R;22;;Time settings  Fan low speed;Stop time period 3 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T7;R;23;;Time settings  Fan low speed;Start time period 4 Wedn. low speed
+Holding Register;TimeDp.Posts(2).T8;R;24;;Time settings  Fan low speed;Stop time period 4 Wedn. low speed
+Holding Register;TimeDp.Posts(3).T1;R;25;00.00;Time settings  Fan low speed;Start time period 1 Thursday low speed
+Holding Register;TimeDp.Posts(3).T2;R;26;00.00;Time settings  Fan low speed;Stop time period 1 Thursday low speed
+Holding Register;TimeDp.Posts(3).T3;R;27;;Time settings  Fan low speed;Start time period 2 Thursday low speed
+Holding Register;TimeDp.Posts(3).T4;R;28;;Time settings  Fan low speed;Stop time period 2 Thursday low speed
+Holding Register;TimeDp.Posts(3).T5;R;29;;Time settings  Fan low speed;Start time period 3 Thursday low speed
+Holding Register;TimeDp.Posts(3).T6;R;30;;Time settings  Fan low speed;Stop time period 3 Thursday low speed
+Holding Register;TimeDp.Posts(3).T7;R;31;;Time settings  Fan low speed;Start time period 4 Thursday low speed
+Holding Register;TimeDp.Posts(3).T8;R;32;;Time settings  Fan low speed;Stop time period 4 Thursday low speed
+Holding Register;TimeDp.Posts(4).T1;R;33;00.00;Time settings  Fan low speed;Start time period 1 Friday low speed
+Holding Register;TimeDp.Posts(4).T2;R;34;00.00;Time settings  Fan low speed;Stop time period 1 Friday low speed
+Holding Register;TimeDp.Posts(4).T3;R;35;;Time settings  Fan low speed;Start time period 2 Friday low speed
+Holding Register;TimeDp.Posts(4).T4;R;36;;Time settings  Fan low speed;Stop time period 2 Friday low speed
+Holding Register;TimeDp.Posts(4).T5;R;37;;Time settings  Fan low speed;Start time period 3 Friday low speed
+Holding Register;TimeDp.Posts(4).T6;R;38;;Time settings  Fan low speed;Stop time period 3 Friday low speed
+Holding Register;TimeDp.Posts(4).T7;R;39;;Time settings  Fan low speed;Start time period 4 Friday low speed
+Holding Register;TimeDp.Posts(4).T8;R;40;;Time settings  Fan low speed;Stop time period 4 Friday low speed
+Holding Register;TimeDp.Posts(5).T1;R;41;00.00;Time settings  Fan low speed;Start time period 1 Saturday low speed
+Holding Register;TimeDp.Posts(5).T2;R;42;00.00;Time settings  Fan low speed;Stop time period 1 Saturday low speed
+Holding Register;TimeDp.Posts(5).T3;R;43;;Time settings  Fan low speed;Start time period 2 Saturday low speed
+Holding Register;TimeDp.Posts(5).T4;R;44;;Time settings  Fan low speed;Stop time period 2 Saturday low speed
+Holding Register;TimeDp.Posts(5).T5;R;45;;Time settings  Fan low speed;Start time period 3 Saturday low speed
+Holding Register;TimeDp.Posts(5).T6;R;46;;Time settings  Fan low speed;Stop time period 3 Saturday low speed
+Holding Register;TimeDp.Posts(5).T7;R;47;;Time settings  Fan low speed;Start time period 4 Saturday low speed
+Holding Register;TimeDp.Posts(5).T8;R;48;;Time settings  Fan low speed;Stop time period 4 Saturday low speed
+Holding Register;TimeDp.Posts(6).T1;R;49;00.00;Time settings  Fan low speed;Start time period 1 Sunday low speed
+Holding Register;TimeDp.Posts(6).T2;R;50;00.00;Time settings  Fan low speed;Stop time period 1 Sunday low speed
+Holding Register;TimeDp.Posts(6).T3;R;51;;Time settings  Fan low speed;Start time period 2 Sunday low speed
+Holding Register;TimeDp.Posts(6).T4;R;52;;Time settings  Fan low speed;Stop time period 2 Sunday low speed
+Holding Register;TimeDp.Posts(6).T5;R;53;;Time settings  Fan low speed;Start time period 3 Sunday low speed
+Holding Register;TimeDp.Posts(6).T6;R;54;;Time settings  Fan low speed;Stop time period 3 Sunday low speed
+Holding Register;TimeDp.Posts(6).T7;R;55;;Time settings  Fan low speed;Start time period 4 Sunday low speed
+Holding Register;TimeDp.Posts(6).T8;R;56;;Time settings  Fan low speed;Stop time period 4 Sunday low speed
+Holding Register;TimeDp.Posts(7).T1;R;57;00.00;Time settings  Fan low speed;Start time period 1 Holiday low speed
+Holding Register;TimeDp.Posts(7).T2;R;58;00.00;Time settings  Fan low speed;Stop time period 1 Holiday low speed
+Holding Register;TimeDp.Posts(7).T3;R;59;;Time settings  Fan low speed;Start time period 2 Holiday low speed
+Holding Register;TimeDp.Posts(7).T4;R;60;;Time settings  Fan low speed;Stop time period 2 Holiday low speed
+Holding Register;TimeDp.Posts(7).T5;R;61;;Time settings  Fan low speed;Start time period 3 Holiday low speed
+Holding Register;TimeDp.Posts(7).T6;R;62;;Time settings  Fan low speed;Stop time period 3 Holiday low speed
+Holding Register;TimeDp.Posts(7).T7;R;63;;Time settings  Fan low speed;Start time period 4 Holiday low speed
+Holding Register;TimeDp.Posts(7).T8;R;64;;Time settings  Fan low speed;Stop time period 4 Holiday low speed
+Holding Register;TimeDp.Posts(8).T1;R;65;00.00;Time settings  Fan normal speed;Start time period 1 Monday normal speed (HH.MM)
+Holding Register;TimeDp.Posts(8).T2;R;66;24.00;Time settings  Fan normal speed;Stop time period 1 Monday normal speed
+Holding Register;TimeDp.Posts(8).T3;R;67;;Time settings  Fan normal speed;Start time period 2 Monday normal speed
+Holding Register;TimeDp.Posts(8).T4;R;68;;Time settings  Fan normal speed;Stop time period 2 Monday normal speed
+Holding Register;TimeDp.Posts(8).T5;R;69;;Time settings  Fan normal speed;Start time period 3 Monday normal speed
+Holding Register;TimeDp.Posts(8).T6;R;70;;Time settings  Fan normal speed;Stop time period 3 Monday normal speed
+Holding Register;TimeDp.Posts(8).T7;R;71;;Time settings  Fan normal speed;Start time period 4 Monday normal speed
+Holding Register;TimeDp.Posts(8).T8;R;72;;Time settings  Fan normal speed;Stop time period 4 Monday normal speed
+Holding Register;TimeDp.Posts(9).T1;R;73;00.00;Time settings  Fan normal speed;Start time period 1 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T2;R;74;24.00;Time settings  Fan normal speed;Stop time period 1 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T3;R;75;;Time settings  Fan normal speed;Start time period 2 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T4;R;76;;Time settings  Fan normal speed;Stop time period 2 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T5;R;77;;Time settings  Fan normal speed;Start time period 3 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T6;R;78;;Time settings  Fan normal speed;Stop time period 3 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T7;R;79;;Time settings  Fan normal speed;Start time period 4 Tuesday normal speed
+Holding Register;TimeDp.Posts(9).T8;R;80;;Time settings  Fan normal speed;Stop time period 4 Tuesday normal speed
+Holding Register;TimeDp.Posts(10).T1;R;81;00.00;Time settings  Fan normal speed;Start time period 1 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T2;R;82;24.00;Time settings  Fan normal speed;Stop time period 1 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T3;R;83;;Time settings  Fan normal speed;Start time period 2 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T4;R;84;;Time settings  Fan normal speed;Stop time period 2 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T5;R;85;;Time settings  Fan normal speed;Start time period 3 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T6;R;86;;Time settings  Fan normal speed;Stop time period 3 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T7;R;87;;Time settings  Fan normal speed;Start time period 4 Wedn. normal speed
+Holding Register;TimeDp.Posts(10).T8;R;88;;Time settings  Fan normal speed;Stop time period 4 Wedn. normal speed
+Holding Register;TimeDp.Posts(11).T1;R;89;00.00;Time settings  Fan normal speed;Start time period 1 Thursday normalspeed
+Holding Register;TimeDp.Posts(11).T2;R;90;24.00;Time settings  Fan normal speed;Stop time period 1 Thursday normal speed
+Holding Register;TimeDp.Posts(11).T3;R;91;;Time settings  Fan normal speed;Start time period 2 Thursday normal speed
+Holding Register;TimeDp.Posts(11).T4;R;92;;Time settings  Fan normal speed;Stop time period 2 Thursday normal speed
+Holding Register;TimeDp.Posts(11).T5;R;93;;Time settings  Fan normal speed;Start time period 3 Thursday normalspeed
+Holding Register;TimeDp.Posts(11).T6;R;94;;Time settings  Fan normal speed;Stop time period 3 Thursday normal speed
+Holding Register;TimeDp.Posts(11).T7;R;95;;Time settings  Fan normal speed;Start time period 4 Thursday normal speed
+Holding Register;TimeDp.Posts(11).T8;R;96;;Time settings  Fan normal speed;Stop time period 4 Thursday normal speed
+Holding Register;TimeDp.Posts(12).T1;R;97;00.00;Time settings  Fan normal speed;Start time period 1 Friday normal speed
+Holding Register;TimeDp.Posts(12).T2;R;98;24.00;Time settings  Fan normal speed;Stop time period 1 Friday normal speed
+Holding Register;TimeDp.Posts(12).T3;R;99;;Time settings  Fan normal speed;Start time period 2 Friday normal speed
+Holding Register;TimeDp.Posts(12).T4;R;100;;Time settings  Fan normal speed;Stop time period 2 Friday normal speed
+Holding Register;TimeDp.Posts(12).T5;R;101;;Time settings  Fan normal speed;Start time period 3 Friday normal speed
+Holding Register;TimeDp.Posts(12).T6;R;102;;Time settings  Fan normal speed;Stop time period 3 Friday normal speed
+Holding Register;TimeDp.Posts(12).T7;R;103;;Time settings  Fan normal speed;Start time period 4 Friday normal speed
+Holding Register;TimeDp.Posts(12).T8;R;104;;Time settings  Fan normal speed;Stop time period 4 Friday normal speed
+Holding Register;TimeDp.Posts(13).T1;R;105;00.00;Time settings  Fan normal speed;Start time period 1 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T2;R;106;24.00;Time settings  Fan normal speed;Stop time period 1 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T3;R;107;;Time settings  Fan normal speed;Start time period 2 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T4;R;108;;Time settings  Fan normal speed;Stop time period 2 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T5;R;109;;Time settings  Fan normal speed;Start time period 3 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T6;R;110;;Time settings  Fan normal speed;Stop time period 3 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T7;R;111;;Time settings  Fan normal speed;Start time period 4 Saturday normal speed
+Holding Register;TimeDp.Posts(13).T8;R;112;;Time settings  Fan normal speed;Stop time period 4 Saturday normal speed
+Holding Register;TimeDp.Posts(14).T1;R;113;00.00;Time settings  Fan normal speed;Start time period 1 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T2;R;114;24.00;Time settings  Fan normal speed;Stop time period 1 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T3;R;115;;Time settings  Fan normal speed;Start time period 2 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T4;R;116;;Time settings  Fan normal speed;Stop time period 2 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T5;R;117;;Time settings  Fan normal speed;Start time period 3 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T6;R;118;;Time settings  Fan normal speed;Stop time period 3 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T7;R;119;;Time settings  Fan normal speed;Start time period 4 Sunday normal speed
+Holding Register;TimeDp.Posts(14).T8;R;120;;Time settings  Fan normal speed;Stop time period 4 Sunday normal speed
+Holding Register;TimeDp.Posts(15).T1;R;121;00.00;Time settings  Fan normal speed;Start time period 1 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T2;R;122;00.00;Time settings  Fan normal speed;Stop time period 1 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T3;R;123;;Time settings  Fan normal speed;Start time period 2 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T4;R;124;;Time settings  Fan normal speed;Stop time period 2 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T5;R;125;;Time settings  Fan normal speed;Start time period 3 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T6;R;126;;Time settings  Fan normal speed;Stop time period 3 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T7;R;127;;Time settings  Fan normal speed;Start time period 4 Holiday normal speed
+Holding Register;TimeDp.Posts(15).T8;R;128;;Time settings  Fan normal speed;Stop time period 4 Holiday normal speed
+Holding Register;TimeDp.Posts(16).T1;R;129;00.00;Time settings  Fan high speed;Start time period 1 Monday high speed (HH.MM)
+Holding Register;TimeDp.Posts(16).T2;R;130;00.00;Time settings  Fan high speed;Stop time period 1 Monday high speed
+Holding Register;TimeDp.Posts(16).T3;R;131;;Time settings  Fan high speed;Start time period 2 Monday high speed
+Holding Register;TimeDp.Posts(16).T4;R;132;;Time settings  Fan high speed;Stop time period 2 Monday high speed
+Holding Register;TimeDp.Posts(16).T5;R;133;;Time settings  Fan high speed;Start time period 3 Monday high speed
+Holding Register;TimeDp.Posts(16).T6;R;134;;Time settings  Fan high speed;Stop time period 3 Monday high speed
+Holding Register;TimeDp.Posts(16).T7;R;135;;Time settings  Fan high speed;Start time period 4 Monday high speed
+Holding Register;TimeDp.Posts(16).T8;R;136;;Time settings  Fan high speed;Stop time period 4 Monday high speed
+Holding Register;TimeDp.Posts(17).T1;R;137;00.00;Time settings  Fan high speed;Start time period 1 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T2;R;138;00.00;Time settings  Fan high speed;Stop time period 1 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T3;R;139;;Time settings  Fan high speed;Start time period 2 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T4;R;140;;Time settings  Fan high speed;Stop time period 2 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T5;R;141;;Time settings  Fan high speed;Start time period 3 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T6;R;142;;Time settings  Fan high speed;Stop time period 3 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T7;R;143;;Time settings  Fan high speed;Start time period 4 Tuesday high speed
+Holding Register;TimeDp.Posts(17).T8;R;144;;Time settings  Fan high speed;Stop time period 4 Tuesday high speed
+Holding Register;TimeDp.Posts(18).T1;R;145;00.00;Time settings  Fan high speed;Start time period 1 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T2;R;146;00.00;Time settings  Fan high speed;Stop time period 1 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T3;R;147;;Time settings  Fan high speed;Start time period 2 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T4;R;148;;Time settings  Fan high speed;Stop time period 2 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T5;R;149;;Time settings  Fan high speed;Start time period 3 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T6;R;150;;Time settings  Fan high speed;Stop time period 3 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T7;R;151;;Time settings  Fan high speed;Start time period 4 Wedn. high speed
+Holding Register;TimeDp.Posts(18).T8;R;152;;Time settings  Fan high speed;Stop time period 4 Wedn. high speed
+Holding Register;TimeDp.Posts(19).T1;R;153;00.00;Time settings  Fan high speed;Start time period 1 Thursday highspeed
+Holding Register;TimeDp.Posts(19).T2;R;154;00.00;Time settings  Fan high speed;Stop time period 1 Thursday high speed
+Holding Register;TimeDp.Posts(19).T3;R;155;;Time settings  Fan high speed;Start time period 2 Thursday high speed
+Holding Register;TimeDp.Posts(19).T4;R;156;;Time settings  Fan high speed;Stop time period 2 Thursday high speed
+Holding Register;TimeDp.Posts(19).T5;R;157;;Time settings  Fan high speed;Start time period 3 Thursday highspeed
+Holding Register;TimeDp.Posts(19).T6;R;158;;Time settings  Fan high speed;Stop time period 3 Thursday high speed
+Holding Register;TimeDp.Posts(19).T7;R;159;;Time settings  Fan high speed;Start time period 4 Thursday high speed
+Holding Register;TimeDp.Posts(19).T8;R;160;;Time settings  Fan high speed;Stop time period 4 Thursday high speed
+Holding Register;TimeDp.Posts(20).T1;R;161;00.00;Time settings  Fan high speed;Start time period 1 Friday high speed
+Holding Register;TimeDp.Posts(20).T2;R;162;00.00;Time settings  Fan high speed;Stop time period 1 Friday high speed
+Holding Register;TimeDp.Posts(20).T3;R;163;;Time settings  Fan high speed;Start time period 2 Friday high speed
+Holding Register;TimeDp.Posts(20).T4;R;164;;Time settings  Fan high speed;Stop time period 2 Friday high speed
+Holding Register;TimeDp.Posts(20).T5;R;165;;Time settings  Fan high speed;Start time period 3 Friday high speed
+Holding Register;TimeDp.Posts(20).T6;R;166;;Time settings  Fan high speed;Stop time period 3 Friday high speed
+Holding Register;TimeDp.Posts(20).T7;R;167;;Time settings  Fan high speed;Start time period 4 Friday high speed
+Holding Register;TimeDp.Posts(20).T8;R;168;;Time settings  Fan high speed;Stop time period 4 Friday high speed
+Holding Register;TimeDp.Posts(21).T1;R;169;00.00;Time settings  Fan high speed;Start time period 1 Saturday high speed
+Holding Register;TimeDp.Posts(21).T2;R;170;00.00;Time settings  Fan high speed;Stop time period 1 Saturday high speed
+Holding Register;TimeDp.Posts(21).T3;R;171;;Time settings  Fan high speed;Start time period 2 Saturday high speed
+Holding Register;TimeDp.Posts(21).T4;R;172;;Time settings  Fan high speed;Stop time period 2 Saturday high speed
+Holding Register;TimeDp.Posts(21).T5;R;173;;Time settings  Fan high speed;Start time period 3 Saturday high speed
+Holding Register;TimeDp.Posts(21).T6;R;174;;Time settings  Fan high speed;Stop time period 3 Saturday high speed
+Holding Register;TimeDp.Posts(21).T7;R;175;;Time settings  Fan high speed;Start time period 4 Saturday high speed
+Holding Register;TimeDp.Posts(21).T8;R;176;;Time settings  Fan high speed;Stop time period 4 Saturday high speed
+Holding Register;TimeDp.Posts(22).T1;R;177;00.00;Time settings  Fan high speed;Start time period 1 Sunday high speed
+Holding Register;TimeDp.Posts(22).T2;R;178;00.00;Time settings  Fan high speed;Stop time period 1 Sunday high speed
+Holding Register;TimeDp.Posts(22).T3;R;179;;Time settings  Fan high speed;Start time period 2 Sunday high speed
+Holding Register;TimeDp.Posts(22).T4;R;180;;Time settings  Fan high speed;Stop time period 2 Sunday high speed
+Holding Register;TimeDp.Posts(22).T5;R;181;;Time settings  Fan high speed;Start time period 3 Sunday high speed
+Holding Register;TimeDp.Posts(22).T6;R;182;;Time settings  Fan high speed;Stop time period 3 Sunday high speed
+Holding Register;TimeDp.Posts(22).T7;R;183;;Time settings  Fan high speed;Start time period 4 Sunday high speed
+Holding Register;TimeDp.Posts(22).T8;R;184;;Time settings  Fan high speed;Stop time period 4 Sunday high speed
+Holding Register;TimeDp.Posts(23).T1;R;185;00.00;Time settings  Fan high speed;Start time period 1 Holiday high speed
+Holding Register;TimeDp.Posts(23).T2;R;186;00.00;Time settings  Fan high speed;Stop time period 1 Holiday high speed
+Holding Register;TimeDp.Posts(23).T3;R;187;;Time settings  Fan high speed;Start time period 2 Holiday high speed
+Holding Register;TimeDp.Posts(23).T4;R;188;;Time settings  Fan high speed;Stop time period 2 Holiday high speed
+Holding Register;TimeDp.Posts(23).T5;R;189;;Time settings  Fan high speed;Start time period 3 Holiday high speed
+Holding Register;TimeDp.Posts(23).T6;R;190;;Time settings  Fan high speed;Stop time period 3 Holiday high speed
+Holding Register;TimeDp.Posts(23).T7;R;191;;Time settings  Fan high speed;Start time period 4 Holiday high speed
+Holding Register;TimeDp.Posts(23).T8;R;192;;Time settings  Fan high speed;Stop time period 4 Holiday high speed
+Holding Register;TimeHp.Posts(0).FromDate;R;449;01.01;Time settings  holiday periods;Start date holiday period 1 (MM.DD)
+Holding Register;TimeHp.Posts(0).ToDate;R;450;01.01;Time settings  holiday periods;End date holiday period 1 (MM.DD)
+Holding Register;TimeHp.Posts(1).FromDate;R;451;01.01;Time settings  holiday periods;Start date holiday period 2 (MM.DD)
+Holding Register;TimeHp.Posts(1).ToDate;R;452;01.01;Time settings  holiday periods;End date holiday period 2 (MM.DD)
+Holding Register;TimeHp.Posts(2).FromDate;R;453;01.01;Time settings  holiday periods;Start date holiday period 3 (MM.DD)
+Holding Register;TimeHp.Posts(2).ToDate;R;454;01.01;Time settings  holiday periods;End date holiday period 3 (MM.DD)
+Holding Register;TimeHp.Posts(3).FromDate;R;455;01.01;Time settings  holiday periods;Start date holiday period 4 (MM.DD)
+Holding Register;TimeHp.Posts(3).ToDate;R;456;01.01;Time settings  holiday periods;End date holiday period 4 (MM.DD)
+Holding Register;TimeHp.Posts(4).FromDate;R;457;01.01;Time settings  holiday periods;Start date holiday period 5 (MM.DD)
+Holding Register;TimeHp.Posts(4).ToDate;R;458;01.01;Time settings  holiday periods;End date holiday period 5 (MM.DD)
+Holding Register;TimeHp.Posts(5).FromDate;R;459;01.01;Time settings  holiday periods;Start date holiday period 6 (MM.DD)
+Holding Register;TimeHp.Posts(5).ToDate;R;460;01.01;Time settings  holiday periods;End date holiday period 6 (MM.DD)
+Holding Register;TimeHp.Posts(6).FromDate;R;461;01.01;Time settings  holiday periods;Start date holiday period 7 (MM.DD)
+Holding Register;TimeHp.Posts(6).ToDate;R;462;01.01;Time settings  holiday periods;End date holiday period 7 (MM.DD)
+Holding Register;TimeHp.Posts(7).FromDate;R;463;01.01;Time settings  holiday periods;Start date holiday period 8 (MM.DD)
+Holding Register;TimeHp.Posts(7).ToDate;R;464;01.01;Time settings  holiday periods;End date holiday period 8 (MM.DD)
+Holding Register;TimeHp.Posts(8).FromDate;R;465;01.01;Time settings  holiday periods;Start date holiday period 9 (MM.DD)
+Holding Register;TimeHp.Posts(8).ToDate;R;466;01.01;Time settings  holiday periods;End date holiday period 9 (MM.DD)
+Holding Register;TimeHp.Posts(9).FromDate;R;467;01.01;Time settings  holiday periods;Start date holiday period 10 (MM.DD)
+Holding Register;TimeHp.Posts(9).ToDate;R;468;01.01;Time settings  holiday periods;End date holiday period 10 (MM.DD)
+Holding Register;TimeHp.Posts(10).FromDate;R;469;01.01;Time settings  holiday periods;Start date holiday period 11 (MM.DD)
+Holding Register;TimeHp.Posts(10).ToDate;R;470;01.01;Time settings  holiday periods;End date holiday period 11 (MM.DD)
+Holding Register;TimeHp.Posts(11).FromDate;R;471;01.01;Time settings  holiday periods;Start date holiday period 12 (MM.DD)
+Holding Register;TimeHp.Posts(11).ToDate;R;472;01.01;Time settings  holiday periods;End date holiday period 12 (MM.DD)
+Holding Register;TimeHp.Posts(12).FromDate;R;473;01.01;Time settings  holiday periods;Start date holiday period 13 (MM.DD)
+Holding Register;TimeHp.Posts(12).ToDate;R;474;01.01;Time settings  holiday periods;End date holiday period 13 (MM.DD)
+Holding Register;TimeHp.Posts(13).FromDate;R;475;01.01;Time settings  holiday periods;Start date holiday period 14 (MM.DD)
+Holding Register;TimeHp.Posts(13).ToDate;R;476;01.01;Time settings  holiday periods;End date holiday period 14 (MM.DD)
+Holding Register;TimeHp.Posts(14).FromDate;R;477;01.01;Time settings  holiday periods;Start date holiday period 15 (MM.DD)
+Holding Register;TimeHp.Posts(14).ToDate;R;478;01.01;Time settings  holiday periods;End date holiday period 15 (MM.DD)
+Holding Register;TimeHp.Posts(15).FromDate;R;479;01.01;Time settings  holiday periods;Start date holiday period 16 (MM.DD)
+Holding Register;TimeHp.Posts(15).ToDate;R;480;01.01;Time settings  holiday periods;End date holiday period 16 (MM.DD)
+Holding Register;TimeHp.Posts(16).FromDate;R;481;01.01;Time settings  holiday periods;Start date holiday period 17 (MM.DD)
+Holding Register;TimeHp.Posts(16).ToDate;R;482;01.01;Time settings  holiday periods;End date holiday period 17 (MM.DD)
+Holding Register;TimeHp.Posts(17).FromDate;R;483;01.01;Time settings  holiday periods;Start date holiday period 18 (MM.DD)
+Holding Register;TimeHp.Posts(17).ToDate;R;484;01.01;Time settings  holiday periods;End date holiday period 18 (MM.DD)
+Holding Register;TimeHp.Posts(18).FromDate;R;485;01.01;Time settings  holiday periods;Start date holiday period 19 (MM.DD)
+Holding Register;TimeHp.Posts(18).ToDate;R;486;01.01;Time settings  holiday periods;End date holiday period 19 (MM.DD)
+Holding Register;TimeHp.Posts(19).FromDate;R;487;01.01;Time settings  holiday periods;Start date holiday period 20 (MM.DD)
+Holding Register;TimeHp.Posts(19).ToDate;R;488;01.01;Time settings  holiday periods;End date holiday period 20 (MM.DD)
+Holding Register;TimeHp.Posts(20).FromDate;R;489;01.01;Time settings  holiday periods;Start date holiday period 21 (MM.DD)
+Holding Register;TimeHp.Posts(20).ToDate;R;490;01.01;Time settings  holiday periods;End date holiday period 21 (MM.DD)
+Holding Register;TimeHp.Posts(21).FromDate;R;491;01.01;Time settings  holiday periods;Start date holiday period 22 (MM.DD)
+Holding Register;TimeHp.Posts(21).ToDate;R;492;01.01;Time settings  holiday periods;End date holiday period 22 (MM.DD)
+Holding Register;TimeHp.Posts(22).FromDate;R;493;01.01;Time settings  holiday periods;Start date holiday period 23 (MM.DD)
+Holding Register;TimeHp.Posts(22).ToDate;R;494;01.01;Time settings  holiday periods;End date holiday period 23 (MM.DD)
+Holding Register;TimeHp.Posts(23).FromDate;R;495;01.01;Time settings  holiday periods;Start date holiday period 24 (MM.DD)
+Holding Register;TimeHp.Posts(23).ToDate;R;496;01.01;Time settings  holiday periods;End date holiday period 24 (MM.DD)
+Holding Register;TimePro.TC_FanLowSpeed_Status;X;497;4;Time settings  Fan low speed;Manual/Auto Low Speed time channel 0=Manual-Off 1=Manual-On 2=Forced Off 3=Forced On 4=Auto
+Holding Register;TimePro.TC_FanNormalSpeed_Status;X;498;4;Time settings  Fan normal speed;Manual/Auto Normal Speed time channel 0=Manual-Off 1=Manual-On 2=Forced Off 3=Forced On 4=Auto
+Holding Register;TimePro.TC_FanHighSpeed_Status;X;499;4;Time settings  Fan high speed;Manual/Auto High Speed time channel 0=Manual-Off 1=Manual-On 2=Forced Off 3=Forced On 4=Auto
+Holding Register;QSystem.Minute;X;504;;Time Settings  Real time clock;Real time clock: Minute 0-59
+Holding Register;QSystem.Hour;X;505;;Time Settings  Real time clock;Real time clock: Hour 0-23
+Holding Register;QSystem.WDay;X;506;;Time Settings  Real time clock;Real time clock: Day of Week 1-7, 1=Monday
+Holding Register;QSystem.Week;X;507;;Time Settings  Real time clock;Real time clock: Week number 1-53
+Holding Register;QSystem.Date;X;508;;Time Settings  Real time clock;Real time clock: Day of month 1-31
+Holding Register;QSystem.Month;X;509;;Time Settings  Real time clock;Real time clock: Month 1-12
+Holding Register;QSystem.Year;X;510;;Time Settings  Real time clock;Real time clock: Year 0-99
+Holding Register;AlaData.Ala_MalfunctionSAF1_DelayValue;I;511;120;Alarms;Malfunction SAF 1 alarm delay
+Holding Register;AlaData.Ala_MalfunctionSAF2_DelayValue;I;512;120;Alarms;Malfunction SAF 2 alarm delay
+Holding Register;AlaData.Ala_MalfunctionSAF3_DelayValue;I;513;120;Alarms;Malfunction SAF 3 alarm delay
+Holding Register;AlaData.Ala_MalfunctionSAF4_DelayValue;I;514;120;Alarms;Malfunction SAF 4 alarm delay
+Holding Register;AlaData.Ala_MalfunctionSAF5_DelayValue;I;515;120;Alarms;Malfunction SAF 5 alarm delay
+Holding Register;AlaData.Ala_MalfunctionEAF1_DelayValue;I;516;120;Alarms;Malfunction EAF 1 alarm delay
+Holding Register;AlaData.Ala_MalfunctionEAF2_DelayValue;I;517;120;Alarms;Malfunction EAF 2 alarm delay
+Holding Register;AlaData.Ala_MalfunctionEAF3_DelayValue;I;518;120;Alarms;Malfunction EAF 3 alarm delay
+Holding Register;AlaData.Ala_MalfunctionEAF4_DelayValue;I;519;120;Alarms;Malfunction EAF 4 alarm delay
+Holding Register;AlaData.Ala_MalfunctionEAF5_DelayValue;I;520;120;Alarms;Malfunction EAF 5 alarm delay
+Holding Register;AlaData.Ala_AlarmSAF1_DelayValue;I;521;0;Alarms;Alarm frequency converter SAF 1 alarm delay
+Holding Register;AlaData.Ala_AlarmSAF2_DelayValue;I;522;0;Alarms;Alarm frequency converter SAF 2 alarm delay
+Holding Register;AlaData.Ala_AlarmSAF3_DelayValue;I;523;0;Alarms;Alarm frequency converter SAF 3 alarm delay
+Holding Register;AlaData.Ala_AlarmSAF4_DelayValue;I;524;0;Alarms;Alarm frequency converter SAF 4 alarm delay
+Holding Register;AlaData.Ala_AlarmSAF5_DelayValue;I;525;0;Alarms;Alarm frequency converter SAF 5 alarm delay
+Holding Register;AlaData.Ala_AlarmEAF1_DelayValue;I;526;0;Alarms;Alarm frequency converter EAF 1 alarm delay
+Holding Register;AlaData.Ala_AlarmEAF2_DelayValue;I;527;0;Alarms;Alarm frequency converter EAF 2 alarm delay
+Holding Register;AlaData.Ala_AlarmEAF3_DelayValue;I;528;0;Alarms;Alarm frequency converter EAF 3 alarm delay
+Holding Register;AlaData.Ala_AlarmEAF4_DelayValue;I;529;0;Alarms;Alarm frequency converter EAF 4 alarm delay
+Holding Register;AlaData.Ala_AlarmEAF5_DelayValue;I;530;0;Alarms;Alarm frequency converter EAF 5 alarm delay
+Holding Register;AlaData.Ala_WarningSAF1_DelayValue;I;531;0;Alarms;Warning frequency converter SAF 1 alarm delay
+Holding Register;AlaData.Ala_WarningSAF2_DelayValue;I;532;0;Alarms;Warning frequency converter SAF 2 alarm delay
+Holding Register;AlaData.Ala_WarningSAF3_DelayValue;I;533;0;Alarms;Warning frequency converter SAF 3 alarm delay
+Holding Register;AlaData.Ala_WarningSAF4_DelayValue;I;534;0;Alarms;Warning frequency converter SAF 4 alarm delay
+Holding Register;AlaData.Ala_WarningSAF5_DelayValue;I;535;0;Alarms;Warning frequency converter SAF 5 alarm delay
+Holding Register;AlaData.Ala_WarningEAF1_DelayValue;I;536;0;Alarms;Warning frequency converter EAF 1 alarm delay
+Holding Register;AlaData.Ala_WarningEAF2_DelayValue;I;537;0;Alarms;Warning frequency converter EAF 2 alarm delay
+Holding Register;AlaData.Ala_WarningEAF3_DelayValue;I;538;0;Alarms;Warning frequency converter EAF 3 alarm delay
+Holding Register;AlaData.Ala_WarningEAF4_DelayValue;I;539;0;Alarms;Warning frequency converter EAF 4 alarm delay
+Holding Register;AlaData.Ala_WarningEAF5_DelayValue;I;540;0;Alarms;Warning frequency converter EAF 5 alarm delay
+Holding Register;AlaData.Ala_ExternalRunSAF_DelayValue;I;541;120;Alarms;External operation SAF alarm delay
+Holding Register;AlaData.Ala_ExternalRunEAF_DelayValue;I;542;120;Alarms;External operation EAF alarm delay
+Holding Register;AlaData.Ala_ExternalRunMotor1_DelayValue;I;543;120;Alarms;Motor control 1 external operation alarm delay
+Holding Register;AlaData.Ala_ExternalRunMotor2_DelayValue;I;544;120;Alarms;Motor control 2 external operation alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpHeater_DelayValue;I;545;5;Alarms;Malfunction pump heater alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpCooler_DelayValue;I;546;5;Alarms;Malfunction pump cooler alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpExchanger_DelayValue;I;547;20;Alarms;Malfunction pump exchanger alarm delay
+Holding Register;AlaData.Ala_MalfunctionFireDamper_DelayValue;I;548;5;Alarms;Malfunction fire damper alarm delay
+Holding Register;AlaData.Ala_MalfunctionDamper_DelayValue;I;549;90;Alarms;Malfunction damper alarm delay
+Holding Register;AlaData.Ala_MalfunctionMotor1_DelayValue;I;550;120;Alarms;Malfunction motor control 1 alarm delay
+Holding Register;AlaData.Ala_MalfunctionMotor2_DelayValue;I;551;120;Alarms;Malfunction motor control 2 alarm delay
+Holding Register;AlaData.Ala_FireDamperExerciseStop_DelayValue;I;552;0;Alarms;Fire damper exercise stop alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence1_DelayValue;I;553;5;Alarms;Malfunction pump seq. A alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence2_DelayValue;I;554;5;Alarms;Malfunction pump seq. B alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence3_DelayValue;I;555;5;Alarms;Malfunction pump seq. C alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence4_DelayValue;I;556;5;Alarms;Malfunction pump seq. D alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence5_DelayValue;I;557;5;Alarms;Malfunction pump seq. E alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence6_DelayValue;I;558;5;Alarms;Malfunction pump seq. F alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence7_DelayValue;I;559;5;Alarms;Malfunction pump seq. G alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence8_DelayValue;I;560;5;Alarms;Malfunction pump seq. H alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence9_DelayValue;I;561;5;Alarms;Malfunction pump seq. I alarm delay
+Holding Register;AlaData.Ala_MalfunctionPumpSequence10_DelayValue;I;562;5;Alarms;Malfunction pump seq. J alarm delay
+Holding Register;AlaData.Ala_FilterGuard1_DelayValue;I;563;180;Alarms;Filter guard 1 alarm delay
+Holding Register;AlaData.Ala_FilterGuard2_DelayValue;I;564;180;Alarms;Filter guard 2 alarm delay
+Holding Register;AlaData.Ala_FlowGuard_DelayValue;I;565;5;Alarms;Flow guard alarm delay
+Holding Register;AlaData.Ala_ExternalFrostGuard_DelayValue;I;566;0;Alarms;External frost guard alarm delay
+Holding Register;AlaData.Ala_DeicingGuard_DelayValue;I;567;0;Alarms;Deicing pressure guard alarm delay
+Holding Register;AlaData.Ala_FireAlarm_DelayValue;I;568;0;Alarms;Fire alarm alarm delay
+Holding Register;AlaData.Ala_SmokeAlarm_DelayValue;I;569;0;Alarms;Smoke detector alarm alarm delay
+Holding Register;AlaData.Ala_ExternalSwitch_DelayValue;I;570;0;Alarms;External switch alarm delay
+Holding Register;AlaData.Ala_ExternalAlarm_DelayValue;I;571;0;Alarms;External alarm alarm delay
+Holding Register;AlaData.Ala_ServiceStop_DelayValue;I;572;0;Alarms;Service stop alarm delay
+Holding Register;AlaData.Ala_ElectricOverheat_DelayValue;I;573;0;Alarms;Electric heating is overheated alarm delay
+Holding Register;AlaData.Ala_FrostRisk_DelayValue;I;574;0;Alarms;Frost risk alarm delay
+Holding Register;AlaData.Ala_LowEfficiency_DelayValue;I;575;30;Alarms;Low efficiency alarm delay
+Holding Register;AlaData.Ala_AnalogueDeicing_DelayValue;I;576;2;Alarms;Analogue deicing alarm delay
+Holding Register;AlaData.Ala_RotationguardExchanger_DelayValue;I;577;20;Alarms;Rotation guard exchanger alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm1_DelayValue;I;578;0;Alarms;Extra alarm 1 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm2_DelayValue;I;579;0;Alarms;Extra alarm 2 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm3_DelayValue;I;580;0;Alarms;Extra alarm 3 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm4_DelayValue;I;581;0;Alarms;Extra alarm 4 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm5_DelayValue;I;582;0;Alarms;Extra alarm 5 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm6_DelayValue;I;583;0;Alarms;Extra alarm 6 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm7_DelayValue;I;584;0;Alarms;Extra alarm 7 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm8_DelayValue;I;585;0;Alarms;Extra alarm 8 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm9_DelayValue;I;586;0;Alarms;Extra alarm 9 alarm delay
+Holding Register;AlaData.Ala_ExtraAlarm10_DelayValue;I;587;0;Alarms;Extra alarm 10 alarm delay
+Holding Register;AlaData.Ala_BatteryFail_DelayValue;I;588;0;Alarms;Internal battery error alarm delay
+Holding Register;AlaData.Ala_Service_DelayValue;I;589;0;Alarms;Time for service alarm delay
+Holding Register;AlaData.Ala_RestartBlocked_DelayValue;I;590;0;Alarms;Restart blocked after power on alarm delay
+Holding Register;AlaData.Ala_ControlErrorSupplyTemp_DelayValue;I;591;30;Alarms;Supply air temp control error alarm delay
+Holding Register;AlaData.Ala_ControlErrorSAF_DelayValue;I;592;30;Alarms;SAF control error alarm delay
+Holding Register;AlaData.Ala_ControlErrorEAF_DelayValue;I;593;30;Alarms;EAF control error alarm delay
+Holding Register;AlaData.Ala_ControlErrorHumidity_DelayValue;I;594;30;Alarms;Humidity control error alarm delay
+Holding Register;AlaData.Ala_ControlErrorExtraController_DelayValue;I;595;30;Alarms;Extra controller control error alarm delay
+Holding Register;AlaData.Ala_HighTempSupply_DelayValue;I;596;5;Alarms;High supply air temp alarm delay
+Holding Register;AlaData.Ala_LowTempSupply_DelayValue;I;597;5;Alarms;Low supply air temp alarm delay
+Holding Register;AlaData.Ala_MaxLimitTempSupply_DelayValue;I;598;0;Alarms;Supply air temp max limit alarm delay
+Holding Register;AlaData.Ala_MinLimitTempSupply_DelayValue;I;599;0;Alarms;Supply air temp min limit alarm delay
+Holding Register;AlaData.Ala_HighTempRoom_DelayValue;I;600;30;Alarms;High room temp alarm delay
+Holding Register;AlaData.Ala_LowTempRoom_DelayValue;I;601;30;Alarms;Low room temp alarm delay
+Holding Register;AlaData.Ala_HighTempExtract_DelayValue;I;602;30;Alarms;High extract air temp alarm delay
+Holding Register;AlaData.Ala_LowTempExtract_DelayValue;I;603;30;Alarms;Low extract air temp alarm delay
+Holding Register;AlaData.Ala_HighTempOutdoor_DelayValue;I;604;0;Alarms;High outdoor air temp alarm delay
+Holding Register;AlaData.Ala_LowTempOutdoor_DelayValue;I;605;0;Alarms;Low outdoor air temp alarm delay
+Holding Register;AlaData.Ala_LowTempFrostGuard1_DelayValue;I;606;0;Alarms;Low frost guard temp 1 alarm delay
+Holding Register;AlaData.Ala_LowTempFrostGuard2_DelayValue;I;607;0;Alarms;Low frost guard temp 2 alarm delay
+Holding Register;AlaData.Ala_LowTempFrostGuard3_DelayValue;I;608;0;Alarms;Low frost guard temp 3 alarm delay
+Holding Register;AlaData.Ala_HighTempExtraSensor1_DelayValue;I;609;0;Alarms;High temp extra sensor 1 alarm delay
+Holding Register;AlaData.Ala_LowTempExtraSensor1_DelayValue;I;610;0;Alarms;Low temp extra sensor 1 alarm delay
+Holding Register;AlaData.Ala_HighTempExtraSensor2_DelayValue;I;611;0;Alarms;High temp extra sensor 2 alarm delay
+Holding Register;AlaData.Ala_LowTempExtraSensor2_DelayValue;I;612;0;Alarms;Low temp extra sensor 2 alarm delay
+Holding Register;AlaData.Ala_HighTempExtraSensor3_DelayValue;I;613;0;Alarms;High temp extra sensor 3 alarm delay
+Holding Register;AlaData.Ala_LowTempExtraSensor3_DelayValue;I;614;0;Alarms;Low temp extra sensor 3 alarm delay
+Holding Register;AlaData.Ala_HighTempExtraSensor4_DelayValue;I;615;0;Alarms;High temp extra sensor 4 alarm delay
+Holding Register;AlaData.Ala_LowTempExtraSensor4_DelayValue;I;616;0;Alarms;Low temp extra sensor 4 alarm delay
+Holding Register;AlaData.Ala_HighTempExtraSensor5_DelayValue;I;617;0;Alarms;High temp extra sensor 5 alarm delay
+Holding Register;AlaData.Ala_LowTempExtraSensor5_DelayValue;I;618;0;Alarms;Low temp extra sensor 5 alarm delay
+Holding Register;AlaData.Ala_HighTempSelectedSensor1_DelayValue;I;619;0;Alarms;High temp selected sensor 1 alarm delay
+Holding Register;AlaData.Ala_LowTempSelectedSensor1_DelayValue;I;620;0;Alarms;Low temp selected sensor 1 alarm delay
+Holding Register;AlaData.Ala_HighTempSelectedSensor2_DelayValue;I;621;0;Alarms;High temp selected sensor 2 alarm delay
+Holding Register;AlaData.Ala_LowTempSelectedSensor2_DelayValue;I;622;0;Alarms;Low temp selected sensor 2 alarm delay
+Holding Register;AlaData.Ala_ManualControlUnit_DelayValue;I;623;0;Alarms;Manual control air unit alarm delay
+Holding Register;AlaData.Ala_ManualControlSupply_DelayValue;I;624;0;Alarms;Manual control supply air alarm delay
+Holding Register;AlaData.Ala_ManualControlSAF_DelayValue;I;625;0;Alarms;Manual control SAF alarm delay
+Holding Register;AlaData.Ala_ManualControlEAF_DelayValue;I;626;0;Alarms;Manual control EAF alarm delay
+Holding Register;AlaData.Ala_ManualControlHeater_DelayValue;I;627;0;Alarms;Manual control heater alarm delay
+Holding Register;AlaData.Ala_ManualControlExchanger_DelayValue;I;628;0;Alarms;Manual control exchanger alarm delay
+Holding Register;AlaData.Ala_ManualControlCooler_DelayValue;I;629;0;Alarms;Manual control cooler alarm delay
+Holding Register;AlaData.Ala_ManualControlDamper_DelayValue;I;630;0;Alarms;Manual control damper alarm delay
+Holding Register;AlaData.Ala_ManualControlPumpHeater_DelayValue;I;631;0;Alarms;Manual control heater pump alarm delay
+Holding Register;AlaData.Ala_ManualControlPumpExchanger_DelayValue;I;632;0;Alarms;Manual control exchanger pump alarm delay
+Holding Register;AlaData.Ala_ManualControlPumpCooler_DelayValue;I;633;0;Alarms;Manual control cooler pump alarm delay
+Holding Register;AlaData.Ala_ManualControlDamperRecirculation_DelayValue;I;634;0;Alarms;Manual control recirculation air damper alarm delay
+Holding Register;AlaData.Ala_ManualControlDamperOutdoor_DelayValue;I;635;0;Alarms;Manual control fresh air damper alarm delay
+Holding Register;AlaData.Ala_ManualControlDamperExhaust_DelayValue;I;636;0;Alarms;Manual control exhaust air damper alarm delay
+Holding Register;AlaData.Ala_ManualControlDamperFire_DelayValue;I;637;0;Alarms;Manual control fire damper alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence1_DelayValue;I;638;0;Alarms;Manual control seq. A alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence2_DelayValue;I;639;0;Alarms;Manual control seq. B alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence3_DelayValue;I;640;0;Alarms;Manual control seq. C alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence4_DelayValue;I;641;0;Alarms;Manual control seq. D alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence5_DelayValue;I;642;0;Alarms;Manual control seq. E alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence6_DelayValue;I;643;0;Alarms;Manual control seq. F alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence7_DelayValue;I;644;0;Alarms;Manual control seq. G alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence8_DelayValue;I;645;0;Alarms;Manual control seq. H alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence9_DelayValue;I;646;0;Alarms;Manual control seq. I alarm delay
+Holding Register;AlaData.Ala_ManualControlSequence10_DelayValue;I;647;0;Alarms;Manual control seq. J alarm delay
+Holding Register;AlaData.Ala_ManualControlOutput_DelayValue;I;648;0;Alarms;Output in manual control alarm delay
+Holding Register;AlaData.Ala_ManualControlInput_DelayValue;I;649;0;Alarms;Input in manual control alarm delay
+Holding Register;AlaData.Ala_ManualControlExtraController_DelayValue;I;650;0;Alarms;Manual control extra controller alarm delay
+Holding Register;AlaData.Ala_ManualControlMotor1_DelayValue;I;651;0;Alarms;Manual control motor control 1 alarm delay
+Holding Register;AlaData.Ala_ManualControlMotor2_DelayValue;I;652;0;Alarms;Manual control motor control 2 alarm delay
+Holding Register;AlaData.Ala_ManualControlPretreatment_DelayValue;I;653;0;Alarms;Manual control pretreatment alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempOutdoor_DelayValue;I;654;5;Alarms;Sensor error outdoor air temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempIntake_DelayValue;I;655;5;Alarms;Sensor error intake air temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempSupply_DelayValue;I;656;5;Alarms;Sensor error supply air temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExhaust_DelayValue;I;657;5;Alarms;Sensor error exhaust air temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtract_DelayValue;I;658;5;Alarms;Sensor error extract air temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom1_DelayValue;I;659;5;Alarms;Sensor error room temp 1 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom2_DelayValue;I;660;5;Alarms;Sensor error room temp 2 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom3_DelayValue;I;661;5;Alarms;Sensor error room temp 3 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom4_DelayValue;I;662;5;Alarms;Sensor error room temp 4 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom5_DelayValue;I;663;5;Alarms;Sensor error room temp 5 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom6_DelayValue;I;664;5;Alarms;Sensor error room temp 6 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom7_DelayValue;I;665;5;Alarms;Sensor error room temp 7 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom8_DelayValue;I;666;5;Alarms;Sensor error room temp 8 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom9_DelayValue;I;667;5;Alarms;Sensor error room temp 9 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom10_DelayValue;I;668;5;Alarms;Sensor error room temp 10 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom11_DelayValue;I;669;5;Alarms;Sensor error room temp 11 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom12_DelayValue;I;670;5;Alarms;Sensor error room temp 12 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom13_DelayValue;I;671;5;Alarms;Sensor error room temp 13 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom14_DelayValue;I;672;5;Alarms;Sensor error room temp 14 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom15_DelayValue;I;673;5;Alarms;Sensor error room temp 15 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempRoom16_DelayValue;I;674;5;Alarms;Sensor error room temp 16 alarm delay
+Holding Register;AlaData.Ala_SensorErrorPressureSAF_DelayValue;I;675;5;Alarms;Sensor error SAF pressure alarm delay
+Holding Register;AlaData.Ala_SensorErrorPressureEAF_DelayValue;I;676;5;Alarms;Sensor error EAF pressure alarm delay
+Holding Register;AlaData.Ala_SensorErrorFlowSAF_DelayValue;I;677;5;Alarms;Sensor error SAF flow alarm delay
+Holding Register;AlaData.Ala_SensorErrorFlowEAF_DelayValue;I;678;5;Alarms;Sensor error EAF flow alarm delay
+Holding Register;AlaData.Ala_SensorPressureExchangerSAF_DelayValue;I;679;5;Alarms;Sensor error exchanger pressure SAF alarm delay
+Holding Register;AlaData.Ala_SensorPressureExchangerEAF_DelayValue;I;680;5;Alarms;Sensor error exchanger pressure EAF alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempDeicing_DelayValue;I;681;5;Alarms;Sensor error deicing temp alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempFrost1_DelayValue;I;682;5;Alarms;Sensor error frost protection 1 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempFrost2_DelayValue;I;683;5;Alarms;Sensor error frost protection 2 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempFrost3_DelayValue;I;684;5;Alarms;Sensor error frost protection 3 alarm delay
+Holding Register;AlaData.Ala_SensorErrorCO2_DelayValue;I;685;5;Alarms;Sensor error CO2 alarm delay
+Holding Register;AlaData.Ala_SensorErrorHumidityRoom_DelayValue;I;686;5;Alarms;Sensor error humidity room alarm delay
+Holding Register;AlaData.Ala_SensorErrorHumidityDuct_DelayValue;I;687;5;Alarms;Sensor error humidity duct alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraController_DelayValue;I;688;5;Alarms;Sensor error extra controller alarm delay
+Holding Register;AlaData.Ala_SensorErrorExtCtrlSAF_DelayValue;I;689;5;Alarms;Sensor error external control SAF alarm delay
+Holding Register;AlaData.Ala_SensorErrorExtCtrlEAF_DelayValue;I;690;5;Alarms;Sensor error external control EAF alarm delay
+Holding Register;AlaData.Ala_SensorErrorHumidityOutdoor_DelayValue;I;691;5;Alarms;Sensor error outdoor humidity alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraSensor1_DelayValue;I;692;5;Alarms;Sensor error extra sensor 1 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraSensor2_DelayValue;I;693;5;Alarms;Sensor error extra sensor 2 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraSensor3_DelayValue;I;694;5;Alarms;Sensor error extra sensor 3 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraSensor4_DelayValue;I;695;5;Alarms;Sensor error extra sensor 4 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempExtraSensor5_DelayValue;I;696;5;Alarms;Sensor error extra sensor 5 alarm delay
+Holding Register;AlaData.Ala_SensorErrorExtSupplySetp_DelayValue;I;697;5;Alarms;Sensor error external supply setpoint alarm delay
+Holding Register;AlaData.Ala_SensorErrorExtFlowSetpoint_DelayValue;I;698;5;Alarms;Sensor error external flow setpoint alarm delay
+Holding Register;AlaData.Ala_SensorErrorFilterGuard1_DelayValue;I;699;5;Alarms;Sensor error filter guard 1 alarm delay
+Holding Register;AlaData.Ala_SensorErrorFilterGuard2_DelayValue;I;700;5;Alarms;Sensor error filter guard 2 alarm delay
+Holding Register;AlaData.Ala_SensorErrorTempEfficiency_DelayValue;I;701;5;Alarms;Sensor error efficiency temp alarm delay
+Holding Register;AlaData.Ala_CommErrorDevice_DelayValue;I;702;0;Alarms;Fault communication device
+Holding Register;AlaData.Ala_MalfunctionExtraController_DelayValue;I;703;5;Alarms;Malfunction Extra Controller
+Holding Register;AlaData.Ala_InternalError_DelayValue;I;704;0;Alarms;Internal error
+Holding Register;VentSettings.S_AirFlowK(24);R;765;100;Configuration  Functions;K-constant for counting air flow: SAF flow
+Holding Register;VentSettings.S_AirFlowX(24);R;766;0.5;Configuration  Functions;X-constant for counting air flow: SAF flow
+Holding Register;VentSettings.S_AirFlowK(25);R;767;100;Configuration  Functions;K-constant for counting air flow: EAF flow
+Holding Register;VentSettings.S_AirFlowX(25);R;768;0.5;Configuration  Functions;X-constant for counting air flow: EAF flow
+Holding Register;VentSettings.S_DOSelect_SeqPumpY1(0);X;773;2;Ventilation  Manual/Auto;Running mode pump sequence A 0=Manual off, 1=Manual on, 2=Auto
+Holding Register;VentSettings.S_DOSelect_OutdoorAirDamper;X;784;2;Ventilation  Manual/Auto;Running mode fresh air damper: 0=Close 1=Open 2=Auto
+Holding Register;VentSettings.S_AirUnitAutoMode;X;789;2;Ventilation  Manual/Auto;Running mode air unit:0=Off, 1=Manual, 2=Auto, 3=Low speed, 4=Normal speed, 5=High speed
+Holding Register;VentSettings.S_SAFAutoMode;X;791;2;Ventilation  Manual/Auto;Running mode SAF:0=Off, 1=Manual output, 2=Auto, 3=Manual setpoint, 4=Low speed, 5=Normal speed, 6=High speed
+Holding Register;VentSettings.S_EAFAutoMode;X;794;2;Ventilation  Manual/Auto;Running mode EAF:0=Off, 1=Manual output, 2=Auto, 3=Manual setpoint, 4=Low speed, 5=Normal speed, 6=High speed
+Holding Register;VentSettings.S_ExternalControl;X;797;0;Ventilation  Manual/Auto;External control:0=No External control, 1=Extended run speed 1, 2=Extended run speed 2, 3=Extended run speed 3, 4=External stop, 5=External stop with support control, 6=Start Free cooling, 7=Recirculation
+Holding Register;VentSettings.S_AirUnitServiceStop;X;798;0;Ventilation  Manual/Auto;Stop the air unit with No 1 prio. 0 = no, 1 = yes
+Holding Register;VentSettings.S_SeqPumpOutdLimitYx(1);R;799;10;Ventilation  Temperature control;Pump outdoor temperature limit sequence A
+Holding Register;VentSettings.S_VentControl;X;809;0;Configuration  Functions;Select temperature control mode: 0=Const.supply air 1=Outdoor compensated supply air 2=Cascade room temp control 3=Extract temp control 4=Outdoor dependent supply or room temp 5=Outdoor dependent supply or extract temp 6=Cascade outdoor compensated room temp control 7=Cascade outdoor compensated extract temp control 8=Extract air depending supply air temperature
+Holding Register;VentSettings.S_FanType;X;810;0;Configuration  Functions;Select fan control mode: 0=Frequency control pressure 1=Frequency control air flow 2=Frequency control manually 3=Direct Frequency control 4=Frequency control with slave controlled EAF 5=Frequency control with slave controlled EAF air flow  depending 6=Frequency control with slave controlled SAF 7=Frequency control with slave controlled SAF air flow  depending
+Holding Register;VentSettings.S_SupplySetpoint;R;812;18;Ventilation  Actual/Setpoint;Setpoint supply air temperature when constant supply air temperature function
+Holding Register;VentSettings.S_SupplySetpointMax;R;814;30;Ventilation  Actual/Setpoint;Max limit of supply setpoint when cascade control
+Holding Register;VentSettings.S_SupplySetpointMin;R;815;12;Ventilation  Actual/Setpoint;Min limit of supply setpoint when cascade control
+Holding Register;VentSettings.S_SAFLowspeedAirFlow(0);R;842;1000;Ventilation  Fan control;Setpoint low speed supply air fan flow. Scale factor = 0.1
+Holding Register;VentSettings.S_SAFNormalspeedAirFlow;R;843;2000;Ventilation  Fan control;Setpoint normal speed supply air fan flow.Scale factor = 0.1
+Holding Register;VentSettings.S_SAFHighspeedAirFlow;R;844;3000;Ventilation  Fan control;Setpoint high speed supply air fan flow.Scale factor = 0.1
+Holding Register;VentSettings.S_EAFLowspeedAirFlow(0);R;845;1000;Ventilation  Fan control;Setpoint low speed extract air fan flow.Scale factor = 0.1
+Holding Register;VentSettings.S_EAFNormalspeedAirFlow;R;846;2000;Ventilation  Fan control;Setpoint normal speed extract air fan flow.Scale factor = 0.1
+Holding Register;VentSettings.S_EAFHighspeedAirFlow;R;847;3000;Ventilation  Fan control;Setpoint high speed extract air fan flow.Scale factor = 0.1
+Holding Register;VentSettings.S_SAFModeFire;X;869;0;Configuration  Functions;SAF speed in fire mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_SAFModeSmoke;X;872;0;Configuration  Functions;SAF speed in smoke mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_EAFModeFire;X;881;0;Configuration  Functions;EAF speed in fire mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_EAFModeSmoke;X;884;0;Configuration  Functions;EAF speed in smoke mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_SAFAirFlowPID_Pband;R;894;1000;Ventilation  PID controllers;P-band flow control SAF
+Holding Register;VentSettings.S_SAFPID_Itime;R;895;60;Ventilation  PID controllers;I-time pressure control SAF
+Holding Register;VentSettings.S_EAFAirFlowPID_Pband;R;897;1000;Ventilation  PID controllers;P-band flow control EAF
+Holding Register;VentSettings.S_EAFPID_Itime;R;898;60;Ventilation  PID controllers;I-time pressure control EAF
+Holding Register;VentSettings.S_DeIcePID_Pband;R;909;16;Ventilation  PID controllers;P-band de-icing
+Holding Register;VentSettings.S_DeIcePID_Itime;R;910;240;Ventilation  PID controllers;I-time de-icing
+Holding Register;VentSettings.S_ExtraPID_Pband;R;913;33;Additional function  Extra controller;P-band extra pid control
+Holding Register;VentSettings.S_ExtraPID_Itime;R;914;100;Additional function  Extra controller;I-time extra pid control
+Holding Register;VentSettings.S_SeqY1PID_Pband;R;915;10;Ventilation  PID controllers;P-band Seq A air control
+Holding Register;VentSettings.S_SeqY1PID_ITime;R;916;100;Ventilation  PID controllers;I-time Seq A air control
+Holding Register;VentSettings.S_SeqY2PID_Pband;R;917;10;Ventilation  PID controllers;P-band Seq B air control
+Holding Register;VentSettings.S_SeqY2PID_ITime;R;918;100;Ventilation  PID controllers;I-time Seq B air control
+Holding Register;VentSettings.S_SeqY4PID_Pband;R;921;10;Ventilation  PID controllers;P-band Seq D air control
+Holding Register;VentSettings.S_SeqY4PID_ITime;R;922;100;Ventilation  PID controllers;I-time Seq D air control
+Holding Register;VentSettings.S_AOSelect_SequenceY1;X;939;2;Ventilation  Manual/Auto;Sequence A mode:0=Manual off, 1=Manual on, 2=Auto
+Holding Register;VentSettings.S_AOManual_SequenceY1;R;940;;Ventilation  Manual/Auto;Sequence A output if manual on mode
+Holding Register;VentSettings.S_AOSelect_SequenceY2;X;941;2;Ventilation  Manual/Auto;Sequence B mode:0=Manual off, 1=Manual on, 2=Auto
+Holding Register;VentSettings.S_AOManual_SequenceY2;R;942;;Ventilation  Manual/Auto;Sequence B output if manual on mode
+Holding Register;VentSettings.S_FreeCoolDayLimit;R;959;22;Ventilation  Demand control;DUMMY
+Holding Register;VentSettings.S_FreeCoolHighLimit;R;960;18;Ventilation  Demand control;If outdoor temp is higher at night the free cooling is stopped
+Holding Register;VentSettings.S_FreeCoolLowLimit;R;961;10;Ventilation  Demand control;If outdoor temp is lower at night the free cooling is stopped
+Holding Register;VentSettings.S_FreeCoolRoomLimit;R;962;18;Ventilation  Demand control;If room temp is lower at night the free cooling is stopped
+Holding Register;VentSettings.S_FreeCoolStartTime;X;963;0;Ventilation  Demand control;Start time free cool function
+Holding Register;VentSettings.S_FreeCoolStopTime;X;964;7;Ventilation  Demand control;Stop time free cool function
+Holding Register;VentSettings.S_FreeCoolHeatBlockTime;I;965;60;Ventilation  Demand control;Time in minute to block heat output when start after free cool run
+Holding Register;VentSettings.S_CO2StartLimit;R;966;800;Ventilation  Demand control;Level to activate CO2 control (ppm)
+Holding Register;VentSettings.S_CO2DemandDiff;R;967;160;Ventilation  Demand control;Difference for stop of demand controlled ventilation (ppm)
+Holding Register;VentSettings.S_CO2MinTime;I;969;20;Ventilation  Demand control;Minimum time (min) for CO2 control
+Holding Register;VentSettings.S_NeedControl;X;970;0;Configuration  Functions;Enable support control if the unit is shut down
+Holding Register;VentSettings.S_NeedHeatStart;R;971;15;Ventilation  Demand control;Room temp for start the unit if intermittent heating control is active
+Holding Register;VentSettings.S_NeedHeatStop;R;972;21;Ventilation  Demand control;Room temp for stop the unit if intermittent heating control is active
+Holding Register;VentSettings.S_NeedCoolStart;R;973;30;Ventilation  Demand control;Room temp for start the unit if  intermittent cooling control is active
+Holding Register;VentSettings.S_NeedCoolStop;R;974;28;Ventilation  Demand control;Room temp for stop the unit if intermittent cooling control is active
+Holding Register;VentSettings.S_NeedMinTime;I;975;20;Ventilation  Demand control;Minimum time (min) for intermittent control and demand control
+Holding Register;VentSettings.S_FireDampersAutoMode;X;976;2;Configuration  Functions;Running mode fire damper: 0=Close 1=Open 2=Auto
+Holding Register;VentSettings.S_DeIcingSetpoint;R;977;-3;Ventilation  Temperature control;Setpoint de-icing temp
+Holding Register;VentSettings.S_DeIcingHyst;R;978;4;Ventilation  Temperature control;Hysteresis for stop of de-icing
+Holding Register;VentSettings.S_DeIcingMinTime;X;979;5;Ventilation  Temperature control;Min time for de-icing
+Holding Register;VentSettings.S_DeIcingSAFTempStop;R;980;-100;Ventilation  Temperature control;If lower outdoor temp the SAF will be stoped at de-icing
+Holding Register;VentSettings.S_ExtraControllerSetP;R;997;18;Additional function  Extra controller;Setpoint Extra Controller
+Holding Register;VentSettings.S_SumAlarm1(0);X;999;2;Alarms;Sum alarm 1 configuration, defines which alarms that should be on the DO signal: 0=off, 1=A+B+C, 2=A+B, 3=B+C, 4=A+C, 5=A, 6=B, 7=C
+Holding Register;VentSettings.S_SumAlarm2;X;1000;0;Alarms;Sum alarm 2 configuration, defines which alarms that should be on the DO signal
+Holding Register;VentSettings.S_AlarmOutput;X;1001;0;Configuration  Functions;Alarm output of configured alarm number. Status &gt   (0=off, 1=Alapt1/Ala_MalfunctionSAF1, ...)
+Holding Register;VentSettings.S_SupplyMaxDiff;R;1002;10;Alarms;Max control deviation supply air temp
+Holding Register;VentSettings.S_SupplyHighAlarmLimit;R;1003;30;Alarms;High alarm limit supply air temp
+Holding Register;VentSettings.S_SupplyLowAlarmLimit;R;1004;10;Alarms;Low alarm limit supply air temp
+Holding Register;VentSettings.S_EfficiencyLowLimit;R;1005;50;Alarms;Low efficiency
+Holding Register;VentSettings.S_RoomHighLimit;R;1006;30;Alarms;High alarm limit room air temp
+Holding Register;VentSettings.S_RoomLowLimit;R;1007;10;Alarms;Low alarm limit room air temp
+Holding Register;VentSettings.S_ExtractAirTempHigh;R;1008;30;Alarms;High alarm limit Extract air temp
+Holding Register;VentSettings.S_ExtractAirTempLow;R;1009;10;Alarms;Low alarm limit Extract air temp
+Holding Register;VentSettings.S_SAFMaxDiffPressure;R;1010;50;Alarms;Max control deviation pressure SAF
+Holding Register;VentSettings.S_EAFMaxDiffPressure;R;1011;50;Alarms;Max control deviation pressure EAF
+Holding Register;VentSettings.S_RecircSetP;R;1012;18;Ventilation  Demand control;Recirculation setpoint
+Holding Register;VentSettings.S_RecircMaxRoomTemp;R;1014;25;Ventilation  Demand control;If higher room temp when Recirculation run recirculation damper is closed and fresh air damper is opend
+Holding Register;VentSettings.S_RecircSetPOffset;R;1018;0;Ventilation  Demand control;Offset for recirculation setpoint
+Holding Register;VentSettings.S_ExtraSensor1HighLimit(0);R;1020;30;Alarms;Alarm limit high temp Extra sensor 1
+Holding Register;VentSettings.S_ExtraSensor2HighLimit;R;1021;30;Alarms;Alarm limit high temp Extra sensor 2
+Holding Register;VentSettings.S_ExtraSensor3HighLimit;R;1022;30;Alarms;Alarm limit high temp Extra sensor 3
+Holding Register;VentSettings.S_ExtraSensor4HighLimit;R;1023;30;Alarms;Alarm limit high temp Extra sensor 4
+Holding Register;VentSettings.S_ExtraSensor5HighLimit;R;1024;30;Alarms;Alarm limit high temp Extra sensor 5
+Holding Register;VentSettings.S_ExtraSensor1LowLimit(0);R;1025;10;Alarms;Alarm limit low temp Extra sensor 1
+Holding Register;VentSettings.S_ExtraSensor2LowLimit;R;1026;10;Alarms;Alarm limit low temp Extra sensor 2
+Holding Register;VentSettings.S_ExtraSensor3LowLimit;R;1027;10;Alarms;Alarm limit low temp Extra sensor 3
+Holding Register;VentSettings.S_ExtraSensor4LowLimit;R;1028;10;Alarms;Alarm limit low temp Extra sensor 4
+Holding Register;VentSettings.S_ExtraSensor5LowLimit;R;1029;10;Alarms;Alarm limit low temp Extra sensor 5
+Holding Register;VentSettings.S_SelectedSensor1(0);X;1030;;Alarms;Select sensor 1 for high low alarm, 0 = not active, 1 = A_AI_OutDoorTemp, ....
+Holding Register;VentSettings.S_SelectedSensor1HighLimit(0);R;1031;;Alarms;Alarm limit high temp Selected sensor 1
+Holding Register;VentSettings.S_SelectedSensor1LowLimit(0);R;1032;;Alarms;Alarm limit low temp Selected sensor 1
+Holding Register;VentSettings.S_SelectedSensor2;X;1033;;Alarms;Select sensor 2 for high low alarm
+Holding Register;VentSettings.S_SelectedSensor2HighLimit;R;1034;;Alarms;Alarm limit high temp Selected sensor 1
+Holding Register;VentSettings.S_SelectedSensor2LowLimit;R;1035;;Alarms;Alarm limit low temp Selected sensor 1
+Holding Register;VentSettings.S_SupplyPIDFreeze;X;1036;0;Ventilation  Temperature control;Freeze supply PID control
+Holding Register;VentSettings.S_NeutralZone;R;1055;0;Ventilation  Actual/Setpoint;Neutral zone around supply setpoint before heating and cooling.
+Holding Register;VentSettings.S_EnergySAFPwrFact;R;1072;1;Ventilation  Energy consumption;Power factor supply air fan
+Holding Register;VentSettings.S_EnergyEAFPwrFact;R;1073;1;Ventilation  Energy consumption;Power factor extract air fan
+Holding Register;VentSettings.S_OutdoorAirTempHigh;R;1074;40;Alarms;94, Alarm limit high outdoor air temp
+Holding Register;VentSettings.S_OutdoorAirTempLow;R;1075;-30;Alarms;95, Alarm limit low outdoor air temp
+Holding Register;VentSettings.S_AirFlowK(22);R;761;100;;K-constant for counting air flow: SAF pressureairflow = S_AirFlowK * A_AI_SAFPressure^S_AirFlowx
+Holding Register;VentSettings.S_AirFlowX(22);R;762;0.5;;X-constant for counting air flow: SAF pressure
+Holding Register;VentSettings.S_AirFlowK(23);R;763;100;;K-constant for counting air flow: EAF pressure
+Holding Register;VentSettings.S_AirFlowX(23);R;764;0.5;;X-constant for counting air flow: EAF pressure
+Holding Register;VentSettings.S_FuncReserved(0);X;811;;;Reserved, not used
+Holding Register;VentSettings.S_SAFSetpointSelect;X;834;0;;SAF setpoint select: 1=Constant setpoints, 2 = offset of normal speed setpoint
+Holding Register;VentSettings.S_EAFSetpointSelect;X;835;0;;EAF setpoint select: 1=Constant setpoints, 2 = offset of normal speed setpoint
+Holding Register;VentSettings.S_SAFLowSpeedPressureOffset;R;854;0;;Offset SAF pressure low speed (Pa)
+Holding Register;VentSettings.S_SAFHighSpeedPressureOffset;R;855;0;;Offset SAF pressure high speed (Pa)
+Holding Register;VentSettings.S_SAFLowSpeedAirFlowOffset;R;856;0;;Offset SAF air flow low speed (m3/h)
+Holding Register;VentSettings.S_SAFHighSpeedAirFlowOffset;R;857;0;;Offset SAF air flow high speed (m3/h)
+Holding Register;VentSettings.S_SAFLowSpeedOutputOffset;R;858;0;;Offset SAF output low speed (%)
+Holding Register;VentSettings.S_SAFHighSpeedOutputOffset;R;859;0;;Offset SAF output high speed (%)
+Holding Register;VentSettings.S_EAFLowSpeedPressureOffset;R;860;0;;Offset EAF pressure low speed (Pa)
+Holding Register;VentSettings.S_EAFHighSpeedPressureOffset;R;861;0;;Offset EAF pressure high speed (Pa)
+Holding Register;VentSettings.S_EAFLowSpeedAirFlowOffset;R;862;0;;Offset EAF air flow low speed (m3/h)
+Holding Register;VentSettings.S_EAFHighSpeedAirFlowOffset;R;863;0;;Offset EAF air flow high speed (m3/h)
+Holding Register;VentSettings.S_EAFLowSpeedOutputOffset;R;864;0;;Offset EAF output low speed (%)
+Holding Register;VentSettings.S_EAFHighSpeedOutputOffset;R;865;0;;Offset EAF output high speed (%)
+Holding Register;VentSettings.S_SAFModeFreeCool;X;866;0;;SAF speed in freecool mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_SAFManSetpFreeCool;R;867;0;;SAF setpoint in freecool mode
+Holding Register;VentSettings.S_SAFManOutFreeCool;R;868;0;;SAF manual output in freecool mode (%)
+Holding Register;VentSettings.S_SAFModeRecirculation;X;875;0;;SAF speed in recirculation mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_SAFManSetpRecirculation;R;876;0;;SAF setpoint in recirculation mode
+Holding Register;VentSettings.S_SAFManOutRecirculation;R;877;0;;SAF manual output in recirculation mode (%)
+Holding Register;VentSettings.S_EAFModeFreeCool;X;878;0;;EAF speed in freecool mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_EAFManSetpFreeCool;R;879;0;;SAF setpoint in freecool mode
+Holding Register;VentSettings.S_EAFManOutFreeCool;R;880;0;;EAF manual output in freecool mode (%)
+Holding Register;VentSettings.S_EAFModeRecirculation;X;887;0;;EAF speed in recirculation mode:0=Off/Auto, normal setpoint, 1=Manual setpoint, 2=Manual output, 3=Low speed setpoint, 4=Normal speed setpoint, 5=High speed setpoint
+Holding Register;VentSettings.S_EAFManSetpRecirculation;R;888;0;;EAF setpoint in recirculation mode
+Holding Register;VentSettings.S_EAFManOutRecirculation;R;889;0;;EAF manual output in recirculation mode (%)
+Holding Register;VentSettings.S_ExtDisp_SetpOffset;R;1091;0;Ventilation  Actual/Setpoint;Setpoint offset
+Holding Register;VentSettings.S_ExtendedRunTime;I;1092;0;Configuration  Functions;Extended operation in minutes when activating digital input (min)
+Input Status Registers;TimePro.TC_FanLowSpeed;L;1;;Time settings  Fan low speed;Is set if timechannel low speed is active
+Input Status Registers;TimePro.TC_FanNormalSpeed;L;2;;Time settings  Fan normal speed;Is set if timechannel normal speed is active
+Input Status Registers;TimePro.TC_FanHighSpeed;L;3;;Time settings  Fan high speed;Is set if timechannel high speed is active
+Input Status Registers;VentActual.A_SumAlarm;L;8;;Alarms;Sumalarm, is set if any A, B or C alarm
+Input Status Registers;VentActual.A_SumAlarmA(0);L;9;;Alarms;A-alarm, is set if any A-alarm in controller
+Input Status Registers;VentActual.A_SumAlarmB;L;10;;Alarms;B-alarm, is set if any B alarm in controller
+Input Status Registers;VentActual.A_SumAlarmC;L;11;;Alarms;C-alarm, is set if any C alarm in controller
+Input Status Registers;VentActual.A_AlaPt(1);L;12;;Alarms;Malfunction SAF 1
+Input Status Registers;VentActual.A_AlaPt(2);L;13;;Alarms;Malfunction SAF 2
+Input Status Registers;VentActual.A_AlaPt(3);L;14;;Alarms;Malfunction SAF 3
+Input Status Registers;VentActual.A_AlaPt(4);L;15;;Alarms;Malfunction SAF 4
+Input Status Registers;VentActual.A_AlaPt(5);L;16;;Alarms;Malfunction SAF 5
+Input Status Registers;VentActual.A_AlaPt(6);L;17;;Alarms;Malfunction EAF 1
+Input Status Registers;VentActual.A_AlaPt(7);L;18;;Alarms;Malfunction EAF 2
+Input Status Registers;VentActual.A_AlaPt(8);L;19;;Alarms;Malfunction EAF 3
+Input Status Registers;VentActual.A_AlaPt(9);L;20;;Alarms;Malfunction EAF 4
+Input Status Registers;VentActual.A_AlaPt(10);L;21;;Alarms;Malfunction EAF 5
+Input Status Registers;VentActual.A_AlaPt(11);L;22;;Alarms;Alarm frequency converter SAF 1
+Input Status Registers;VentActual.A_AlaPt(12);L;23;;Alarms;Alarm frequency converter SAF 2
+Input Status Registers;VentActual.A_AlaPt(13);L;24;;Alarms;Alarm frequency converter SAF 3
+Input Status Registers;VentActual.A_AlaPt(14);L;25;;Alarms;Alarm frequency converter SAF 4
+Input Status Registers;VentActual.A_AlaPt(15);L;26;;Alarms;Alarm frequency converter SAF 5
+Input Status Registers;VentActual.A_AlaPt(16);L;27;;Alarms;Alarm frequency converter EAF 1
+Input Status Registers;VentActual.A_AlaPt(17);L;28;;Alarms;Alarm frequency converter EAF 2
+Input Status Registers;VentActual.A_AlaPt(18);L;29;;Alarms;Alarm frequency converter EAF 3
+Input Status Registers;VentActual.A_AlaPt(19);L;30;;Alarms;Alarm frequency converter EAF 4
+Input Status Registers;VentActual.A_AlaPt(20);L;31;;Alarms;Alarm frequency converter EAF 5
+Input Status Registers;VentActual.A_AlaPt(21);L;32;;Alarms;Warning frequency converter SAF 1
+Input Status Registers;VentActual.A_AlaPt(22);L;33;;Alarms;Warning frequency converter SAF 2
+Input Status Registers;VentActual.A_AlaPt(23);L;34;;Alarms;Warning frequency converter SAF 3
+Input Status Registers;VentActual.A_AlaPt(24);L;35;;Alarms;Warning frequency converter SAF 4
+Input Status Registers;VentActual.A_AlaPt(25);L;36;;Alarms;Warning frequency converter SAF 5
+Input Status Registers;VentActual.A_AlaPt(26);L;37;;Alarms;Warning frequency converter EAF 1
+Input Status Registers;VentActual.A_AlaPt(27);L;38;;Alarms;Warning frequency converter EAF 2
+Input Status Registers;VentActual.A_AlaPt(28);L;39;;Alarms;Warning frequency converter EAF 3
+Input Status Registers;VentActual.A_AlaPt(29);L;40;;Alarms;Warning frequency converter EAF 4
+Input Status Registers;VentActual.A_AlaPt(30);L;41;;Alarms;Warning frequency converter EAF 5
+Input Status Registers;VentActual.A_AlaPt(31);L;42;;Alarms;External operation SAF
+Input Status Registers;VentActual.A_AlaPt(32);L;43;;Alarms;External operation EAF
+Input Status Registers;VentActual.A_AlaPt(33);L;44;;Alarms;Motor control 1 external operation
+Input Status Registers;VentActual.A_AlaPt(34);L;45;;Alarms;Motor control 2 external operation
+Input Status Registers;VentActual.A_AlaPt(35);L;46;;Alarms;Malfunction pump heater
+Input Status Registers;VentActual.A_AlaPt(36);L;47;;Alarms;Malfunction pump cooler
+Input Status Registers;VentActual.A_AlaPt(37);L;48;;Alarms;Malfunction pump exchanger
+Input Status Registers;VentActual.A_AlaPt(38);L;49;;Alarms;Malfunction fire damper
+Input Status Registers;VentActual.A_AlaPt(39);L;50;;Alarms;Malfunction damper
+Input Status Registers;VentActual.A_AlaPt(40);L;51;;Alarms;Malfunction motor control 1
+Input Status Registers;VentActual.A_AlaPt(41);L;52;;Alarms;Malfunction motor control 2
+Input Status Registers;VentActual.A_AlaPt(42);L;53;;Alarms;Fire damper exercise stop
+Input Status Registers;VentActual.A_AlaPt(43);L;54;;Alarms;Malfunction pump seq. A
+Input Status Registers;VentActual.A_AlaPt(44);L;55;;Alarms;Malfunction pump seq. B
+Input Status Registers;VentActual.A_AlaPt(45);L;56;;Alarms;Malfunction pump seq. C
+Input Status Registers;VentActual.A_AlaPt(46);L;57;;Alarms;Malfunction pump seq. D
+Input Status Registers;VentActual.A_AlaPt(47);L;58;;Alarms;Malfunction pump seq. E
+Input Status Registers;VentActual.A_AlaPt(48);L;59;;Alarms;Malfunction pump seq. F
+Input Status Registers;VentActual.A_AlaPt(49);L;60;;Alarms;Malfunction pump seq. G
+Input Status Registers;VentActual.A_AlaPt(50);L;61;;Alarms;Malfunction pump seq. H
+Input Status Registers;VentActual.A_AlaPt(51);L;62;;Alarms;Malfunction pump seq. I
+Input Status Registers;VentActual.A_AlaPt(52);L;63;;Alarms;Malfunction pump seq. J
+Input Status Registers;VentActual.A_AlaPt(53);L;64;;Alarms;Filter guard 1
+Input Status Registers;VentActual.A_AlaPt(54);L;65;;Alarms;Filter guard 2
+Input Status Registers;VentActual.A_AlaPt(55);L;66;;Alarms;Flow guard
+Input Status Registers;VentActual.A_AlaPt(56);L;67;;Alarms;External frost guard
+Input Status Registers;VentActual.A_AlaPt(57);L;68;;Alarms;Deicing pressure guard
+Input Status Registers;VentActual.A_AlaPt(58);L;69;;Alarms;Fire alarm
+Input Status Registers;VentActual.A_AlaPt(59);L;70;;Alarms;Smoke detector alarm
+Input Status Registers;VentActual.A_AlaPt(60);L;71;;Alarms;External switch
+Input Status Registers;VentActual.A_AlaPt(61);L;72;;Alarms;External alarm
+Input Status Registers;VentActual.A_AlaPt(62);L;73;;Alarms;Service stop
+Input Status Registers;VentActual.A_AlaPt(63);L;74;;Alarms;Electric heating is overheated
+Input Status Registers;VentActual.A_AlaPt(64);L;75;;Alarms;Frost risk
+Input Status Registers;VentActual.A_AlaPt(65);L;76;;Alarms;Low efficiency
+Input Status Registers;VentActual.A_AlaPt(66);L;77;;Alarms;Analogue deicing
+Input Status Registers;VentActual.A_AlaPt(67);L;78;;Alarms;Rotation guard exchanger
+Input Status Registers;VentActual.A_AlaPt(68);L;79;;Alarms;Extra alarm 1
+Input Status Registers;VentActual.A_AlaPt(69);L;80;;Alarms;Extra alarm 2
+Input Status Registers;VentActual.A_AlaPt(70);L;81;;Alarms;Extra alarm 3
+Input Status Registers;VentActual.A_AlaPt(71);L;82;;Alarms;Extra alarm 4
+Input Status Registers;VentActual.A_AlaPt(72);L;83;;Alarms;Extra alarm 5
+Input Status Registers;VentActual.A_AlaPt(73);L;84;;Alarms;Extra alarm 6
+Input Status Registers;VentActual.A_AlaPt(74);L;85;;Alarms;Extra alarm 7
+Input Status Registers;VentActual.A_AlaPt(75);L;86;;Alarms;Extra alarm 8
+Input Status Registers;VentActual.A_AlaPt(76);L;87;;Alarms;Extra alarm 9
+Input Status Registers;VentActual.A_AlaPt(77);L;88;;Alarms;Extra alarm 10
+Input Status Registers;VentActual.A_AlaPt(78);L;89;;Alarms;Internal battery error
+Input Status Registers;VentActual.A_AlaPt(79);L;90;;Alarms;Time for service
+Input Status Registers;VentActual.A_AlaPt(80);L;91;;Alarms;Restart blocked after power on
+Input Status Registers;VentActual.A_AlaPt(81);L;92;;Alarms;Supply air temp control error
+Input Status Registers;VentActual.A_AlaPt(82);L;93;;Alarms;SAF control error
+Input Status Registers;VentActual.A_AlaPt(83);L;94;;Alarms;EAF control error
+Input Status Registers;VentActual.A_AlaPt(84);L;95;;Alarms;Humidity control error
+Input Status Registers;VentActual.A_AlaPt(85);L;96;;Alarms;Extra controller control error
+Input Status Registers;VentActual.A_AlaPt(86);L;97;;Alarms;High supply air temp
+Input Status Registers;VentActual.A_AlaPt(87);L;98;;Alarms;Low supply air temp
+Input Status Registers;VentActual.A_AlaPt(88);L;99;;Alarms;Supply air temp max limit
+Input Status Registers;VentActual.A_AlaPt(89);L;100;;Alarms;Supply air temp min limit
+Input Status Registers;VentActual.A_AlaPt(90);L;101;;Alarms;High room temp
+Input Status Registers;VentActual.A_AlaPt(91);L;102;;Alarms;Low room temp
+Input Status Registers;VentActual.A_AlaPt(92);L;103;;Alarms;High extract air temp
+Input Status Registers;VentActual.A_AlaPt(93);L;104;;Alarms;Low extract air temp
+Input Status Registers;VentActual.A_AlaPt(94);L;105;;Alarms;High outdoor air temp
+Input Status Registers;VentActual.A_AlaPt(95);L;106;;Alarms;Low outdoor air temp
+Input Status Registers;VentActual.A_AlaPt(96);L;107;;Alarms;Low frost guard temp 1
+Input Status Registers;VentActual.A_AlaPt(97);L;108;;Alarms;Low frost guard temp 2
+Input Status Registers;VentActual.A_AlaPt(98);L;109;;Alarms;Low frost guard temp 3
+Input Status Registers;VentActual.A_AlaPt(99);L;110;;Alarms;High temp extra sensor 1
+Input Status Registers;VentActual.A_AlaPt(100);L;111;;Alarms;Low temp extra sensor 1
+Input Status Registers;VentActual.A_AlaPt(101);L;112;;Alarms;High temp extra sensor 2
+Input Status Registers;VentActual.A_AlaPt(102);L;113;;Alarms;Low temp extra sensor 2
+Input Status Registers;VentActual.A_AlaPt(103);L;114;;Alarms;High temp extra sensor 3
+Input Status Registers;VentActual.A_AlaPt(104);L;115;;Alarms;Low temp extra sensor 3
+Input Status Registers;VentActual.A_AlaPt(105);L;116;;Alarms;High temp extra sensor 4
+Input Status Registers;VentActual.A_AlaPt(106);L;117;;Alarms;Low temp extra sensor 4
+Input Status Registers;VentActual.A_AlaPt(107);L;118;;Alarms;High temp extra sensor 5
+Input Status Registers;VentActual.A_AlaPt(108);L;119;;Alarms;Low temp extra sensor 5
+Input Status Registers;VentActual.A_AlaPt(109);L;120;;Alarms;High temp selected sensor 1
+Input Status Registers;VentActual.A_AlaPt(110);L;121;;Alarms;Low temp selected sensor 1
+Input Status Registers;VentActual.A_AlaPt(111);L;122;;Alarms;High temp selected sensor 2
+Input Status Registers;VentActual.A_AlaPt(112);L;123;;Alarms;Low temp selected sensor 2
+Input Status Registers;VentActual.A_AlaPt(113);L;124;;Alarms;Manual control air unit
+Input Status Registers;VentActual.A_AlaPt(114);L;125;;Alarms;Manual control supply air
+Input Status Registers;VentActual.A_AlaPt(115);L;126;;Alarms;Manual control SAF
+Input Status Registers;VentActual.A_AlaPt(116);L;127;;Alarms;Manual control EAF
+Input Status Registers;VentActual.A_AlaPt(117);L;128;;Alarms;Manual control heater
+Input Status Registers;VentActual.A_AlaPt(118);L;129;;Alarms;Manual control exchanger
+Input Status Registers;VentActual.A_AlaPt(119);L;130;;Alarms;Manual control cooler
+Input Status Registers;VentActual.A_AlaPt(120);L;131;;Alarms;Manual control damper
+Input Status Registers;VentActual.A_AlaPt(121);L;132;;Alarms;Manual control heater pump
+Input Status Registers;VentActual.A_AlaPt(122);L;133;;Alarms;Manual control exchanger pump
+Input Status Registers;VentActual.A_AlaPt(123);L;134;;Alarms;Manual control cooler pump
+Input Status Registers;VentActual.A_AlaPt(124);L;135;;Alarms;Manual control recirculation air damper
+Input Status Registers;VentActual.A_AlaPt(125);L;136;;Alarms;Manual control fresh air damper
+Input Status Registers;VentActual.A_AlaPt(126);L;137;;Alarms;Manual control exhaust air damper
+Input Status Registers;VentActual.A_AlaPt(127);L;138;;Alarms;Manual control fire damper
+Input Status Registers;VentActual.A_AlaPt(128);L;139;;Alarms;Manual control seq. A
+Input Status Registers;VentActual.A_AlaPt(129);L;140;;Alarms;Manual control seq. B
+Input Status Registers;VentActual.A_AlaPt(130);L;141;;Alarms;Manual control seq. C
+Input Status Registers;VentActual.A_AlaPt(131);L;142;;Alarms;Manual control seq. D
+Input Status Registers;VentActual.A_AlaPt(132);L;143;;Alarms;Manual control seq. E
+Input Status Registers;VentActual.A_AlaPt(133);L;144;;Alarms;Manual control seq. F
+Input Status Registers;VentActual.A_AlaPt(134);L;145;;Alarms;Manual control seq. G
+Input Status Registers;VentActual.A_AlaPt(135);L;146;;Alarms;Manual control seq. H
+Input Status Registers;VentActual.A_AlaPt(136);L;147;;Alarms;Manual control seq. I
+Input Status Registers;VentActual.A_AlaPt(137);L;148;;Alarms;Manual control seq. J
+Input Status Registers;VentActual.A_AlaPt(138);L;149;;Alarms;Output in manual control
+Input Status Registers;VentActual.A_AlaPt(139);L;150;;Alarms;Input in manual control
+Input Status Registers;VentActual.A_AlaPt(140);L;151;;Alarms;Manual control extra controller
+Input Status Registers;VentActual.A_AlaPt(141);L;152;;Alarms;Manual control motor control 1
+Input Status Registers;VentActual.A_AlaPt(142);L;153;;Alarms;Manual control motor control 2
+Input Status Registers;VentActual.A_AlaPt(143);L;154;;Alarms;Manual control pretreatment
+Input Status Registers;VentActual.A_AlaPt(144);L;155;;Alarms;Sensor error outdoor air temp
+Input Status Registers;VentActual.A_AlaPt(145);L;156;;Alarms;Sensor error intake air temp
+Input Status Registers;VentActual.A_AlaPt(146);L;157;;Alarms;Sensor error supply air temp
+Input Status Registers;VentActual.A_AlaPt(147);L;158;;Alarms;Sensor error exhaust air temp
+Input Status Registers;VentActual.A_AlaPt(148);L;159;;Alarms;Sensor error extract air temp
+Input Status Registers;VentActual.A_AlaPt(149);L;160;;Alarms;Sensor error room temp 1
+Input Status Registers;VentActual.A_AlaPt(150);L;161;;Alarms;Sensor error room temp 2
+Input Status Registers;VentActual.A_AlaPt(151);L;162;;Alarms;Sensor error room temp 3
+Input Status Registers;VentActual.A_AlaPt(152);L;163;;Alarms;Sensor error room temp 4
+Input Status Registers;VentActual.A_AlaPt(153);L;164;;Alarms;Sensor error room temp 5
+Input Status Registers;VentActual.A_AlaPt(154);L;165;;Alarms;Sensor error room temp 6
+Input Status Registers;VentActual.A_AlaPt(155);L;166;;Alarms;Sensor error room temp 7
+Input Status Registers;VentActual.A_AlaPt(156);L;167;;Alarms;Sensor error room temp 8
+Input Status Registers;VentActual.A_AlaPt(157);L;168;;Alarms;Sensor error room temp 9
+Input Status Registers;VentActual.A_AlaPt(158);L;169;;Alarms;Sensor error room temp 10
+Input Status Registers;VentActual.A_AlaPt(159);L;170;;Alarms;Sensor error room temp 11
+Input Status Registers;VentActual.A_AlaPt(160);L;171;;Alarms;Sensor error room temp 12
+Input Status Registers;VentActual.A_AlaPt(161);L;172;;Alarms;Sensor error room temp 13
+Input Status Registers;VentActual.A_AlaPt(162);L;173;;Alarms;Sensor error room temp 14
+Input Status Registers;VentActual.A_AlaPt(163);L;174;;Alarms;Sensor error room temp 15
+Input Status Registers;VentActual.A_AlaPt(164);L;175;;Alarms;Sensor error room temp 16
+Input Status Registers;VentActual.A_AlaPt(165);L;176;;Alarms;Sensor error SAF pressure
+Input Status Registers;VentActual.A_AlaPt(166);L;177;;Alarms;Sensor error EAF pressure
+Input Status Registers;VentActual.A_AlaPt(167);L;178;;Alarms;Sensor error SAF flow
+Input Status Registers;VentActual.A_AlaPt(168);L;179;;Alarms;Sensor error EAF flow
+Input Status Registers;VentActual.A_AlaPt(169);L;180;;Alarms;Sensor error exchanger pressure SAF
+Input Status Registers;VentActual.A_AlaPt(170);L;181;;Alarms;Sensor error exchanger pressure EAF
+Input Status Registers;VentActual.A_AlaPt(171);L;182;;Alarms;Sensor error deicing temp
+Input Status Registers;VentActual.A_AlaPt(172);L;183;;Alarms;Sensor error frost protection 1
+Input Status Registers;VentActual.A_AlaPt(173);L;184;;Alarms;Sensor error frost protection 2
+Input Status Registers;VentActual.A_AlaPt(174);L;185;;Alarms;Sensor error frost protection 3
+Input Status Registers;VentActual.A_AlaPt(175);L;186;;Alarms;Sensor error CO2
+Input Status Registers;VentActual.A_AlaPt(176);L;187;;Alarms;Sensor error humidity room
+Input Status Registers;VentActual.A_AlaPt(177);L;188;;Alarms;Sensor error humidity duct
+Input Status Registers;VentActual.A_AlaPt(178);L;189;;Alarms;Sensor error outdoor humidity
+Input Status Registers;VentActual.A_AlaPt(179);L;190;;Alarms;Sensor error external control SAF
+Input Status Registers;VentActual.A_AlaPt(180);L;191;;Alarms;Sensor error external control EAF
+Input Status Registers;VentActual.A_AlaPt(181);L;192;;Alarms;Sensor error extra controller
+Input Status Registers;VentActual.A_AlaPt(182);L;193;;Alarms;Sensor error extra sensor 1
+Input Status Registers;VentActual.A_AlaPt(183);L;194;;Alarms;Sensor error extra sensor 2
+Input Status Registers;VentActual.A_AlaPt(184);L;195;;Alarms;Sensor error extra sensor 3
+Input Status Registers;VentActual.A_AlaPt(185);L;196;;Alarms;Sensor error extra sensor 4
+Input Status Registers;VentActual.A_AlaPt(186);L;197;;Alarms;Sensor error extra sensor 5
+Input Status Registers;VentActual.A_AlaPt(187);L;198;;Alarms;Sensor error external supply setpoint
+Input Status Registers;VentActual.A_AlaPt(188);L;199;;Alarms;Sensor error external flow setpoint
+Input Status Registers;VentActual.A_AlaPt(189);L;200;;Alarms;Sensor error filter guard 1
+Input Status Registers;VentActual.A_AlaPt(190);L;201;;Alarms;Sensor error filter guard 2
+Input Status Registers;VentActual.A_AlaPt(191);L;202;;Alarms;Sensor error efficiency temp
+Input Status Registers;VentActual.A_AlaPt(192);L;203;;Alarms;Fault communication device
+Input Status Registers;VentActual.A_AlaPt(193);L;204;;Alarms;Malfunction Extra Controller
+Input Status Registers;VentActual.A_AlaPt(194);L;205;;Alarms;Internal error
+Input Status Registers;VentActual.A_DigitalInput(1);L;262;;Inputs/Outputs;Value of DI1
+Input Status Registers;VentActual.A_DigitalInput(2);L;263;;Inputs/Outputs;Value of DI2
+Input Status Registers;VentActual.A_DigitalInput(3);L;264;;Inputs/Outputs;Value of DI3
+Input Status Registers;VentActual.A_DigitalInput(4);L;265;;Inputs/Outputs;Value of DI4
+Input Status Registers;VentActual.A_DigitalInput(5);L;266;;Inputs/Outputs;Value of DI5
+Input Status Registers;VentActual.A_DigitalInput(6);L;267;;Inputs/Outputs;Value of DI6
+Input Status Registers;VentActual.A_DigitalInput(7);L;268;;Inputs/Outputs;Value of DI7
+Input Status Registers;VentActual.A_DigitalInput(8);L;269;;Inputs/Outputs;Value of DI8
+Input Status Registers;VentActual.A_DigitalInput(9);L;270;;Inputs/Outputs;Value of UDI1
+Input Status Registers;VentActual.A_DigitalInput(10);L;271;;Inputs/Outputs;Value of UDI2
+Input Status Registers;VentActual.A_DigitalInput(11);L;272;;Inputs/Outputs;Value of UDI3
+Input Status Registers;VentActual.A_DigitalInput(12);L;273;;Inputs/Outputs;Value of UDI4
+Input Status Registers;VentActual.A_DigitalInputExp1(1);L;274;;Inputs/Outputs;Value of DI1 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(2);L;275;;Inputs/Outputs;Value of DI2 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(3);L;276;;Inputs/Outputs;Value of DI3 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(4);L;277;;Inputs/Outputs;Value of DI4 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(5);L;278;;Inputs/Outputs;Value of DI5 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(6);L;279;;Inputs/Outputs;Value of DI6 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(7);L;280;;Inputs/Outputs;Value of DI7 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(8);L;281;;Inputs/Outputs;Value of DI8 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(9);L;282;;Inputs/Outputs;Value of UDI1 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(10);L;283;;Inputs/Outputs;Value of UDI2 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(11);L;284;;Inputs/Outputs;Value of UDI3 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp1(12);L;285;;Inputs/Outputs;Value of UDI4 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalInputExp2(1);L;286;;Inputs/Outputs;Value of DI1 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(2);L;287;;Inputs/Outputs;Value of DI2 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(3);L;288;;Inputs/Outputs;Value of DI3 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(4);L;289;;Inputs/Outputs;Value of DI4 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(5);L;290;;Inputs/Outputs;Value of DI5 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(6);L;291;;Inputs/Outputs;Value of DI6 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(7);L;292;;Inputs/Outputs;Value of DI7 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(8);L;293;;Inputs/Outputs;Value of DI8 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(9);L;294;;Inputs/Outputs;Value of UDI1 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(10);L;295;;Inputs/Outputs;Value of UDI2 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(11);L;296;;Inputs/Outputs;Value of UDI3 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalInputExp2(12);L;297;;Inputs/Outputs;Value of UDI4 Expansion unit 2
+Input Status Registers;VentActual.A_DO_SeqPumpY1(0);L;322;;Ventilation  Manual/Auto;Start signal pump sequence A
+Input Status Registers;VentActual.A_DigitalOutput(1);L;334;;Inputs/Outputs;Value of DO1
+Input Status Registers;VentActual.A_DigitalOutput(2);L;335;;Inputs/Outputs;Value of DO2
+Input Status Registers;VentActual.A_DigitalOutput(3);L;336;;Inputs/Outputs;Value of DO3
+Input Status Registers;VentActual.A_DigitalOutput(4);L;337;;Inputs/Outputs;Value of DO4
+Input Status Registers;VentActual.A_DigitalOutput(5);L;338;;Inputs/Outputs;Value of DO5
+Input Status Registers;VentActual.A_DigitalOutput(6);L;339;;Inputs/Outputs;Value of DO6
+Input Status Registers;VentActual.A_DigitalOutput(7);L;340;;Inputs/Outputs;Value of DO7
+Input Status Registers;VentActual.A_DigitalOutputExp1(1);L;341;;Inputs/Outputs;Value of DO1 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(2);L;342;;Inputs/Outputs;Value of DO2 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(3);L;343;;Inputs/Outputs;Value of DO3 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(4);L;344;;Inputs/Outputs;Value of DO4 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(5);L;345;;Inputs/Outputs;Value of DO5 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(6);L;346;;Inputs/Outputs;Value of DO6 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp1(7);L;347;;Inputs/Outputs;Value of DO7 Expansion unit 1
+Input Status Registers;VentActual.A_DigitalOutputExp2(1);L;348;;Inputs/Outputs;Value of DO1 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(2);L;349;;Inputs/Outputs;Value of DO2 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(3);L;350;;Inputs/Outputs;Value of DO3 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(4);L;351;;Inputs/Outputs;Value of DO4 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(5);L;352;;Inputs/Outputs;Value of DO5 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(6);L;353;;Inputs/Outputs;Value of DO6 Expansion unit 2
+Input Status Registers;VentActual.A_DigitalOutputExp2(7);L;354;;Inputs/Outputs;Value of DO7 Expansion unit 2
+Input Status Registers;VentActual.A_DemandCO2Active;L;371;;Ventilation  Demand control;Is set if ongoing support CO2
+Input Status Registers;VentActual.A_DeIcingActive;L;373;;Ventilation  Temperature control;De-icing

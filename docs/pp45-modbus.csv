@@ -1,0 +1,36 @@
+modbus-Parameterliste RLS 45 K / 24.03.21;;;;;;;;;
+;;;;;;;;;
+Modbus Mode;RTU ;;;;;;;;
+Baudrate;9600;;;;;;;;
+Daten-Bits;8;;;;;;;;
+Parität;Even;;;;;;;;
+Stop Bit;1;;;;;;;;
+Modbus Adresse:;10;;;;;;;;
+;;;;;;;;;
+ModBus-Adresse;Parameter-Name;Datentyp;R/W;min.;max.;Schritte;WE;Kommentar;Einheit
+200;Betriebsart;16-bit unsigned;R/W;0;1;1;0;"0=WRG; 1=Quer";-
+201;Lüftungsstufe;16-bit unsigned;R/W;0;5;1;0;0= Aus bis 5 = Intensiv;-
+202;Sensorbetrieb WRG;16-bit unsigned;R/W;0;1;1;0;"0=inaktiv; 1=aktiv";-
+203;Sensorbetrieb Quer;16-bit unsigned;R/W;0;1;1;0;"0=inaktiv; 1=aktiv";-
+204;Error-Reset;16-bit unsigned;R;0;65536;1;0;1= Reset;
+205;Filter-Reset;16-bit unsigned;R;0;1;1;0;1= Reset;Tage
+300;Filter-Restlaufzeit;16-bit unsigned;R;0;65536;1;2190;;Tage
+301;Feuchtewert FMR;16-bit unsigned;R;0;100;1;0;;% r.F.
+302;Error Code;16-bit unsigned;R;0;7;1;0;Analog BDE;
+303;Feuchtewert-extern;16-bit unsigned;W;0;100;1;0;Feuchtewert schreiben;% r.F.
+304;LQ-Wert extern;16-bit unsigned;W;0;3000;1;0;LQ-Wert schreiben;ppm
+400;Betriebsstunden Aus;16-bit unsigned;R;0;23;1;0;Betriebsstunden Aus Stunden;h
+401;Betriebsstunden Aus;16-bit unsigned;R;0;65536;1;0;Betriebsstunden Aus Tage;d
+402;Betriebsstunden FL;16-bit unsigned;R;0;23;1;0;Betriebsstunden FL Stunden;h
+403;Betriebsstunden FL;16-bit unsigned;R;0;65536;1;0;Betriebsstunden FL Tage;d
+404;Betriebsstunden RL1;16-bit unsigned;R;0;23;1;0;Betriebsstunden RL1 Stunden;h
+405;Betriebsstunden RL1;16-bit unsigned;R;0;65536;1;0;Betriebsstunden RL1 Tage;d
+406;Betriebsstunden RL2;16-bit unsigned;R;0;23;1;0;Betriebsstunden RL2 Stunden;h
+407;Betriebsstunden RL2;16-bit unsigned;R;0;65536;1;0;Betriebsstunden RL2 Tage;d
+408;Betriebsstunden NL;16-bit unsigned;R;0;23;1;0;Betriebsstunden NL Stunden;h
+409;Betriebsstunden NL;16-bit unsigned;R;0;65536;1;0;Betriebsstunden NL Tage;d
+410;Betriebsstunden IL;16-bit unsigned;R;0;23;1;0;Betriebsstunden IL Stunden;h
+411;Betriebsstunden IL;16-bit unsigned;R;0;65536;1;0;Betriebsstunden IL Tage;d
+412;Betriebsstunden Gesamt;16-bit unsigned;R;0;23;1;0;Betriebsstunden Gesamt Stunden;h
+413;Betriebsstunden Gesamt;16-bit unsigned;R;0;65536;1;0;Betriebsstunden Gesamt Tage;d
+;;;;;;;;;

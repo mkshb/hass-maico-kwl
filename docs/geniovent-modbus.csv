@@ -1,0 +1,267 @@
+﻿MAICO GVX Mod-Bus-Parameterliste RTU / TCP / 16.12.2024;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;
+Download: ;www.maico-ventilatoren.com;;;;;;;;;;;;;
+Version:;V1.0;;;;;;;;;;;;;
+Date:;16.12.2024;;;;;;;;;;;;;
+Owner:;Maico Elektroapperate-Fabrik GmbH - 78056 Villingen-Schwenningen - TP/SH;;;;;;;;;;;;;
+;;;;;;;;;;;;;;
+;Modbus Mode;RTU / TCP (TCP ab FW-V1.1.1);;;;;;;;;;;;
+;Baudrate;9600;;;;;;;;;;;;
+;Daten-Bits;8;;;;;;;;;;;;
+;Parität;Even;;;;;;;;;;;;
+;Stop Bit;1;;;;;;;;;;;;
+;Modbus Adresse:;10;;;;;;;;;;;;
+;Registerreihenfolge;High-Word/Low-Word;;;;;;;;;;;;
+;Byte-Reihenfolge;High-Byte/Low-Byte;;;;;;;;;;;;
+;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;
+Gruppe;Modbus Code;BIT/;Parameter;Zugriff Lesen;Zugriff Schreiben ModBus RTU;Zugriff Schreiben ModBus TCP;Anazahl;Datentyp;Roh-;Roh-;IST-;IST-;Format;Kommentar
+;(dezimal);Wert;;;;;Werte;;Min Wert ;Max Wert;Min Wert ;Max Wert;;
+Einstellung Grundeinstellung;100;;Datum - Jahr;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;2015;2100;2015;2100;JJJJ;Jahr
+;101;;Datum - Monat;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;1;12;1;12;MM;Monat
+;102;;Datum - Tag;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;1;31;1;31;TT;Tag
+;103;;Uhrzeit - Stunde;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;23;0;23;SS;Stunde
+;104;;Uhrzeit - Minute;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;59;0;59;mm;Minute
+;105;;Uhrzeit Sekunde;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;59;0;59;ss;Sekunde
+;106;;Lüfterstufe Aus sperren;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;1;0;1;;"Lüftungsstufe Aus sperren
+0=Aus möglich
+ 1=Aus gesperrt"
+;107;;Verriegerlung BDE;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;1;0;1;;"Verrigelung RB-ZF 4
+0=BDE nicht verriegelt
+1=BDE verriegelt"
+;108;;Sprache;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;3;0;3;;"Sprachauswahl BDE / WebServer
+0=deutsch
+1=englisch;
+2=französisch"
+;109;;Raumfühler Konfiguration;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;3;0;3;;"Raumfühler Konfiguration (Quelle Raumtemperatur)
+0=Komfort-BDE
+1= Bus (Parameter T-Raum Bus / 707)"
+;;;;;;;;;;;;;;
+Einstellung Lüftung;150;;Filterstand Gerätefilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;3;12;3 Monate;12 Monate;Monate;
+;151;;Filterstand Aussenfilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;3;18;3 Monate;18 Monate;Monate;
+;152;;Filterstand Raumfilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;1;6;1 Monat;6 Monate;Monate;
+;153;;Dauer Lüftungsstufe;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;5;90;5 min;90 min;Minute;
+;154;;Steuerwert Lüftungsstufe Reduzierte Lüftung;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;20;100;20%;100%;%;* Grenzwerte sind vom Gerätetyp abhängig
+;155;;Steuerwert Lüftungsstufe Nennlüftung;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;20;100;20%;100%;%;* Grenzwerte sind vom Gerätetyp abhängig
+;156;;Steuerwert Lüftungsstufe Intensivlüftung;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;20;100;20%;100%;%;* Grenzwerte sind vom Gerätetyp abhängig
+;157;;Filterwechsel Gerätefilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;1;0;1;;1= Filter gewechselt
+;158;;Filterwechsel Außenfilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;1;0;1;;1= Filter gewechselt
+;159;;Filterwechsel Raumfilter;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;unsigned 16 Bit;0;1;0;1;;1= Filter gewechselt
+;;;;;;;;;;;;;;
+Einstellung Temperatur;300;;Abgleich Raumtemperatur;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;signed 16 Bit;-30;30;-3°C;3°C;Temperatur * 10 (°C);Schrittweite 1 (= 0,1°C)
+;301;;T-Zuluft min. kühlen;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;signed 16 Bit;8;29;8°C;29°C;Temperatur in°C;Schrittweite 1 (= 1°C)
+;302;;T-Raum max.;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;signed 16 Bit;180;300;18°C;30°C;Temperatur * 10 (°C);Schrittweite 5 (= 0,5°C)
+;;;;;;;;;;;;;;
+EnOcean;350;;EnOcean Funksensor Typ CO2 an ID0;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;351;;EnOcean Funksensor Typ CO2 an ID1;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;352;;EnOcean Funksensor Typ CO2 an ID2;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;353;;EnOcean Funksensor Typ CO2 an ID3;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;354;;EnOcean Funksensor Typ CO2 an ID4;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;355;;EnOcean Funksensor Typ CO2 an ID5;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;356;;EnOcean Funksensor Typ CO2 an ID6;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;357;;EnOcean Funksensor Typ CO2 an ID7;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;358;;EnOcean Funksensor Typ rF an ID0;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;359;;EnOcean Funksensor Typ rF an ID1;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;360;;EnOcean Funksensor Typ rF an ID2;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;361;;EnOcean Funksensor Typ rF an ID3;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;362;;EnOcean Funksensor Typ rF an ID4;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;363;;EnOcean Funksensor Typ rF an ID5;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;364;;EnOcean Funksensor Typ rF an ID6;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;365;;EnOcean Funksensor Typ rF an ID7;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0;100;% r.F.;
+;366;;EnOcean Funksensor Typ VOC an ID0;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;367;;EnOcean Funksensor Typ VOC an ID1;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;368;;EnOcean Funksensor Typ VOC an ID2;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;369;;EnOcean Funksensor Typ VOC an ID3;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;370;;EnOcean Funksensor Typ VOC an ID4;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;371;;EnOcean Funksensor Typ VOC an ID5;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;372;;EnOcean Funksensor Typ VOC an ID6;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;373;;EnOcean Funksensor Typ VOC an ID7;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0;5000;ppm;
+;;;;;;;;;;;;;;
+Fehler und Hinweise;401;;Aktueller Fehler / High-Word;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Bitfeld;"Fehler aktiv wenn Bit = True
+Fehler Bitnummer: 
+0 = Kein Fehler aktiv
+1 = Fehler Kommunikatiuon ZP 2
+2 = Fehler Sensor T-Abluft
+3 = Fehler Kommunikation BDE
+4 = Fehler Systemspreicher
+5 = Fehler Systembus
+6= unbekannter Fehler
+7 = Ext. Sicherheitsabschaltung"
+;402;;Aktueller Fehler / Low-Word;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Bitfeld;"Fehler aktiv wenn Bit = True
+Fehler Bitnummer: 
+0= Kein Fehler aktiv
+1 = Fehler Ventilator Zuluft
+2 = Fehler Ventilator Abluft
+3 = Fehler Sensor T-Lufteintritt
+4 = Fehler Sensor T-Zuluft
+5 = Fehler Sensor T-Fortluft
+6 = Fehler Sensor T-Raum BDE
+7 = Fehler Sensor T-Raum
+8 = Fehler Sensor T-Aussenluft vor EWT
+9 = Fehler Bypass
+10 = Fehler Zonenklappe
+11 = Fehler Kombisensensor
+12 = Fehler Frostschutz
+13 = Fehler Externe Vorheizung
+14 = Fehler Zuluft / Abluft zu kalt
+15 = Fehler Sensor T-Raum Bus
+16 = Fehler Kommunikation ZP1"
+;403;;Aktueller Hinweis /  High-Word;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Bitfeld;"Hinweis aktiv wenn Bit = True
+Aktuelle Hinweis (Bitnummer):
+0 = Kein Hinweis aktiv
+1 = Tuerkontaktschalter ausgelöst
+2 = Sicherheitsabschaltung Extern
+3 = Zwangslauf aktiv
+4 = Kommunikation ModBus
+5 = Schaltest aktiv
+6 = Initialisierung Filter / Drukkonstanz aktiv
+7 = Sollwert Druckkonstanz nicht erreicht
+8 = Extern start / stop aktiv
+9 = Nachtkühlung aktiv
+10 = Spülbetrieb aktiv
+11 = Bewegungsmelder Betrieb aktiv
+12 = Externe Gerätesteuerung aktiv
+13 = Volumenstromausgleich aktiv
+14 = Ferienzeitprogramm aktiv
+15 = Sensorbetrieb aktiv"
+;404;;Aktueller Hinweis / Low Word;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Bitfeld;"Hinweis aktiv wenn Bit = True
+Aktuelle Hinweis (Bitnummer):
+0= Kein Hinweis
+1 = Sole EWT Kühlleistung gering
+2 = Kommunikation EnOcean
+3 = Kommunikation KNX
+4 = Kommunikation air@home
+5 = Bypass aktiv
+6 = Zonenlüftung aktiv
+7= Frostschutz aktiv
+8 = Frostschutz Volumenstromreduzierung
+9 = Tastensperre
+10 = Gerätefilter verschmutzt
+11 = Aussenfilter verschmutzt
+12 = Raumfilter verschmutzt
+13 = Volumenstromeinmessung aktiv
+14 = Überfeuchtungsschutz aktiv
+15 = Nacherwärmung aktiv"
+;405;;Fehler Reset;-;06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;1= Fehler Reset
+;;;;;;;;;;;;;;
+Grundeinstellung Gerätebetrieb;550;;Betriebsart;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;5;0;5;;"Betriebsarten
+0=Aus; 1=Manuell; 2=Auto-Zeit; 3= Auto-Sensor; 4=Eco-Zuluft; 5=Eco-Abluft "
+;551;;Stoßlüftung;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;"Funktion Stoßlütung
+0=inaktiv
+1=aktiv"
+;552;;Jahreszeit;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;"0=Winter; 1=Sommer"
+;553;;Solltemperatur Raum;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;int16;180;250;18°C;25°C;Temperatur * 10 (°C);Schrittweite 5 (= 0,5°C)
+;554;;Lüftungstsufe;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;4;0;4;;"0=Aus; 1=Feuchteschutz; 2=Reduziert; 3=Nenn; 4=Intensiv "
+;555;;Bypass-Extern;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;2;0;2;;"Bypass Steuerung Extern
+0=Automatik
+1=Bypass öffnen
+2=Bypass schließen"
+;556;;Nachtkühlung-Extern;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;"Start / Stop Nachkühlung
+0=Nachtkühlung inaktiv
+1=Nachtkülung aktiv"
+;557;;Spülbetrieb-Extern;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;"
+Start / Stop Spülbetrieb
+0=Spülbetrieb inaktiv
+1=Spülbetrieb aktiv"
+;558;;Ventilatoransteuerung Extern Ja/Nein;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;1;0;1;;"Start / Stop Externe Ventilatoransteuerung:
+0 = Steuerung Extern gesperrt
+1 = Steuerung extern aktiv"
+Grundeinstellung Gerätebetrieb;559;;Ventilatoransteuerung Extern Zuluft;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;100%;0;100%;;"Externer Steuerwert Zuluft-Ventilator in 
+Prozent. Ansteuerung möglich wenn 
+externe Ansteuerung aktiv (Parameter)
+(VolStromAktiv = 1)
+0%=Ventilator läuft in Reduzierter Lüftung, 100 % Ventilator läuft in Intensivlüftung"
+;560;;Ventilatoransteuerung Extern Abluft;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;0;100%;0;100%;;"Externer Steuerwert Abluft-Ventilator in 
+Prozent. Ansteuerung möglich wenn 
+externe Ansteuerung aktiv (Parameter)
+(VolStromAktiv = 1)
+0%=Ventilator läuft in Reduzierter Lüftung, 100 % Ventilator läuft in Intensivlüftung"
+Abfrage Lüftung;650;;Aktuelle Lüftungsstufe;03-Read Holding Register(4x);-;-;1;uint16;0;4;0;4;;"Aktuell angewählte Lüftungstufe
+0=Aus; 1=Feuchteschutz; 2=Reduziert; 3=Nenn; 4=Intensiv "
+;651;;Aktuelle Drehzahl Ventilator ZUL;03-Read Holding Register(4x);-;-;1;uint16;0;5000;0;5000;U/min;Aktuelle Drehzahl Ventilator Zuluft
+;652;;Aktuelle Drehzahl Ventilator ABL;03-Read Holding Register(4x);-;-;1;uint16;0;5000;0;5000;U/min;Aktuelle Drehzahl Ventilator Abluft
+;653;;Aktueller Steuerwert ZUL;03-Read Holding Register(4x);-;-;1;uint16;0;300*;0 m³/h;300 m³/h;m³/h;Aktueller Steuerwert (Vorgabe) Ventilator Zuluft
+;654;;Aktueller Steuerwert ABL;03-Read Holding Register(4x);-;-;1;uint16;0;300*;0 m³/h;300 m³/h;m³/h;Aktueller Steuerwert (Vorgabe) Ventilator Zuluft
+;655;;Restlaufzeit Gerätefilter;03-Read Holding Register(4x);-;-;1;uint16;0;366;0 Tage;366 Tage;Tage;Restlaufzeit in Tage
+;656;;Restlaufzeit Aussenfilter;03-Read Holding Register(4x);-;-;1;uint16;0;549;0 Tage;549 Tage;Tage;Restlaufzeit in Tage
+;657;;Restlaufzeit Raumfilter;03-Read Holding Register(4x);-;-;1;uint16;0;183;0 Tage;183 Tage;Tage;Restlaufzeit in Tage
+;;;;;;;;;;;;;;
+Abfrage Aktuelle Temperaturen;700;-;Temperatur Raum;03-Read Holding Register(4x);-;;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Anzeige Raumtemperatur gemäß Raumsensorkonfiguration
+;701;-;Temperatur Raum Ext.;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Nur gültig, wenn ein externer Raumtemperatur Sensor konfiguriert ist
+;702;-;Temperatur T-AUL vor Luft EWT;03-Read Holding Register(4x);-;-;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Nur gültig, wenn ein Luft-EWT konfiguriert ist (ZP1)
+;703;-;Temperatur Lufteintritt;03-Read Holding Register(4x);-;-;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Aktuelle Temperatur AUL-Fühler (nach Heizregister)
+;704;-;Temperatur Zuluft;03-Read Holding Register(4x);-;-;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Aktuelle Temperatur ZUL-Fühler
+;705;-;Temperatur Abluft;03-Read Holding Register(4x);-;-;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Aktuelle Temperatur ABL-Fühler
+;706;-;Temperatur Fortluft;03-Read Holding Register(4x);-;-;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Aktuelle temperatur FOL-Fühler
+;707;;T-Raum Bus;-;06-Write Single Register;16-Write Multiple Register;1;int16;-300;1200;-30°C;120°C;Temperatur * 10 (°C);Nur gültig, wenn ein Bus Raumtemperatur Sensor konfiguriert ist / Schreibzyklus min. 10min
+;;;;;;;;;;;;;;
+Bereich Sensordaten;750;-;r.F. Abluft;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0%;100%;relative Feuchte * 10 (%);nicht verfügbar
+;751;-;r.F. Sensor 1;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0%;100%;relative Feuchte * 10 (%);Nur gültig, wenn Sensor 1 als r.F. Sensor konfiguriert ist
+;752;-;r.F. Sensor 2;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0%;100%;relative Feuchte * 10 (%);Nur gültig, wenn Sensor 2 als r.F. Sensor konfiguriert ist
+;753;-;r.F. Sensor 3;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0%;100%;relative Feuchte * 10 (%);Nur gültig, wenn Sensor 3 als r.F. Sensor konfiguriert ist
+;754;-;r.F. Sensor 4;03-Read Holding Register(4x);-;-;1;uint16;0;1000;0%;100%;relative Feuchte * 10 (%);Nur gültig, wenn Sensor 4 als r.F. Sensor konfiguriert ist
+;755;-;CO2 Sensor 1;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;CO2-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 1 als CO2 Sensor konfiguriert ist
+;756;-;CO2 Sensor 2;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;CO2-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 2 als CO2 Sensor konfiguriert ist
+;757;-;CO2 Sensor 3;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;CO2-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 3 als CO2 Sensor konfiguriert ist
+;758;-;CO2 Sensor 4;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;CO2-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 4 als CO2 Sensor konfiguriert ist
+;759;-;VOC Sensor 1;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;VOC-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 1 als VOC Sensor konfiguriert ist
+;760;-;VOC Sensor 2;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;VOC-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 2 als VOC Sensor konfiguriert ist
+;761;-;VOC Sensor 3;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;VOC-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 3 als VOC Sensor konfiguriert ist
+;762;-;VOC Sensor 4;03-Read Holding Register(4x);-;-;1;uint16;0;50000;0ppm;5000ppm;VOC-Konzentration * 10 (ppm);Nur gültig, wenn Sensor 4 als VOC Sensor konfiguriert ist
+;763;;r.F. Bus;-;06-Write Single Register;16-Write Multiple Register;1;uint16;0;100;0 %r.F;100 %r.F;;Schreibzyklus mindestens 10min
+;764;;LQ-Bus;-;06-Write Single Register;16-Write Multiple Register;1;uint16;0;5000;0ppm;5000ppm;;Schreibzyklus mindestens 10min
+;;;;;;;;;;;;;;
+Abfrage Schaltzustände;800;;Ventilator Zuluft;03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Ventilator Zuluft
+0=aus
+1=ein"
+;801;;Ventilator Abluft;03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Ventilator Abluft
+0=aus
+1=ein"
+;802;;Stellantrieb Sommerbypass;03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Bypass
+0=geschlossen
+1=geöffnet"
+;803;;PTC-Heizregister;03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Heizregister an X5
+0=aus
+1=ein"
+;804;;Schaltkontakt Basisplatine;03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Multifunktionskontakt 
+0=aus
+1=ein"
+;805;;Relais Nachheizung (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;1;0;1;;"Status Nachzeizregister an ZP1
+0=aus
+ 1=ein"
+;806;;Sole-Umwälzpumpe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;2;0;2;;"Status Sole-UWP (ZP1)
+0=Aus
+1=heizen
+2=kühlen"
+;807;;3-Wege-Luftklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;2;0;2;;"Status 3-Wege Luftklappe (ZP1)
+0=Aus
+1=heizen
+ 2=kühlen"
+;808;;Zonenklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;3;0;3;;"Status Zonenklappe (ZP1)
+0=Aus
+1=Zone1
+2=Zone2
+3=Zone Sensor"
+;;;;;;;;;;;;;;
+Abfrage Betriebsstunden;850;;Betriebsstunden Feuchteschutz Lüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;851;;Betriebsstunden Feuchteschutz Lüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;852;;Betriebsstunden Reduzierte Lüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;853;;Betriebsstunden Reduzierte Lüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;854;;Betriebsstunden Nennlüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;855;;Betriebsstunden Nennlüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;856;;Betriebsstunden Intensivlüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;857;;Betriebsstunden Intensivlüftung;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;858;;Betriebsstunden Lüftung gesamt;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;859;;Betriebsstunden Lüftung gesamt;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;860;;Relais Nachheizung (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;861;;Relais Nachheizung (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;862;;Sole-Umwälzpumpe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;863;;Sole-Umwälzpumpe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;864;;3-Wege-Luftklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;865;;3-Wege-Luftklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;866;;Zonenklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;867;;Zonenklappe (ZP1);03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+;868;;Schaltkontakt;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;High-Word
+;869;;Schaltkontakt;03-Read Holding Register(4x);-;-;1;uint16;0;65535;0;65535;Stunden;Low-Word
+Filterüberwachung ZP2;;;;;;;;;;;;;;
+;900;;Zulässiges Delta p Filterüberwachung;03-Read Holding Register(4x);06-Write Single Register;16-Write Multiple Register;1;uint16;10;200;10%;200%;%;

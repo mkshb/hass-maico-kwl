@@ -1,8 +1,8 @@
 """Thin async wrapper around pymodbus for a Maico KWL over Modbus TCP.
 
-The pymodbus call signatures here match pymodbus 3.11 as bundled with current
-Home Assistant: registers are addressed by keyword and the slave id is passed as
-``device_id`` (not ``slave``).
+The pymodbus call signatures here match pymodbus 3.11+ as bundled with current
+Home Assistant (verified through 3.13): registers are addressed by keyword and
+the slave id is passed as ``device_id`` (not ``slave``).
 """
 
 from __future__ import annotations

@@ -170,6 +170,9 @@
       "room_temp_bus_sent": {
         "name": "Room temperature bus (sent)"
       },
+      "heat_recovery_power": {
+        "name": "Heat recovery power"
+      },
       "humidity_bus_sent": {
         "name": "Humidity bus (sent)"
       },

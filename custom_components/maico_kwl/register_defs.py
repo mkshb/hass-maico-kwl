@@ -39,6 +39,7 @@ DAYS = "d"
 HOURS = "h"
 MINUTES = "min"
 MONTHS = "mo"
+WATT = "W"
 
 # Enum maps (raw value -> option slug). The slug is the canonical state stored by
 # HA; its display text is translated via entity .../state/<slug> in the translation
@@ -394,3 +395,20 @@ REGISTERS: list[RegisterDef] = [
 ]
 
 REGISTERS_BY_KEY: dict[str, RegisterDef] = {r.key: r for r in REGISTERS}
+
+# --- Derived entities -------------------------------------------------------
+# The Maico Modbus map has no register for the recovered heat, although the
+# vendor app displays it. It is computed from the supply airflow and the
+# temperature rise across the exchanger, so it is defined here as a pseudo
+# register (no address, never polled) and calculated in sensor.py.
+HEAT_RECOVERY_SOURCES = ("airflow_supply", "temp_air_intake", "temp_supply_air")
+
+# Volumetric heat capacity of air in Wh/(m3*K); airflow is reported in m3/h,
+# so P[W] = flow[m3/h] * 0.34 * dT[K].
+AIR_HEAT_CAPACITY = 0.34
+
+DERIVED_HEAT_RECOVERY = RegisterDef(
+    "heat_recovery_power", -1, "Heat recovery power", SENSOR, unit=WATT,
+    device_class="power", state_class="measurement", readable=False,
+    icon="mdi:heat-wave",
+)

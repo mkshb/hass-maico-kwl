@@ -14,7 +14,14 @@ from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import BUS_FEEDS, DOMAIN
 from .entity import MaicoEntity
-from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
+from .register_defs import (
+    AIR_HEAT_CAPACITY,
+    DERIVED_HEAT_RECOVERY,
+    HEAT_RECOVERY_SOURCES,
+    REGISTERS_BY_KEY,
+    SENSOR,
+    RegisterDef,
+)
 
 
 async def async_setup_entry(
@@ -38,6 +45,9 @@ async def async_setup_entry(
                     coordinator, entry, REGISTERS_BY_KEY[reg_key], source
                 )
             )
+    # Recovered heat is not a register; derive it when all inputs are present.
+    if all(key in coordinator.present for key in HEAT_RECOVERY_SOURCES):
+        entities.append(MaicoHeatRecoverySensor(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -105,3 +115,37 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
         if self._reg.native_max is not None:
             value = min(value, self._reg.native_max)
         return value
+
+
+class MaicoHeatRecoverySensor(MaicoEntity, SensorEntity):
+    """Heat recovered by the exchanger, derived from airflow and temperatures.
+
+    The Modbus map exposes no register for this, so it is computed the same way
+    the vendor app does: the supply airflow times the temperature rise the air
+    gains while passing through the heat exchanger.
+    """
+
+    def __init__(self, coordinator, entry) -> None:
+        super().__init__(coordinator, entry, DERIVED_HEAT_RECOVERY)
+        self._attr_native_unit_of_measurement = DERIVED_HEAT_RECOVERY.unit
+        self._attr_device_class = SensorDeviceClass.POWER
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and all(
+            key in self.coordinator.data for key in HEAT_RECOVERY_SOURCES
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        try:
+            airflow = float(data["airflow_supply"])
+            intake = float(data["temp_air_intake"])
+            supply = float(data["temp_supply_air"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        # Negative during bypass/cooling operation: the exchanger then removes
+        # heat from the supply air rather than adding it.
+        return round(airflow * AIR_HEAT_CAPACITY * (supply - intake))

@@ -45,6 +45,14 @@ class MaicoModbusHub:
         self._lock = asyncio.Lock()
 
     @property
+    def host(self) -> str:
+        return self._host
+
+    @property
+    def port(self) -> int:
+        return self._port
+
+    @property
     def slave(self) -> int:
         return self._slave
 

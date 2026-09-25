@@ -65,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if (entity_id := entry.options.get(conf_key))
         and reg_key in coordinator.present
     ]
-    feeder = BusFeeder(hass, hub, feeds)
+    feeder = BusFeeder(hass, entry, hub, feeds)
     await feeder.async_start()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = MaicoRuntimeData(

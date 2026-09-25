@@ -43,6 +43,7 @@ class MaicoModbusHub:
         self._slave = slave
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
+        self._closed = False
 
     @property
     def host(self) -> str:
@@ -63,10 +64,14 @@ class MaicoModbusHub:
             return self._client.connected
 
     async def close(self) -> None:
+        self._closed = True
         self._client.close()
 
     async def _ensure_connected(self) -> None:
         """Reconnect if needed. Must be called with the lock held."""
+        if self._closed:
+            # Never reopen a connection once the hub is closed (entry unloaded).
+            raise MaicoConnectionError("connection is closed")
         if not self._client.connected and not await self._client.connect():
             raise MaicoConnectionError(f"cannot connect to {self._host}:{self._port}")
 

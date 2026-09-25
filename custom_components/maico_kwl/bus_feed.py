@@ -7,9 +7,11 @@ valid for the device (write cycle >= 10 min).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -31,13 +33,16 @@ class BusFeeder:
     def __init__(
         self,
         hass: HomeAssistant,
+        entry: ConfigEntry,
         hub: MaicoModbusHub,
         feeds: list[tuple[RegisterDef, str]],
     ) -> None:
         self.hass = hass
+        self._entry = entry
         self._hub = hub
         self._feeds = feeds
         self._unsubs: list = []
+        self._tasks: set[asyncio.Task] = set()
 
     async def async_start(self) -> None:
         if not self._feeds:
@@ -61,6 +66,20 @@ class BusFeeder:
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
+        # Pending writes must not run against the hub after it is closed.
+        for task in self._tasks:
+            task.cancel()
+        self._tasks.clear()
+
+    @callback
+    def _schedule_write(self, reg: RegisterDef, state: State | None) -> None:
+        task = self._entry.async_create_background_task(
+            self.hass,
+            self._async_write(reg, state),
+            f"maico_kwl bus feed {reg.key}",
+        )
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
     @callback
     def _handle_state_event(self, event: Event) -> None:
@@ -68,11 +87,12 @@ class BusFeeder:
         new_state = event.data.get("new_state")
         for reg, feed_entity_id in self._feeds:
             if feed_entity_id == entity_id:
-                self.hass.async_create_task(self._async_write(reg, new_state))
+                self._schedule_write(reg, new_state)
 
-    async def _handle_interval(self, _now) -> None:
+    @callback
+    def _handle_interval(self, _now) -> None:
         for reg, entity_id in self._feeds:
-            await self._async_write(reg, self.hass.states.get(entity_id))
+            self._schedule_write(reg, self.hass.states.get(entity_id))
 
     async def _async_write(self, reg: RegisterDef, state: State | None) -> None:
         if state is None or state.state in _INVALID:

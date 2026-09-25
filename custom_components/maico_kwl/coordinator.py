@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .bus_feed import BusFeeder
 from .const import DOMAIN, MAX_BLOCK_SIZE
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef
@@ -15,6 +18,8 @@ from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef
 _LOGGER = logging.getLogger(__name__)
 
 Block = tuple[int, int, list[RegisterDef]]  # (start, count, defs)
+
+type MaicoConfigEntry = ConfigEntry[MaicoRuntimeData]
 
 
 def build_blocks(defs: list[RegisterDef]) -> list[Block]:
@@ -109,3 +114,12 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
             except MaicoModbusError:
                 continue  # leave key absent -> entity becomes unavailable
             data[reg.key] = reg.decode(regs)
+
+
+@dataclass
+class MaicoRuntimeData:
+    """Per-entry runtime objects, stored in entry.runtime_data."""
+
+    hub: MaicoModbusHub
+    coordinator: MaicoCoordinator
+    feeder: BusFeeder

@@ -11,13 +11,13 @@ from homeassistant.components.number import (
     NumberMode,
     RestoreNumber,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import BUS_FEEDS, DOMAIN
+from .const import BUS_FEEDS
+from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import NUMBER, REGISTERS_BY_KEY, RegisterDef
 
@@ -30,10 +30,10 @@ REWRITE_INTERVAL = timedelta(minutes=9)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: MaicoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator = entry.runtime_data.coordinator
     # Bus inputs driven by a configured source entity: no manual number entity.
     fed_by_source = {
         reg_key for reg_key, conf_key, _dc in BUS_FEEDS if entry.options.get(conf_key)

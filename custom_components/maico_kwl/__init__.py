@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -19,10 +17,9 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
-    DOMAIN,
     PLATFORMS,
 )
-from .coordinator import MaicoCoordinator
+from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
 from .discovery import async_discover
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
@@ -30,16 +27,7 @@ from .register_defs import REGISTERS_BY_KEY
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class MaicoRuntimeData:
-    """Per-entry runtime objects."""
-
-    hub: MaicoModbusHub
-    coordinator: MaicoCoordinator
-    feeder: BusFeeder
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:
     """Set up Maico KWL from a config entry."""
     host = entry.data[CONF_HOST]
     port = entry.data.get(CONF_PORT, DEFAULT_PORT)
@@ -68,7 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feeder = BusFeeder(hass, entry, hub, feeds)
     await feeder.async_start()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = MaicoRuntimeData(
+    entry.runtime_data = MaicoRuntimeData(
         hub=hub, coordinator=coordinator, feeder=feeder
     )
 
@@ -99,16 +87,18 @@ async def _async_discover_and_refresh(
     return coordinator
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        runtime: MaicoRuntimeData = hass.data[DOMAIN].pop(entry.entry_id)
+        runtime = entry.runtime_data
         runtime.feeder.async_stop()
         await runtime.hub.close()
     return unload_ok
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_update_listener(
+    hass: HomeAssistant, entry: MaicoConfigEntry
+) -> None:
     """Reload the entry when options (e.g. scan interval) change."""
     await hass.config_entries.async_reload(entry.entry_id)

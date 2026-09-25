@@ -14,16 +14,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
+from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import BINARY_SENSOR, REGISTERS_BY_KEY, RegisterDef
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: MaicoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator = entry.runtime_data.coordinator
     entities: list[BinarySensorEntity] = [
         MaicoBinarySensor(coordinator, entry, REGISTERS_BY_KEY[key])
         for key in coordinator.present

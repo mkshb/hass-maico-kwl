@@ -3,21 +3,20 @@
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import SELECT, REGISTERS_BY_KEY, RegisterDef
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: MaicoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         MaicoSelect(coordinator, entry, REGISTERS_BY_KEY[key])
         for key in coordinator.present

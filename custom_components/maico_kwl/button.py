@@ -3,21 +3,20 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import BUTTON, REGISTERS_BY_KEY
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: MaicoConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    coordinator = entry.runtime_data.coordinator
     async_add_entities(
         MaicoButton(coordinator, entry, REGISTERS_BY_KEY[key])
         for key in coordinator.present

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, MAX_BLOCK_SIZE
-from .modbus_hub import MaicoModbusError, MaicoModbusHub
+from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,10 +73,19 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
         self._blocks = build_blocks(read_defs)
 
     async def _async_update_data(self) -> dict[str, float]:
+        try:
+            return await self._read_all()
+        except MaicoConnectionError as err:
+            # Retrying register by register would only multiply the timeouts.
+            raise UpdateFailed(f"Device not reachable: {err}") from err
+
+    async def _read_all(self) -> dict[str, float]:
         data: dict[str, float] = {}
         for start, count, defs in self._blocks:
             try:
                 regs = await self.hub.read_block(start, count)
+            except MaicoConnectionError:
+                raise
             except MaicoModbusError as err:
                 _LOGGER.debug("Block read %s+%s failed, retrying singly: %s",
                               start, count, err)
@@ -95,6 +104,8 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
         for reg in defs:
             try:
                 regs = await self.hub.read_block(reg.address, reg.word_count)
+            except MaicoConnectionError:
+                raise
             except MaicoModbusError:
                 continue  # leave key absent -> entity becomes unavailable
             data[reg.key] = reg.decode(regs)

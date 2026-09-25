@@ -23,7 +23,15 @@ _ABSENT_CODES = {1, 2, 3}  # illegal function / illegal data address / illegal v
 
 
 class MaicoModbusError(Exception):
-    """Raised when a Modbus read/write fails (connection or transport error)."""
+    """Raised when a Modbus read/write fails."""
+
+
+class MaicoConnectionError(MaicoModbusError):
+    """Raised when the device can't be reached (no connection, timeout).
+
+    Distinct from a Modbus exception response, where the device did answer but
+    rejected the request (e.g. Illegal Data Address).
+    """
 
 
 class MaicoModbusHub:
@@ -35,6 +43,15 @@ class MaicoModbusHub:
         self._slave = slave
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
+        self._closed = False
+
+    @property
+    def host(self) -> str:
+        return self._host
+
+    @property
+    def port(self) -> int:
+        return self._port
 
     @property
     def slave(self) -> int:
@@ -47,12 +64,20 @@ class MaicoModbusHub:
             return self._client.connected
 
     async def close(self) -> None:
+        self._closed = True
         self._client.close()
+
+    async def _ensure_connected(self) -> None:
+        """Reconnect if needed. Must be called with the lock held."""
+        if self._closed:
+            # Never reopen a connection once the hub is closed (entry unloaded).
+            raise MaicoConnectionError("connection is closed")
+        if not self._client.connected and not await self._client.connect():
+            raise MaicoConnectionError(f"cannot connect to {self._host}:{self._port}")
 
     async def _read(self, address: int, count: int):
         async with self._lock:
-            if not self._client.connected:
-                await self._client.connect()
+            await self._ensure_connected()
             try:
                 return await self._client.read_holding_registers(
                     address=address + REGISTER_OFFSET,
@@ -60,7 +85,7 @@ class MaicoModbusHub:
                     device_id=self._slave,
                 )
             except ModbusException as err:
-                raise MaicoModbusError(f"read at {address} failed: {err}") from err
+                raise MaicoConnectionError(f"read at {address} failed: {err}") from err
 
     async def read_block(self, address: int, count: int) -> list[int]:
         """Read ``count`` holding registers starting at ``address``."""
@@ -74,7 +99,8 @@ class MaicoModbusHub:
 
         A device that answers with a protocol exception (e.g. Illegal Data
         Address) proves the connection works but the register is absent -> False.
-        A transport/connection failure is re-raised so discovery can react.
+        A transport/connection failure raises MaicoConnectionError so discovery
+        can abort instead of marking every register as absent.
         """
         result = await self._read(address, count)
         if result.isError():
@@ -86,8 +112,7 @@ class MaicoModbusHub:
     async def write(self, address: int, values: list[int]) -> None:
         """Write one or more holding registers (High-Word first)."""
         async with self._lock:
-            if not self._client.connected:
-                await self._client.connect()
+            await self._ensure_connected()
             try:
                 if len(values) == 1:
                     result = await self._client.write_register(
@@ -102,6 +127,6 @@ class MaicoModbusHub:
                         device_id=self._slave,
                     )
             except ModbusException as err:
-                raise MaicoModbusError(f"write at {address} failed: {err}") from err
+                raise MaicoConnectionError(f"write at {address} failed: {err}") from err
         if result.isError():
             raise MaicoModbusError(f"write at {address} returned {result}")

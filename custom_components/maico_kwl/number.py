@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from homeassistant.components.number import (
@@ -12,12 +13,15 @@ from homeassistant.components.number import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import BUS_FEEDS, DOMAIN
 from .entity import MaicoEntity
 from .register_defs import NUMBER, REGISTERS_BY_KEY, RegisterDef
+
+_LOGGER = logging.getLogger(__name__)
 
 # Write-only "bus" inputs must be refreshed periodically (device note: write
 # cycle >= 10 min). Re-write just under that so the value stays valid.
@@ -71,7 +75,7 @@ class MaicoNumber(MaicoEntity, NumberEntity):
         return self._value
 
     async def async_set_native_value(self, value: float) -> None:
-        await self.coordinator.hub.write(self._reg.address, self._reg.encode(value))
+        await self._async_write(value)
         await self.coordinator.async_request_refresh()
 
 
@@ -95,21 +99,22 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
         last = await self.async_get_last_number_data()
         if last is not None and last.native_value is not None:
             self._attr_native_value = last.native_value
-            await self._async_write_value()  # refresh after a restart
+            await self._async_rewrite(None)  # refresh after a restart
         self.async_on_remove(
             async_track_time_interval(self.hass, self._async_rewrite, REWRITE_INTERVAL)
         )
 
     async def async_set_native_value(self, value: float) -> None:
+        # Only keep the value once the device has accepted it.
+        await self._async_write(value)
         self._attr_native_value = value
         self.async_write_ha_state()
-        await self._async_write_value()
 
     async def _async_rewrite(self, _now) -> None:
-        if self._attr_native_value is not None:
-            await self._async_write_value()
-
-    async def _async_write_value(self) -> None:
-        await self.coordinator.hub.write(
-            self._reg.address, self._reg.encode(self._attr_native_value)
-        )
+        if self._attr_native_value is None:
+            return
+        try:
+            await self._async_write(self._attr_native_value)
+        except HomeAssistantError as err:
+            # Retried on the next interval; must not break entity setup.
+            _LOGGER.warning("Rewrite of %s failed: %s", self._reg.key, err)

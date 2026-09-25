@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
 from .coordinator import MaicoCoordinator
+from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef
 
 
@@ -54,3 +56,18 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
     def _value(self):
         """The decoded value for this register, or None if absent this cycle."""
         return self.coordinator.data.get(self._reg.key)
+
+    async def _async_write(self, value: float) -> None:
+        """Write a real-world value to this entity's register.
+
+        Raises HomeAssistantError so the UI shows a clear message instead of
+        an unexpected error with a traceback.
+        """
+        try:
+            await self.coordinator.hub.write(
+                self._reg.address, self._reg.encode(value)
+            )
+        except MaicoModbusError as err:
+            raise HomeAssistantError(
+                f"Writing {self._reg.key} to the Maico KWL failed: {err}"
+            ) from err

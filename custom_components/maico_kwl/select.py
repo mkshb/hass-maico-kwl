@@ -43,5 +43,5 @@ class MaicoSelect(MaicoEntity, SelectEntity):
         raw = self._reg.raw_for_label(option)
         if raw is None:
             return
-        await self.coordinator.hub.write(self._reg.address, self._reg.encode(raw))
+        await self._async_write(raw)
         await self.coordinator.async_request_refresh()

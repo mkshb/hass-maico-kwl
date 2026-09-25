@@ -36,9 +36,9 @@ class MaicoSwitch(MaicoEntity, SwitchEntity):
         return None if value is None else bool(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.hub.write(self._reg.address, self._reg.encode(1))
+        await self._async_write(1)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.hub.write(self._reg.address, self._reg.encode(0))
+        await self._async_write(0)
         await self.coordinator.async_request_refresh()

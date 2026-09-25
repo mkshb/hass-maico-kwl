@@ -29,7 +29,5 @@ class MaicoButton(MaicoEntity, ButtonEntity):
     """A momentary command: writes a fixed value to a register on press."""
 
     async def async_press(self) -> None:
-        await self.coordinator.hub.write(
-            self._reg.address, self._reg.encode(self._reg.press_value)
-        )
+        await self._async_write(self._reg.press_value)
         await self.coordinator.async_request_refresh()

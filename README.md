@@ -63,10 +63,11 @@ UI tidy – they can be enabled individually when needed.
 
 ## Requirements
 
-- Home Assistant **2024.1** or newer (developed/tested with 2026.4).
+- Home Assistant **2025.10** or newer (developed/tested with 2026.4). Older releases ship a
+  pymodbus version that is too old for this integration.
 - The Maico unit must be reachable via **Modbus TCP** – directly or through a gateway / Modbus
   proxy.
-- `pymodbus` (3.11) is provided by Home Assistant; no separate installation is required.
+- `pymodbus` (3.11.2 or newer) is provided by Home Assistant; no separate installation is required.
 
 > Note: this integration speaks **Modbus TCP** only. Modbus RTU (serial) is not currently
 > supported.

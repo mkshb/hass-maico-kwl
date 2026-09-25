@@ -10,8 +10,9 @@ from custom_components.maico_kwl.const import DOMAIN
 
 
 async def setup_entry(hass: HomeAssistant, entry: MockConfigEntry) -> None:
-    """Add the entry to HA and set it up."""
-    entry.add_to_hass(hass)
+    """Add the entry to HA (unless already added) and set it up."""
+    if hass.config_entries.async_get_entry(entry.entry_id) is None:
+        entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 

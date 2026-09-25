@@ -10,14 +10,18 @@ from __future__ import annotations
 
 import logging
 
-from .modbus_hub import MaicoModbusError, MaicoModbusHub
+from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
-    """Probe the device and return (present register keys, capability profile)."""
+    """Probe the device and return (present register keys, capability profile).
+
+    Raises MaicoConnectionError if the device becomes unreachable while probing,
+    so setup is retried instead of continuing with an incomplete register set.
+    """
     present: set[str] = set()
 
     # First pass: read-probe every register that can be read.
@@ -27,9 +31,11 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
         try:
             if await hub.probe(reg.address, reg.word_count):
                 present.add(reg.key)
+        except MaicoConnectionError:
+            raise
         except MaicoModbusError as err:
-            # A transport error here is unexpected (connection was just tested);
-            # log and treat the single register as absent rather than aborting.
+            # The device answered with an unexpected exception code; treat the
+            # single register as absent rather than aborting.
             _LOGGER.debug("Probe failed for %s (%s): %s", reg.key, reg.address, err)
 
     # Second pass: write-only registers inherit presence from a sibling.

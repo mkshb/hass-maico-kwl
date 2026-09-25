@@ -1,4 +1,4 @@
-# Maico KWL – Home Assistant Integration
+# Maico KWL for Home Assistant
 
 [![GitHub Release][releases-shield]][releases]
 [![Validate][validate-shield]][validate]
@@ -9,7 +9,7 @@
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![Community Forum][forum-shield]][forum]
 
-A **Home Assistant custom integration** for Maico ventilation units (KWL – controlled
+A **Home Assistant custom integration** for Maico ventilation units (KWL, controlled
 residential ventilation with heat recovery), connected over **Modbus TCP**.
 
 The integration is **largely self-configuring**: on setup it probes the device, detects which
@@ -17,32 +17,36 @@ Modbus registers are actually implemented and creates entities only for those. A
 profile of the unit is derived from the registers it finds.
 
 > [!WARNING]
-> **Very young project (alpha, v0.1.0).** This integration is at the very beginning. It has so
+> **Very young project (alpha).** This integration is at the very beginning. It has so
 > far only been tested against a single unit (through a Modbus-TCP proxy). Expect bugs, missing
-> fields and **breaking changes** between versions – entity IDs and stored state values may still
+> fields and **breaking changes** between versions: entity IDs and stored state values may still
 > change. Use at your own risk. This is an unofficial community project and is **not affiliated
 > with Maico Elektroapparate-Fabrik GmbH**. Feedback and device logs are very welcome.
 
 ## Features
 
-- **Autonomous discovery** of the available registers at setup – entities are created only for
+- **Autonomous discovery** of the available registers at setup. Entities are created only for
   registers the device responds to.
 - **Capability-based model detection**: since the Maico registers contain no unique model
   identifier, a profile is derived from the registers and features that are present (e.g.
-  “Maico KWL (EnOcean, CO2, ZP1)”).
+  "Maico KWL (EnOcean, CO2, ZP1)").
 - **Full UI setup** (config flow): host, port, Modbus address and scan interval. The interval can
   be changed later via the options.
 - **Read and write**: live sensors plus controllable entities (operating mode, ventilation level,
   setpoint temperature, airflow rates, filter intervals and much more).
 - **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
-  temperature, humidity or air quality) into the unit's write-only "bus" input registers — written
+  temperature, humidity or air quality) into the unit's write-only "bus" input registers. It is written
   on every change and refreshed cyclically (~9 min) to satisfy the device's write-cycle
   requirement. No automation needed.
 - **Correct decoding** per the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
   High-/Low-word pairs, enum states, bitfield fault codes.
-- **Efficient polling**: contiguous registers are read in blocks (with a per-register fallback on
-  errors).
-- **Multilingual**: English and German translations – both entity names and select/enum state
+- **Efficient polling**: contiguous registers are read in blocks. If the unit rejects a block, its
+  registers are read one by one. If the unit is not reachable, the update fails right away and is
+  retried at the next interval.
+- **Robust connection handling**: if the unit can't be reached at startup or the connection drops
+  during discovery, Home Assistant retries the setup instead of starting with an incomplete set of
+  entities. Failed write actions show an error message in the UI.
+- **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
 - **Local**: purely local Modbus communication, no cloud (`iot_class: local_polling`).
 
@@ -50,8 +54,8 @@ profile of the unit is derived from the registers it finds.
 
 | Platform         | Examples |
 |------------------|----------|
-| `sensor`         | Temperatures (room, supply, extract, exhaust, intake …), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code, current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
-| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived “Problem” sensor (from fault code) |
+| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code, current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
+| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code) |
 | `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
@@ -59,13 +63,13 @@ profile of the unit is derived from the registers it finds.
 
 Around **100 registers** are mapped in total. Rarely used or duplicated sensors (EnOcean banks,
 additional sensor IDs, ZP1 counters) are still discovered but **disabled by default** to keep the
-UI tidy – they can be enabled individually when needed.
+UI tidy. They can be enabled individually when needed.
 
 ## Requirements
 
 - Home Assistant **2025.10** or newer (developed/tested with 2026.4). Older releases ship a
   pymodbus version that is too old for this integration.
-- The Maico unit must be reachable via **Modbus TCP** – directly or through a gateway / Modbus
+- The Maico unit must be reachable via **Modbus TCP**, directly or through a gateway / Modbus
   proxy.
 - `pymodbus` (3.11.2 or newer) is provided by Home Assistant; no separate installation is required.
 
@@ -76,9 +80,9 @@ UI tidy – they can be enabled individually when needed.
 
 ### Via HACS (recommended)
 
-1. In HACS → **Custom repositories**, add `https://github.com/mkshb/hass-maico-kwl` with category
+1. In HACS > **Custom repositories**, add `https://github.com/mkshb/hass-maico-kwl` with category
    **Integration**.
-2. Install “Maico KWL”.
+2. Install "Maico KWL".
 3. Restart Home Assistant.
 
 ### Manual
@@ -89,7 +93,7 @@ UI tidy – they can be enabled individually when needed.
 
 ## Configuration
 
-1. **Settings → Devices & Services → Add Integration** → “Maico KWL”.
+1. **Settings > Devices & Services > Add Integration** > "Maico KWL".
 2. Enter the connection details:
    - **Host**: IP/hostname of the unit or gateway
    - **Port**: default `502`
@@ -105,14 +109,14 @@ Use **Configure** on the integration to:
 - pick a **source entity** for each "bus" input (room temperature, humidity, air quality).
 
 When a source entity is selected, its value is written to the matching Modbus register on every
-change and refreshed about every 9 minutes — no automation required. The corresponding device
+change and refreshed about every 9 minutes, no automation required. The corresponding device
 source must be set to **"Bus"** (e.g. the *Room temperature source* select for room temperature).
 While a source entity is configured, the manual bus `number` is hidden ("source has priority");
 leave the option empty to set the value manually instead.
 
 ## Automations
 
-The integration is a clean **control surface** — the control *policy* (when to change mode/level)
+The integration is a clean **control surface**. The control *policy* (when to change mode/level)
 is best done with Home Assistant automations, which can react to anything (presence, windows,
 schedule, outdoor temperature, electricity price, sensors from other rooms). That is more flexible
 than the unit's built-in *Auto-Sensor* mode, which only uses the sensors configured on the device.
@@ -131,20 +135,20 @@ Ready-to-import blueprints live in [`blueprints/automation/maico_kwl/`](blueprin
 | Blueprint | What it does |
 |-----------|--------------|
 | `summer_night_cooling.yaml` | Switches to a supply-air mode (free cooling) when the outdoor air is cooler than the room after a hot day; reverts when no longer worthwhile. |
-| `demand_boost.yaml` | Boosts to intensive when any HA sensor (CO2/humidity/…) exceeds a threshold; reverts below the lower threshold (hysteresis). |
+| `demand_boost.yaml` | Boosts to intensive when any HA sensor (CO2, humidity, etc.) exceeds a threshold; reverts below the lower threshold (hysteresis). |
 | `window_open_reduce.yaml` | Reduces ventilation while a window/door contact is open; restores when all are closed. |
 
-Import via **Settings → Automations & Scenes → Blueprints → Import Blueprint** using the raw URL, e.g.
+Import via **Settings > Automations & Scenes > Blueprints > Import Blueprint** using the raw URL, e.g.
 `https://github.com/mkshb/hass-maico-kwl/blob/main/blueprints/automation/maico_kwl/summer_night_cooling.yaml`.
-These are starting points — copy and adapt them to your home.
+These are starting points: copy and adapt them to your home.
 
 ## Notes & limitations
 
 - **Register addressing** is assumed to be 0-based (documented decimal code = protocol address).
-  If all entities show as “unavailable”, a central `REGISTER_OFFSET` can be adjusted in
+  If all entities show as "unavailable", a central `REGISTER_OFFSET` can be adjusted in
   `register_defs.py`.
 - **Humidity** is reported as a whole percentage on this unit (×1, not ×10 as in the docs). CO2/VOC
-  remain at ×10 for now – not yet verified against real values.
+  remain at ×10 for now, not yet verified against real values.
 - **Discovery via proxy**: some Modbus proxies/devices answer *every* address instead of returning
   an error for missing registers. In that case automatic filtering cannot kick in; the overview
   still stays lean thanks to the entities disabled by default.
@@ -152,7 +156,7 @@ These are starting points — copy and adapt them to your home.
   `reduced`, `summer`) and display the translated text. Automations/templates should compare
   against the **slug**, not the displayed text.
 - **Bus feed units**: a source entity's numeric state is sent as-is (assumed to match the
-  register unit — °C / % / ppm). Make sure the source reports in the device's unit.
+  register unit: °C / % / ppm). Make sure the source reports in the device's unit.
 
 ## Data source
 
@@ -163,12 +167,12 @@ holding registers (FC 03), word order High-Word/Low-Word, byte order High-Byte/L
 ## Contributing
 
 This project is in an early stage and grows from real-world device data. Issues, register
-corrections and logs (especially from other Maico models) are highly appreciated – please open an
+corrections and logs (especially from other Maico models) are highly appreciated. Please open an
 issue or pull request at [github.com/mkshb/hass-maico-kwl][repo].
 
 ## License / disclaimer
 
-Unofficial community project, provided as-is and not affiliated with Maico. Use at your own risk –
+Unofficial community project, provided as-is and not affiliated with Maico. Use at your own risk:
 write operations in particular change real device settings.
 
 <!-- Badges -->

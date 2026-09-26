@@ -99,6 +99,9 @@
       },
       "clock_sync": {
         "name": "Sync clock with Home Assistant"
+      },
+      "rediscover": {
+        "name": "Rediscover registers"
       }
     },
     "number": {

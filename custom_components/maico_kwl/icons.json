@@ -15,6 +15,9 @@
       },
       "filter_reset_room": {
         "default": "mdi:restart"
+      },
+      "rediscover": {
+        "default": "mdi:magnify-scan"
       }
     },
     "number": {

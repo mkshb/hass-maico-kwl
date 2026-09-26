@@ -16,6 +16,18 @@ from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef
 
 
+def maico_device_info(
+    entry: ConfigEntry, coordinator: MaicoCoordinator
+) -> DeviceInfo:
+    """The one device every entity of an entry belongs to."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        manufacturer=MANUFACTURER,
+        name=entry.title or DEFAULT_NAME,
+        model=coordinator.profile.get("model", DEFAULT_NAME),
+    )
+
+
 class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
     """Common base: device info, unique id and availability for one register."""
 
@@ -36,12 +48,7 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         self._attr_entity_registry_enabled_default = reg.enabled_default
         if reg.entity_category:
             self._attr_entity_category = EntityCategory(reg.entity_category)
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            manufacturer=MANUFACTURER,
-            name=entry.title or DEFAULT_NAME,
-            model=coordinator.profile.get("model", DEFAULT_NAME),
-        )
+        self._attr_device_info = maico_device_info(entry, coordinator)
 
     @property
     def available(self) -> bool:

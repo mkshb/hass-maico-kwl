@@ -15,6 +15,8 @@ from .helpers import setup_entry
 COMPONENT = Path(__file__).parent.parent / "custom_components" / "maico_kwl"
 ICONS = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))["entity"]
 REGS = {(reg.platform, reg.key): reg for reg in REGISTERS}
+# Entities that are not backed by a register.
+EXTRA = {("button", "rediscover")}
 
 ICON_ENTRIES = [
     (platform, key, entry)
@@ -25,8 +27,8 @@ ICON_ENTRIES = [
 
 @pytest.mark.parametrize(("platform", "key", "entry"), ICON_ENTRIES)
 def test_icon_belongs_to_an_entity(platform: str, key: str, entry: dict) -> None:
-    """Every icon entry matches a register entity and uses mdi icons."""
-    assert (platform, key) in REGS
+    """Every icon entry matches an entity and uses mdi icons."""
+    assert (platform, key) in REGS or (platform, key) in EXTRA
     assert entry["default"].startswith("mdi:")
     assert all(icon.startswith("mdi:") for icon in entry.get("state", {}).values())
 
@@ -35,6 +37,9 @@ def test_icon_belongs_to_an_entity(platform: str, key: str, entry: dict) -> None
 def test_state_icons_match_states(platform: str, key: str, entry: dict) -> None:
     """State icons only use states the entity can actually have."""
     states = set(entry.get("state", {}))
+    if (platform, key) in EXTRA:
+        assert not states
+        return
     reg = REGS[(platform, key)]
     if reg.options is not None:
         assert states <= set(reg.options.values())

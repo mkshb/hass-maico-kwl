@@ -99,6 +99,9 @@
       },
       "clock_sync": {
         "name": "Uhrzeit mit Home Assistant synchronisieren"
+      },
+      "rediscover": {
+        "name": "Register neu erkennen"
       }
     },
     "number": {

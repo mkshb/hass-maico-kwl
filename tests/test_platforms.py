@@ -12,11 +12,14 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
+
+from custom_components.maico_kwl.const import CONF_DISCOVERY
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -223,3 +226,23 @@ async def test_clock_sync_button(
         100,
         [local.year, local.month, local.day, local.hour, local.minute, local.second],
     )
+
+
+async def test_rediscover_button(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """Pressing the button probes the unit again, e.g. after adding EnOcean."""
+    assert "enocean_co2_id0" not in loaded.runtime_data.coordinator.present
+    device.absent -= set(range(350, 374))  # EnOcean module retrofitted
+
+    button = entity_id(hass, loaded, "button", "rediscover")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    assert loaded.state is ConfigEntryState.LOADED
+    assert "enocean_co2_id0" in loaded.runtime_data.coordinator.present
+    assert "enocean_co2_id0" in loaded.data[CONF_DISCOVERY]["present"]
+    registry_entry = er.async_get(hass).async_get(button)
+    assert registry_entry.entity_category is EntityCategory.DIAGNOSTIC

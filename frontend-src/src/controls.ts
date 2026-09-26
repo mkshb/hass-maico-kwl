@@ -178,7 +178,7 @@ function renderFilters(ctx: ControlsContext): TemplateResult | typeof nothing {
   const t = (key: StringKey, values?: Record<string, string | number>) => localize(hass, key, values);
   const filters = FILTERS.filter(([, remaining]) => device.number(remaining) !== undefined);
   if (!filters.length) return nothing;
-  const nextChange = device.format(KEY.filterNextChange);
+  const nextChange = formatDay(hass, device.state(KEY.filterNextChange)) ?? device.format(KEY.filterNextChange);
 
   return html`
     <div class="filters">
@@ -202,6 +202,17 @@ function renderFilters(ctx: ControlsContext): TemplateResult | typeof nothing {
       ${nextChange ? html`<div class="hint">${t("filter_next_change", { date: nextChange })}</div>` : nothing}
     </div>
   `;
+}
+
+/** A date sensor's day in numbers, in the HA language: "27.09.2027". */
+export function formatDay(hass: HomeAssistant, isoDay: string | undefined): string | undefined {
+  const match = isoDay?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  const [year, month, day] = match.slice(1).map(Number);
+  const language = hass.locale?.language ?? hass.language ?? "en";
+  return new Intl.DateTimeFormat(language, { day: "2-digit", month: "2-digit", year: "numeric" }).format(
+    new Date(year, month - 1, day),
+  );
 }
 
 export function renderControls(ctx: ControlsContext): TemplateResult {

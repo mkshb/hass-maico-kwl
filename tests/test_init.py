@@ -134,8 +134,8 @@ async def test_discovery_runs_again_for_new_registers(
     await setup_entry(hass, config_entry)
     cache = config_entry.data[CONF_DISCOVERY]
     old = {
-        "probed": [key for key in cache["probed"] if key != "device_clock"],
-        "present": [key for key in cache["present"] if key != "device_clock"],
+        "probed": [key for key in cache["probed"] if key != "clock_deviation"],
+        "present": [key for key in cache["present"] if key != "clock_deviation"],
     }
     hass.config_entries.async_update_entry(
         config_entry, data={**config_entry.data, CONF_DISCOVERY: old}
@@ -143,8 +143,8 @@ async def test_discovery_runs_again_for_new_registers(
     await hass.async_block_till_done()  # the data change reloads the entry
 
     assert config_entry.state is ConfigEntryState.LOADED
-    assert "device_clock" in config_entry.runtime_data.coordinator.present
-    assert "device_clock" in config_entry.data[CONF_DISCOVERY]["present"]
+    assert "clock_deviation" in config_entry.runtime_data.coordinator.present
+    assert "clock_deviation" in config_entry.data[CONF_DISCOVERY]["present"]
 
 
 async def test_stored_discovery_ignores_unknown_keys(

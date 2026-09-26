@@ -107,7 +107,7 @@ def test_probe_via_only_for_write_only_registers():
 
 
 def test_clock_decode_encode():
-    reg = rd.REGISTERS_BY_KEY["device_clock"]
+    reg = rd.REGISTERS_BY_KEY["clock_deviation"]
     assert reg.word_count == 6
     words = [2026, 9, 26, 10, 30, 15]
     assert reg.decode(words) == datetime(2026, 9, 26, 10, 30, 15)

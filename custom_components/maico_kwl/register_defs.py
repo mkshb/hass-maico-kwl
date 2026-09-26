@@ -39,6 +39,7 @@ PERCENT = "%"
 PPM = "ppm"
 M3H = "m³/h"
 RPM = "rpm"
+SECONDS = "s"
 DAYS = "d"
 HOURS = "h"
 MINUTES = "min"
@@ -288,12 +289,15 @@ VOC = "volatile_organic_compounds_parts"
 
 REGISTERS: list[RegisterDef] = [
     # --- Base settings (100-109) ---
-    RegisterDef("device_clock", 100, "Unit clock", SENSOR, data_type=CLOCK,
-                device_class="timestamp", entity_category=DIAGNOSTIC),
+    # Shown as the deviation from Home Assistant's clock: the time itself would
+    # change the state on every poll and fill the logbook.
+    RegisterDef("clock_deviation", 100, "Clock deviation", SENSOR,
+                data_type=CLOCK, unit=SECONDS, device_class="duration",
+                state_class="measurement", entity_category=DIAGNOSTIC),
     # Writes the current Home Assistant time to 100-105 in one FC 16 request.
     RegisterDef("clock_sync", 100, "Sync clock", BUTTON, data_type=CLOCK,
                 writable=True, readable=False, entity_category=CONFIG,
-                probe_via="device_clock"),
+                probe_via="clock_deviation"),
     RegisterDef("off_lock", 106, "Disable off level", SWITCH, writable=True,
                 entity_category=CONFIG),
     RegisterDef("bde_lock", 107, "Lock control panel", SWITCH, writable=True,

@@ -251,17 +251,26 @@ async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:
     assert problem.translation_key == "problem"
 
 
-async def test_unit_clock_sensor(hass: HomeAssistant, device: FakeDevice, loaded) -> None:
-    """The unit's local clock is shown as a timestamp in HA's time zone."""
-    state = _state(hass, loaded, "sensor", "device_clock")
-    expected = datetime(
-        2026, 9, 26, 10, 30, 15, tzinfo=dt_util.get_default_time_zone()
-    )
-    assert dt_util.parse_datetime(state) == expected
+async def test_clock_deviation_sensor(
+    hass: HomeAssistant, device: FakeDevice, loaded, freezer
+) -> None:
+    """The unit's local clock is shown as its deviation from HA's clock."""
+    local = datetime(2026, 9, 26, 10, 30, 0, tzinfo=dt_util.get_default_time_zone())
+    freezer.move_to(local)
+    await _refresh(hass, loaded)
+    eid = entity_id(hass, loaded, "sensor", "clock_deviation")
+    state = hass.states.get(eid)
+    assert state.state == "15"  # unit clock 10:30:15, 15 s ahead
+    assert state.attributes["unit_of_measurement"] == "s"
+    assert state.attributes["state_class"] == "measurement"
+
+    freezer.move_to(local.replace(minute=32))
+    await _refresh(hass, loaded)
+    assert _state(hass, loaded, "sensor", "clock_deviation") == "-105"
 
     device.registers[101] = 0  # month 0: clock not set
     await _refresh(hass, loaded)
-    assert _state(hass, loaded, "sensor", "device_clock") == STATE_UNKNOWN
+    assert _state(hass, loaded, "sensor", "clock_deviation") == STATE_UNKNOWN
 
 
 async def test_clock_sync_button(

@@ -482,8 +482,8 @@
           "zone_sensor": "Zone sensor"
         }
       },
-      "device_clock": {
-        "name": "Unit clock"
+      "clock_deviation": {
+        "name": "Clock deviation"
       }
     },
     "switch": {

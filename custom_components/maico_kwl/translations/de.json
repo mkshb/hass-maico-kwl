@@ -482,8 +482,8 @@
           "zone_sensor": "Zonensensor"
         }
       },
-      "device_clock": {
-        "name": "Geräteuhrzeit"
+      "clock_deviation": {
+        "name": "Uhr Abweichung"
       }
     },
     "switch": {

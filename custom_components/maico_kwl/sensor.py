@@ -84,8 +84,9 @@ class MaicoSensor(MaicoEntity, SensorEntity):
         if value is None:
             return None
         if isinstance(value, datetime):
-            # The unit's clock runs in local time; timestamps need a time zone.
-            return value.replace(tzinfo=dt_util.get_default_time_zone())
+            # The unit's clock runs in local time; positive means it is ahead.
+            unit_time = value.replace(tzinfo=dt_util.get_default_time_zone())
+            return round((unit_time - dt_util.now()).total_seconds())
         if self._reg.options is not None:
             return self._reg.label_for(int(value))
         return value

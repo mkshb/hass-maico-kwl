@@ -1,0 +1,96 @@
+name: Bug report
+description: Something does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The **diagnostics** below answer most questions
+        without access to your unit, so please attach them.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      description: "*Settings > About*, e.g. 2026.9.3"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: "In HACS or in `custom_components/maico_kwl/manifest.json`, e.g. 0.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Unit model
+      description: As on the type plate, e.g. WS 320 KBR
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Unit firmware
+      description: Shown on the unit's control panel or in the vendor app, if you know it.
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options:
+        - Modbus TCP directly to the unit
+        - Through a Modbus gateway or proxy
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      multiple: true
+      options:
+        - Setup or options
+        - Entities or values
+        - Controls (writing to the unit)
+        - Dashboard card
+        - Blueprints
+        - Something else
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser or app (for the dashboard card)
+      description: e.g. Firefox 156 on Windows, Home Assistant app on iPhone
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        *Settings > Devices & services > Maico KWL > ⋮ > Download diagnostics*, then drop
+        the file here. It lists every register with its value; the host is removed.
+      placeholder: Drop the diagnostics file here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: |
+        Optional: turn on *Enable debug logging* on the same page, reproduce the problem,
+        turn it off again and paste the relevant part.
+      render: text

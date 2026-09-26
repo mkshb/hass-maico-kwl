@@ -1,0 +1,58 @@
+name: Report a unit
+description: Tell how the integration works with your unit, also when everything is fine.
+labels: ["device report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The integration has been tested with few units so far. Every report, good or
+        bad, helps to make it work with more of them.
+
+  - type: input
+    id: model
+    attributes:
+      label: Unit model
+      description: As on the type plate, e.g. WS 320 KBR
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Unit firmware
+      description: Shown on the unit's control panel or in the vendor app, if you know it.
+
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: How well does it work?
+      options:
+        - Everything works
+        - Mostly, some values or entities are wrong or missing
+        - It does not work
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: What is wrong or missing?
+      description: Entities with wrong values, missing accessories, controls without effect.
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        *Settings > Devices & services > Maico KWL > ⋮ > Download diagnostics*, then drop
+        the file here. It lists every register the unit answers; the host is removed.
+      placeholder: Drop the diagnostics file here.
+    validations:
+      required: true

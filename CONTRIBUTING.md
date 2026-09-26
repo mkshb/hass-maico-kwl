@@ -93,5 +93,6 @@ same keys and that icons belong to existing entities.
 ## Releases
 
 Each version is prepared on a branch `release/x.y.z`. Its first commit sets the version in
-`custom_components/maico_kwl/manifest.json`. The maintainer merges the pull request and publishes
-the release.
+`custom_components/maico_kwl/manifest.json`, and `CHANGELOG.md` gets a section for it at the top,
+marked `(unreleased)` until the release. The maintainer merges the pull request, sets the date in
+the changelog and publishes the release with that section as its text.

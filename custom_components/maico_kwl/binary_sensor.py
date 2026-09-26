@@ -58,7 +58,6 @@ class MaicoProblemSensor(MaicoEntity, BinarySensorEntity):
         super().__init__(coordinator, entry, REGISTERS_BY_KEY["fault_code"])
         self._attr_unique_id = f"{entry.entry_id}_problem"
         self._attr_translation_key = "problem"
-        self._attr_icon = None  # use the problem device class icon
 
     @property
     def is_on(self) -> bool | None:

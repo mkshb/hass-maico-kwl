@@ -28,12 +28,10 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         super().__init__(coordinator)
         self._reg = reg
         self._attr_unique_id = f"{entry.entry_id}_{reg.key}"
-        # Display name comes from the translation files (entity.<platform>.<key>.name);
-        # English in translations/en.json is the fallback.
+        # Display name comes from the translation files (entity.<platform>.<key>.name),
+        # the icon from icons.json; English in translations/en.json is the fallback.
         self._attr_translation_key = reg.key
         self._attr_entity_registry_enabled_default = reg.enabled_default
-        if reg.icon:
-            self._attr_icon = reg.icon
         if reg.entity_category:
             self._attr_entity_category = EntityCategory(reg.entity_category)
         self._attr_device_info = DeviceInfo(

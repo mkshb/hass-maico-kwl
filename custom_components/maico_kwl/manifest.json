@@ -1,6 +1,7 @@
 {
   "domain": "maico_kwl",
   "name": "Maico KWL",
+  "after_dependencies": ["frontend", "http"],
   "codeowners": ["@mkshb"],
   "config_flow": true,
   "documentation": "https://github.com/mkshb/hass-maico-kwl",

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http.server import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .bus_feed import BusFeeder
 from .const import (
@@ -41,11 +45,31 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+FRONTEND_URL = f"/{DOMAIN}/frontend"
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+CARD_LOADER = "maico-kwl-card.js"
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions, so they exist even while no unit is loaded."""
     async_setup_services(hass)
+    await _async_register_card(hass)
     return True
+
+
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Serve the dashboard card and load it in every frontend.
+
+    The version in the loader's URL makes browsers fetch it again after an
+    update; the chunks it loads carry a content hash in their names.
+    """
+    if "frontend" not in hass.config.components:
+        return
+    integration = await async_get_integration(hass, DOMAIN)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True)]
+    )
+    add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={integration.version}")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:

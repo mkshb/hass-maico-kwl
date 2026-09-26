@@ -97,6 +97,9 @@
       "fault_code": {
         "default": "mdi:alert-circle"
       },
+      "filter_next_change": {
+        "default": "mdi:air-filter"
+      },
       "filter_remaining_device": {
         "default": "mdi:air-filter"
       },

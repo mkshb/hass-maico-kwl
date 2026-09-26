@@ -131,3 +131,12 @@ DERIVED_SENSORS: list[DerivedDef] = [
         precision=1,
     ),
 ]
+
+# "Filter change due" binary sensors: (entity key, remaining-days register).
+# The unit counts the days down to 0; its filter bits in the notice code stay
+# off on some units, so these follow the remaining days instead.
+FILTER_DUE: list[tuple[str, str]] = [
+    ("filter_due_device", "filter_remaining_device"),
+    ("filter_due_outdoor", "filter_remaining_outdoor"),
+    ("filter_due_room", "filter_remaining_room"),
+]

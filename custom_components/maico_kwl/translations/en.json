@@ -74,6 +74,15 @@
       "fan_supply_active": {
         "name": "Fan supply active"
       },
+      "filter_due_device": {
+        "name": "Filter due device"
+      },
+      "filter_due_outdoor": {
+        "name": "Filter due outdoor"
+      },
+      "filter_due_room": {
+        "name": "Filter due room"
+      },
       "frost_protection_active": {
         "name": "Frost protection active"
       },
@@ -351,6 +360,9 @@
             "name": "Active faults"
           }
         }
+      },
+      "filter_next_change": {
+        "name": "Filter next change"
       },
       "filter_remaining_device": {
         "name": "Filter remaining device"

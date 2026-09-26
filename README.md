@@ -76,6 +76,7 @@ there, and each is only created when the unit has all the registers it needs.
 | *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; a slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
 | *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (diagnostic). A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
 | *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature and humidity (Magnus formula). The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
+| *Filter due device / outdoor / room* (on/off), *Filter next change* (date) | From the remaining filter days: a filter is due once its days reach 0, the date is when the first filter runs out. Use these for filter change reminders. |
 
 ### Fault and notice codes
 
@@ -89,7 +90,8 @@ The Maico KWL documentation only calls these registers a bitfield. The bit meani
 the Modbus documentation of another Maico product (Geniovent), which uses the same registers. The
 bit numbering was confirmed on a live unit (notice bit 4 follows the summer bypass), the meaning of
 the other bits was not. On the test unit the filter bits stay off even when the remaining filter
-time is 0 days, so use the *Filter remaining* sensors for filter change reminders.
+time is 0 days, so use the *Filter due* sensors (see [Calculated values](#calculated-values)) for filter
+change reminders.
 
 ## Requirements
 

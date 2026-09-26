@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from datetime import timedelta
+
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.util import dt as dt_util
 
 from custom_components.maico_kwl import derived
 
@@ -83,6 +86,43 @@ async def test_humidity_sensors(hass: HomeAssistant, loaded) -> None:
     dew = hass.states.get(entity_id(hass, loaded, "sensor", "dew_point_extract"))
     assert dew.state == "9.5"
     assert dew.attributes["device_class"] == "temperature"
+
+
+async def test_filter_due(hass: HomeAssistant, device: FakeDevice, loaded) -> None:
+    """Filters are due once their remaining days reach 0."""
+    keys = ["filter_due_device", "filter_due_outdoor", "filter_due_room"]
+
+    def states() -> list[str]:
+        return [
+            hass.states.get(entity_id(hass, loaded, "binary_sensor", key)).state
+            for key in keys
+        ]
+
+    assert states() == [STATE_OFF] * 3
+    due = hass.states.get(entity_id(hass, loaded, "binary_sensor", "filter_due_room"))
+    assert due.attributes["device_class"] == "problem"
+
+    device.registers[656] = 0
+    await _refresh(hass, loaded)
+    assert states() == [STATE_OFF, STATE_ON, STATE_OFF]
+
+
+async def test_filter_next_change(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """The date the first filter runs out (device 120, outdoor 300, room 60 days)."""
+    eid = entity_id(hass, loaded, "sensor", "filter_next_change")
+    today = dt_util.now().date()
+    assert hass.states.get(eid).state == (today + timedelta(days=60)).isoformat()
+    assert hass.states.get(eid).attributes["device_class"] == "date"
+
+    device.registers[655] = 0
+    await _refresh(hass, loaded)
+    assert hass.states.get(eid).state == today.isoformat()
+
+    device.absent.add(657)
+    await _refresh(hass, loaded)
+    assert hass.states.get(eid).state == STATE_UNAVAILABLE
 
 
 async def test_heat_recovery_power_sensor(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -18,7 +18,7 @@ from homeassistant.util import dt as dt_util
 from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
-from .derived import DERIVED_SENSORS, DerivedDef
+from .derived import DERIVED_SENSORS, FILTER_DUE, DerivedDef
 from .entity import MaicoDerivedEntity, MaicoEntity
 from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
 
@@ -54,6 +54,11 @@ async def async_setup_entry(
         for derived in DERIVED_SENSORS
         if all(key in coordinator.present for key in derived.sources)
     )
+    filters = tuple(
+        source for _key, source in FILTER_DUE if source in coordinator.present
+    )
+    if filters:
+        entities.append(MaicoNextFilterChangeSensor(coordinator, entry, filters))
     async_add_entities(entities)
 
 
@@ -170,3 +175,24 @@ class MaicoDerivedSensor(MaicoDerivedEntity, SensorEntity):
     def native_value(self) -> float | None:
         numbers = self._numbers
         return None if numbers is None else self._derived.compute(*numbers)
+
+
+class MaicoNextFilterChangeSensor(MaicoDerivedEntity, SensorEntity):
+    """The date the first of the filters runs out."""
+
+    _attr_device_class = SensorDeviceClass.DATE
+
+    def __init__(
+        self,
+        coordinator: MaicoCoordinator,
+        entry: MaicoConfigEntry,
+        filters: tuple[str, ...],
+    ) -> None:
+        super().__init__(coordinator, entry, "filter_next_change", filters)
+
+    @property
+    def native_value(self) -> date | None:
+        numbers = self._numbers
+        if numbers is None:
+            return None
+        return dt_util.now().date() + timedelta(days=max(0, int(min(numbers))))

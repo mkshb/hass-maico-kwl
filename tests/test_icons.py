@@ -19,7 +19,9 @@ REGS = {(reg.platform, reg.key): reg for reg in REGISTERS}
 # Entities that are not backed by a register.
 EXTRA = {("button", "rediscover")} | {
     ("binary_sensor", slug) for _reg_key, slug, _dev_class in BIT_SENSORS
-} | {("sensor", derived.key) for derived in DERIVED_SENSORS}
+} | {("sensor", derived.key) for derived in DERIVED_SENSORS} | {
+    ("sensor", "filter_next_change")
+}
 
 ICON_ENTRIES = [
     (platform, key, entry)

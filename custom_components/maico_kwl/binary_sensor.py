@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
-from .entity import MaicoEntity
+from .derived import FILTER_DUE
+from .entity import MaicoDerivedEntity, MaicoEntity
 from .register_defs import BINARY_SENSOR, BIT_SENSORS, REGISTERS_BY_KEY, RegisterDef
 
 # Read-only: data comes from the coordinator, no per-entity limit needed.
@@ -36,6 +37,11 @@ async def async_setup_entry(
         MaicoBitSensor(coordinator, entry, REGISTERS_BY_KEY[reg_key], slug, dev_class)
         for reg_key, slug, dev_class in BIT_SENSORS
         if reg_key in coordinator.present
+    )
+    entities.extend(
+        MaicoFilterDueSensor(coordinator, entry, key, source)
+        for key, source in FILTER_DUE
+        if source in coordinator.present
     )
     async_add_entities(entities)
 
@@ -98,3 +104,23 @@ class MaicoBitSensor(MaicoEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         value = self._number
         return None if value is None else bool(int(value) >> self._bit & 1)
+
+
+class MaicoFilterDueSensor(MaicoDerivedEntity, BinarySensorEntity):
+    """On once the remaining days of a filter have run out."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(
+        self,
+        coordinator: MaicoCoordinator,
+        entry: MaicoConfigEntry,
+        key: str,
+        source: str,
+    ) -> None:
+        super().__init__(coordinator, entry, key, (source,))
+
+    @property
+    def is_on(self) -> bool | None:
+        numbers = self._numbers
+        return None if numbers is None else numbers[0] <= 0

@@ -74,6 +74,15 @@
       "fan_supply_active": {
         "name": "Ventilator Zuluft aktiv"
       },
+      "filter_due_device": {
+        "name": "Filter fällig Gerät"
+      },
+      "filter_due_outdoor": {
+        "name": "Filter fällig Außen"
+      },
+      "filter_due_room": {
+        "name": "Filter fällig Raum"
+      },
       "frost_protection_active": {
         "name": "Frostschutz aktiv"
       },
@@ -351,6 +360,9 @@
             "name": "Aktive Fehler"
           }
         }
+      },
+      "filter_next_change": {
+        "name": "Filter nächster Wechsel"
       },
       "filter_remaining_device": {
         "name": "Filter Restlaufzeit Gerät"

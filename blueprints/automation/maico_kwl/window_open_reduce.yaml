@@ -4,6 +4,11 @@ blueprint:
     Reduces the Maico KWL ventilation while one or more windows/doors are open
     (to avoid pulling unconditioned air), and restores normal operation once all
     are closed.
+
+    Before reducing, the current operating mode and ventilation level are saved
+    in a snapshot scene and restored afterwards. If you change the mode or level
+    yourself while a window is open, your setting is kept. If the unit is
+    already in manual mode at the reduced level, the automation does nothing.
   domain: automation
   author: hass-maico-kwl
   input:
@@ -41,8 +46,10 @@ blueprint:
             - "humidity_protection"
             - "reduced"
     restore_mode:
-      name: Restore mode when closed
-      description: Operating mode to return to once all contacts are closed.
+      name: Fallback restore mode
+      description: >
+        Operating mode to return to when the snapshot is lost, e.g. after a
+        Home Assistant restart while a window was open.
       default: auto_sensor
       selector:
         select:
@@ -60,17 +67,35 @@ variables:
   open_level: !input open_level
   restore_mode: !input restore_mode
   any_open: "{{ expand(windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
+  snapshot_id: >
+    maico_kwl_window_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
+  snapshot: "scene.{{ snapshot_id }}"
+  has_snapshot: "{{ snapshot in states.scene | map(attribute='entity_id') | list }}"
+  reduced: "{{ is_state(operating_mode, 'manual') and is_state(level, open_level) }}"
 
 trigger:
   - platform: state
     entity_id: !input windows
+  - platform: homeassistant
+    event: start
+    id: start
 
 action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ any_open and not (is_state(operating_mode, 'manual') and is_state(level, open_level)) }}"
+            value_template: "{{ any_open and not reduced }}"
         sequence:
+          - if:
+              - condition: template
+                value_template: "{{ not has_snapshot }}"
+            then:
+              - action: scene.create
+                data:
+                  scene_id: "{{ snapshot_id }}"
+                  snapshot_entities:
+                    - "{{ level }}"
+                    - "{{ operating_mode }}"
           - action: select.select_option
             target:
               entity_id: !input operating_mode
@@ -83,7 +108,22 @@ action:
               option: "{{ open_level }}"
       - conditions:
           - condition: template
-            value_template: "{{ not any_open and is_state(operating_mode, 'manual') }}"
+            value_template: "{{ not any_open and has_snapshot }}"
+        sequence:
+          # Only restore while the unit is still as the automation left it.
+          - if:
+              - condition: template
+                value_template: "{{ reduced }}"
+            then:
+              - action: scene.turn_on
+                target:
+                  entity_id: "{{ snapshot }}"
+          - action: scene.delete
+            target:
+              entity_id: "{{ snapshot }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'start' and not any_open and not has_snapshot and reduced }}"
         sequence:
           - action: select.select_option
             target:

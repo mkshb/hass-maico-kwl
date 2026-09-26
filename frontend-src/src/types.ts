@@ -28,6 +28,7 @@ export interface HomeAssistant {
   devices: Record<string, HassDevice>;
   language: string;
   locale?: { language: string };
+  themes?: { darkMode?: boolean };
   formatEntityState(state: HassEntityState, value?: string): string;
 }
 

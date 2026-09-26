@@ -4,21 +4,14 @@ import { property, state } from "lit/decorators.js";
 import { KwlDevice, maicoDeviceIds } from "./device";
 import { CO2_SENSOR_KEYS, HUMIDITY_SENSOR_KEYS, KEY, VOC_SENSOR_KEYS, type EntityKey } from "./keys";
 import { browserLocalize, localize, type StringKey } from "./localize";
+import { renderSchematic, schematicStyles } from "./schematic";
 import type { HomeAssistant, MaicoKwlCardConfig } from "./types";
 
 const CARD_TYPE = "maico-kwl-card";
 
-// Until the real layout lands, the card lists what it resolved, grouped the
-// way the layout will use it. Entities the unit lacks do not show up.
+// Until the tiles and controls land, the card lists the rest of what it
+// resolved, grouped the way the layout will use it. Entities the unit lacks do not show up.
 const GROUPS: [StringKey, readonly EntityKey[]][] = [
-  [
-    "group_airflow",
-    [
-      KEY.tempOutdoor, KEY.tempSupply, KEY.tempExtract, KEY.tempExhaust,
-      KEY.airflowSupply, KEY.airflowExhaust, KEY.fanSpeedSupply, KEY.fanSpeedExhaust,
-      KEY.bypassOpen, KEY.ptcHeaterActive, KEY.heatRecoveryEfficiency, KEY.heatRecoveryPower,
-    ],
-  ],
   [
     "group_room",
     [
@@ -39,6 +32,8 @@ export class MaicoKwlCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: MaicoKwlCardConfig;
+
+  private readonly _uid = `kwl${Math.random().toString(36).slice(2, 10)}`;
 
   public setConfig(config: MaicoKwlCardConfig): void {
     this._config = config;
@@ -75,6 +70,12 @@ export class MaicoKwlCard extends LitElement {
     return html`
       <ha-card .header=${device.name}>
         <div class="content">
+          ${renderSchematic({
+            hass: this.hass,
+            device,
+            uid: this._uid,
+            moreInfo: (key) => this._moreInfo(device.entityId(key)),
+          })}
           ${GROUPS.map(([title, keys]) => {
             const present = device.present(keys);
             if (!present.length) return nothing;
@@ -95,7 +96,16 @@ export class MaicoKwlCard extends LitElement {
     `;
   }
 
-  static styles = css`
+  private _moreInfo(entityId: string | undefined): void {
+    if (!entityId) return;
+    this.dispatchEvent(
+      new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }),
+    );
+  }
+
+  static styles = [
+    schematicStyles,
+    css`
     .content {
       padding: 0 16px 16px;
     }
@@ -122,7 +132,8 @@ export class MaicoKwlCard extends LitElement {
       margin: 0;
       color: var(--secondary-text-color);
     }
-  `;
+  `,
+  ];
 }
 
 declare global {

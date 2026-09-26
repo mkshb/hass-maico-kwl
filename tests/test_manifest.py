@@ -34,3 +34,13 @@ def test_changelog_describes_this_version() -> None:
     newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M)
     assert newest, "no version section in CHANGELOG.md"
     assert newest.group(1) == MANIFEST["version"]
+
+
+def test_hacs_downloads_the_zip_the_release_workflow_builds() -> None:
+    """hacs.json names the zip that .github/workflows/release.yml attaches."""
+    root = Path(__file__).parent.parent
+    hacs = json.loads((root / "hacs.json").read_text(encoding="utf-8"))
+    workflow = (root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert hacs["zip_release"] is True
+    assert f'"${{GITHUB_WORKSPACE}}/{hacs['filename']}"' in workflow
+    assert f"gh release upload \"${{TAG}}\" {hacs['filename']}" in workflow

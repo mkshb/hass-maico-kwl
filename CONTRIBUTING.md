@@ -96,4 +96,6 @@ same keys and that icons belong to existing entities.
 Each version is prepared on a branch `release/x.y.z`. Its first commit sets the version in
 `custom_components/maico_kwl/manifest.json`, and `CHANGELOG.md` gets a section for it at the top,
 marked `(unreleased)` until the release. The maintainer merges the pull request, sets the date in
-the changelog and publishes the release with that section as its text.
+the changelog and publishes the release with that section as its text. Publishing starts the
+*Release* workflow: it checks that the tag matches the manifest version and attaches
+`maico_kwl.zip`, the integration folder that HACS installs.

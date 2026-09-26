@@ -1,0 +1,56 @@
+name: "Release"
+
+# Attaches maico_kwl.zip to a release: the integration folder alone, which
+# HACS downloads instead of the whole repository (zip_release in hacs.json).
+# Run it by hand to add the zip to an older release.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to add the zip to, e.g. v0.3.1"
+        required: true
+      skip_version_check:
+        description: "Skip the tag and manifest version check (only for old releases, e.g. v0.1.1)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: "Zip for HACS"
+    runs-on: "ubuntu-latest"
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: "Checkout the release"
+        uses: "actions/checkout@v4"
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: "Tag and manifest version match"
+        if: ${{ !inputs.skip_version_check }}
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('custom_components/maico_kwl/manifest.json'))['version'])")
+          if [ "v${version}" != "${TAG}" ]; then
+            echo "::error::Tag ${TAG} but manifest.json has version ${version}."
+            exit 1
+          fi
+
+      - name: "Zip the integration"
+        # The files of the integration folder at the top of the zip, as HACS
+        # unpacks it into custom_components/maico_kwl.
+        run: |
+          cd custom_components/maico_kwl
+          zip -r "${GITHUB_WORKSPACE}/maico_kwl.zip" . -x "__pycache__/*" "*.pyc"
+          cd "${GITHUB_WORKSPACE}"
+          unzip -l maico_kwl.zip
+
+      - name: "Attach it to the release"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${TAG}" maico_kwl.zip --clobber

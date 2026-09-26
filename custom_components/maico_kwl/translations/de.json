@@ -9,6 +9,12 @@
           "port": "Port",
           "slave": "Modbus-Adresse",
           "scan_interval": "Abfrageintervall (Sekunden)"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Geräts bzw. des vorgeschalteten Modbus-TCP-Gateways.",
+          "port": "Modbus-TCP-Port, meist 502.",
+          "slave": "Modbus-Adresse (Unit-ID) des Lüftungsgeräts. Maico-Geräte verwenden standardmäßig 10.",
+          "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen."
         }
       },
       "reconfigure": {
@@ -18,6 +24,11 @@
           "host": "Host",
           "port": "Port",
           "slave": "Modbus-Adresse"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Geräts bzw. des vorgeschalteten Modbus-TCP-Gateways.",
+          "port": "Modbus-TCP-Port, meist 502.",
+          "slave": "Modbus-Adresse (Unit-ID) des Lüftungsgeräts. Maico-Geräte verwenden standardmäßig 10."
         }
       }
     },
@@ -39,6 +50,12 @@
           "room_temp_source_entity": "Quell-Entität Raumtemperatur",
           "humidity_source_entity": "Quell-Entität Feuchte",
           "air_quality_source_entity": "Quell-Entität Luftgüte"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen.",
+          "room_temp_source_entity": "Temperatursensor, dessen Wert als Raumtemperatur ans Gerät gesendet wird. Das Gerät nutzt ihn nur, wenn die Raumtemperatur-Quelle auf \"Bus\" steht.",
+          "humidity_source_entity": "Feuchtesensor, dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Feuchte über den Bus beziehen soll.",
+          "air_quality_source_entity": "Luftgütesensor (ppm), dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Luftgüte über den Bus beziehen soll."
         }
       }
     }

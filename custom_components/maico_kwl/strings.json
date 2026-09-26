@@ -9,6 +9,12 @@
           "port": "Port",
           "slave": "Modbus address",
           "scan_interval": "Scan interval (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the unit or of the Modbus TCP gateway in front of it.",
+          "port": "Modbus TCP port, usually 502.",
+          "slave": "Modbus address (unit ID) of the ventilation unit. Maico units use 10 by default.",
+          "scan_interval": "How often the values are read from the unit. 30 seconds is enough for most uses."
         }
       },
       "reconfigure": {
@@ -18,6 +24,11 @@
           "host": "Host",
           "port": "Port",
           "slave": "Modbus address"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the unit or of the Modbus TCP gateway in front of it.",
+          "port": "Modbus TCP port, usually 502.",
+          "slave": "Modbus address (unit ID) of the ventilation unit. Maico units use 10 by default."
         }
       }
     },
@@ -39,6 +50,12 @@
           "room_temp_source_entity": "Room temperature source entity",
           "humidity_source_entity": "Humidity source entity",
           "air_quality_source_entity": "Air quality source entity"
+        },
+        "data_description": {
+          "scan_interval": "How often the values are read from the unit. 30 seconds is enough for most uses.",
+          "room_temp_source_entity": "Temperature sensor whose value is sent to the unit as room temperature. Only used by the unit if the room temperature source is set to \"Bus\".",
+          "humidity_source_entity": "Humidity sensor whose value is sent to the unit. Only used if the unit is configured to take the humidity over the bus.",
+          "air_quality_source_entity": "Air quality sensor (ppm) whose value is sent to the unit. Only used if the unit is configured to take the air quality over the bus."
         }
       }
     }

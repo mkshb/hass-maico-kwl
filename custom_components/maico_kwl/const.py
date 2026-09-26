@@ -11,6 +11,9 @@ CONF_PORT = "port"
 CONF_SLAVE = "slave"
 CONF_SCAN_INTERVAL = "scan_interval"
 
+# Result of the last discovery, stored in the entry data (see discovery.py).
+CONF_DISCOVERY = "discovery"
+
 # Optional source entities whose value is fed cyclically into a write-only
 # "bus" input register.
 CONF_ROOM_TEMP_SOURCE_ENTITY = "room_temp_source_entity"

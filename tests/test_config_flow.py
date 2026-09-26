@@ -175,6 +175,7 @@ async def test_reconfigure_changes_connection(
     result = await config_entry.start_reconfigure_flow(hass)
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
+    device.reads = 0
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
@@ -187,6 +188,8 @@ async def test_reconfigure_changes_connection(
     assert config_entry.title == f"Maico KWL ({NEW_HOST})"
     assert config_entry.unique_id is None  # legacy host based id dropped
     assert config_entry.state is ConfigEntryState.LOADED
+    # The new connection was discovered again, not taken from the old one.
+    assert device.reads > len(config_entry.runtime_data.coordinator._blocks)
 
 
 async def test_reconfigure_keeps_custom_title_and_same_values(

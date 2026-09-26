@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
+from custom_components.maico_kwl.const import CONF_DISCOVERY
 from custom_components.maico_kwl.discovery import async_discover
 from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
 
@@ -97,3 +98,78 @@ async def test_setup_recovers_after_retry(
     await hass.async_block_till_done()
     assert config_entry.state is ConfigEntryState.LOADED
     assert device.open_connections == 1
+
+
+# --- Stored discovery -----------------------------------------------------
+
+
+async def _reload(hass: HomeAssistant, entry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_discovery_is_stored_and_reused(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The first setup stores the discovery, later setups only poll."""
+    await setup_entry(hass, config_entry)
+    cache = config_entry.data[CONF_DISCOVERY]
+    assert "temp_room" in cache["present"]
+    assert "brine_pump_state" not in cache["present"]
+    assert "brine_pump_state" in cache["probed"]
+
+    device.reads = 0
+    await _reload(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.LOADED
+    blocks = len(config_entry.runtime_data.coordinator._blocks)
+    assert device.reads == blocks  # first poll only, no probing
+    # Write-only registers are resolved from the stored readable ones.
+    assert "error_reset" in config_entry.runtime_data.coordinator.present
+
+
+async def test_discovery_runs_again_for_new_registers(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A stored discovery that lacks a register of this version is redone."""
+    await setup_entry(hass, config_entry)
+    cache = config_entry.data[CONF_DISCOVERY]
+    old = {
+        "probed": [key for key in cache["probed"] if key != "device_clock"],
+        "present": [key for key in cache["present"] if key != "device_clock"],
+    }
+    hass.config_entries.async_update_entry(
+        config_entry, data={**config_entry.data, CONF_DISCOVERY: old}
+    )
+    await hass.async_block_till_done()  # the data change reloads the entry
+
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert "device_clock" in config_entry.runtime_data.coordinator.present
+    assert "device_clock" in config_entry.data[CONF_DISCOVERY]["present"]
+
+
+async def test_stored_discovery_ignores_unknown_keys(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Keys of registers that no longer exist are dropped."""
+    await setup_entry(hass, config_entry)
+    cache = dict(config_entry.data[CONF_DISCOVERY])
+    cache["present"] = [*cache["present"], "removed_register"]
+    hass.config_entries.async_update_entry(
+        config_entry, data={**config_entry.data, CONF_DISCOVERY: cache}
+    )
+    await hass.async_block_till_done()
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert "removed_register" not in config_entry.runtime_data.coordinator.present
+
+
+async def test_empty_stored_discovery_probes_again(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry,
+        data={**config_entry.data, CONF_DISCOVERY: {"probed": [], "present": []}},
+    )
+    await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert "temp_room" in config_entry.data[CONF_DISCOVERY]["present"]

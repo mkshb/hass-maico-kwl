@@ -16,7 +16,7 @@ import logging
 
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import REGISTERS, RegisterDef
+from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,11 +35,9 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
         present |= await _probe_group(hub, defs)
 
     # Second pass: write-only registers inherit presence from a sibling.
-    for reg in REGISTERS:
-        if reg.probe_via is not None and reg.probe_via in present:
-            present.add(reg.key)
+    present = _resolve_probe_via(present)
 
-    profile = _derive_profile(present)
+    profile = derive_profile(present)
     _LOGGER.info(
         "Maico discovery: %d/%d registers present, profile=%s",
         len(present),
@@ -47,6 +45,33 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
         profile["model"],
     )
     return present, profile
+
+
+def cache_data(present: set[str]) -> dict[str, list[str]]:
+    """Discovery result to store in the config entry.
+
+    "probed" records which registers this version knew, so a later version
+    that adds registers discovers again instead of never finding them.
+    """
+    return {
+        "probed": sorted(reg.key for reg in REGISTERS if reg.probe_via is None),
+        "present": sorted(present),
+    }
+
+
+def present_from_cache(cache: dict | None) -> set[str] | None:
+    """Present registers from a stored discovery, or None to discover again."""
+    if not cache:
+        return None
+    probed = set(cache.get("probed", []))
+    if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
+        return None  # a register was added since the last discovery
+    present = {
+        key
+        for key in cache.get("present", [])
+        if key in REGISTERS_BY_KEY and REGISTERS_BY_KEY[key].probe_via is None
+    }
+    return _resolve_probe_via(present) or None
 
 
 async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]:
@@ -77,7 +102,16 @@ async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
         return False
 
 
-def _derive_profile(present: set[str]) -> dict:
+def _resolve_probe_via(present: set[str]) -> set[str]:
+    """Add the write-only registers whose readable sibling is present."""
+    return present | {
+        reg.key
+        for reg in REGISTERS
+        if reg.probe_via is not None and reg.probe_via in present
+    }
+
+
+def derive_profile(present: set[str]) -> dict:
     """Infer a capability profile from the set of present registers."""
     features: list[str] = []
 

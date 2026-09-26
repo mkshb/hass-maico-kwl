@@ -10,6 +10,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .bus_feed import BusFeeder
 from .const import (
     BUS_FEEDS,
+    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -21,7 +22,12 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
-from .discovery import async_discover
+from .discovery import (
+    async_discover,
+    cache_data,
+    derive_profile,
+    present_from_cache,
+)
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 
@@ -40,7 +46,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
 
     hub = MaicoModbusHub(host, port, slave)
     try:
-        coordinator = await _async_discover_and_refresh(hass, hub, scan_interval)
+        coordinator = await _async_discover_and_refresh(
+            hass, entry, hub, scan_interval
+        )
     except BaseException:
         # Close on any failure, including cancellation. pymodbus reconnects in
         # the background, so an unclosed client would keep a connection open
@@ -67,9 +75,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
 
 
 async def _async_discover_and_refresh(
-    hass: HomeAssistant, hub: MaicoModbusHub, scan_interval: int
+    hass: HomeAssistant,
+    entry: MaicoConfigEntry,
+    hub: MaicoModbusHub,
+    scan_interval: int,
 ) -> MaicoCoordinator:
-    """Connect, discover the present registers and run the first poll."""
+    """Connect, find the present registers and run the first poll.
+
+    The registers come from the discovery stored in the entry; the unit is
+    only probed when there is none (first setup, after reconfigure or a
+    rediscovery request) or when this version knows registers it lacks.
+    """
     if not await hub.connect():
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
@@ -77,18 +93,26 @@ async def _async_discover_and_refresh(
             translation_placeholders={"host": hub.host, "port": str(hub.port)},
         )
 
-    try:
-        present, profile = await async_discover(hub)
-    except MaicoModbusError as err:
-        raise ConfigEntryNotReady(
-            translation_domain=DOMAIN,
-            translation_key="discovery_failed",
-            translation_placeholders={"error": str(err)},
-        ) from err
+    present = present_from_cache(entry.data.get(CONF_DISCOVERY))
+    if present is not None:
+        profile = derive_profile(present)
+    else:
+        try:
+            present, profile = await async_discover(hub)
+        except MaicoModbusError as err:
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN,
+                translation_key="discovery_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
 
-    if not present:
-        raise ConfigEntryNotReady(
-            translation_domain=DOMAIN, translation_key="no_registers"
+        if not present:
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN, translation_key="no_registers"
+            )
+        # Stored before the update listener is added, so no reload follows.
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_DISCOVERY: cache_data(present)}
         )
 
     coordinator = MaicoCoordinator(hass, hub, present, profile, scan_interval)

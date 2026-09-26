@@ -17,6 +17,7 @@ from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (
     BUS_FEEDS,
+    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -131,7 +132,13 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                     title=title,
                     # Drop the host based unique_id of entries created before 0.2.0.
                     unique_id=None,
-                    data_updates={
+                    # A new connection may lead to another unit: discover again.
+                    data={
+                        **{
+                            key: value
+                            for key, value in entry.data.items()
+                            if key != CONF_DISCOVERY
+                        },
                         CONF_HOST: host,
                         CONF_PORT: port,
                         CONF_SLAVE: slave,

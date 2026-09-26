@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from custom_components.maico_kwl.coordinator import build_blocks
-from custom_components.maico_kwl.discovery import _derive_profile, async_discover
+from custom_components.maico_kwl.discovery import async_discover, derive_profile
 from custom_components.maico_kwl.modbus_hub import MaicoConnectionError, MaicoModbusHub
 from custom_components.maico_kwl.register_defs import REGISTERS
 
@@ -88,7 +88,7 @@ async def test_discovery_aborts_on_connection_loss(
 )
 def test_profile_features(present: set[str], features: list[str]) -> None:
     """Features are derived from the present registers."""
-    profile = _derive_profile(present)
+    profile = derive_profile(present)
     assert profile["features"] == features
     if features:
         assert profile["model"] == f"Maico KWL ({', '.join(features)})"

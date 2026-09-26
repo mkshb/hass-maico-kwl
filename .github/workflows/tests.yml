@@ -61,3 +61,19 @@ jobs:
         run: |
           git add --intent-to-add ../custom_components/maico_kwl/frontend
           git diff --exit-code -- ../custom_components/maico_kwl/frontend
+
+      - name: "Install Chromium"
+        run: npx playwright install --with-deps chromium
+
+      - name: "Render the card"
+        run: npm test
+
+      # The README shows the committed screenshots; these are for a look at
+      # how the card renders on this run. Fonts differ between machines, so
+      # they are not compared pixel by pixel.
+      - name: "Upload screenshots"
+        if: always()
+        uses: "actions/upload-artifact@v4"
+        with:
+          name: "card-screenshots"
+          path: "docs/images/card-*.png"

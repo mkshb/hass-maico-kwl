@@ -40,7 +40,7 @@ async def test_user_flow_creates_entry(hass: HomeAssistant, device: FakeDevice) 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == f"Maico KWL ({HOST})"
     assert result["data"] == USER_INPUT
-    assert result["result"].unique_id == f"{HOST}:{PORT}:{SLAVE}"
+    assert result["result"].unique_id is None
     await hass.async_block_till_done()
     # Only the connection of the loaded entry stays open, not the validation one.
     assert device.open_connections == 1
@@ -95,6 +95,20 @@ async def test_user_flow_already_configured(
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
+
+
+async def test_user_flow_other_modbus_address_allowed(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A second unit behind the same gateway (other address) can be added."""
+    config_entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_SLAVE: SLAVE + 1}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
 async def test_options_flow_saves_and_reloads(

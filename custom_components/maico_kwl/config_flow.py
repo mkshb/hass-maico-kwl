@@ -59,8 +59,11 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             port = user_input[CONF_PORT]
             slave = user_input[CONF_SLAVE]
 
-            await self.async_set_unique_id(f"{host}:{port}:{slave}")
-            self._abort_if_unique_id_configured()
+            # The unit has no serial number to use as unique_id, and an IP
+            # address is not a stable one, so match on the connection instead.
+            self._async_abort_entries_match(
+                {CONF_HOST: host, CONF_PORT: port, CONF_SLAVE: slave}
+            )
 
             try:
                 await _validate(host, port, slave)

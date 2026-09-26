@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 
@@ -11,7 +12,6 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import async_get_integration
 
 from .bus_feed import BusFeeder
 from .const import (
@@ -60,16 +60,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def _async_register_card(hass: HomeAssistant) -> None:
     """Serve the dashboard card and load it in every frontend.
 
-    The version in the loader's URL makes browsers fetch it again after an
-    update; the chunks it loads carry a content hash in their names.
+    The loader is tiny and served without cache headers, and its URL carries a
+    hash of its content, so a browser never keeps running an old card. The
+    chunks it loads have a content hash in their names and are cached.
     """
     if "frontend" not in hass.config.components:
         return
-    integration = await async_get_integration(hass, DOMAIN)
+    loader = FRONTEND_DIR / CARD_LOADER
+    digest = await hass.async_add_executor_job(_content_hash, loader)
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True)]
+        [
+            StaticPathConfig(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
+            StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True),
+        ]
     )
-    add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={integration.version}")
+    add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={digest}")
+
+
+def _content_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:

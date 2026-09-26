@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -13,22 +14,24 @@ from homeassistant.setup import async_setup_component
 from custom_components.maico_kwl import CARD_LOADER, FRONTEND_DIR, FRONTEND_URL
 from custom_components.maico_kwl.const import DOMAIN
 
-VERSION = json.loads((FRONTEND_DIR.parent / "manifest.json").read_text())["version"]
+LOADER_HASH = hashlib.sha256((FRONTEND_DIR / CARD_LOADER).read_bytes()).hexdigest()[:12]
 
 
 async def test_card_is_served_and_loaded(hass: HomeAssistant) -> None:
-    """With the frontend loaded, the card folder is served and the loader added."""
+    """With the frontend loaded, the card is served and its loader added."""
     hass.config.components.add("frontend")
     hass.http = MagicMock(async_register_static_paths=AsyncMock())
     with patch("custom_components.maico_kwl.add_extra_js_url") as add_js:
         assert await async_setup_component(hass, DOMAIN, {})
 
     (paths,), _ = hass.http.async_register_static_paths.call_args
-    assert [(p.url_path, p.path) for p in paths] == [
-        (FRONTEND_URL, str(FRONTEND_DIR))
+    # The loader first and uncached, then the folder with its hashed chunks.
+    assert [(p.url_path, p.path, p.cache_headers) for p in paths] == [
+        (f"{FRONTEND_URL}/{CARD_LOADER}", str(FRONTEND_DIR / CARD_LOADER), False),
+        (FRONTEND_URL, str(FRONTEND_DIR), True),
     ]
     add_js.assert_called_once_with(
-        hass, f"/maico_kwl/frontend/maico-kwl-card.js?v={VERSION}"
+        hass, f"/maico_kwl/frontend/maico-kwl-card.js?v={LOADER_HASH}"
     )
 
 

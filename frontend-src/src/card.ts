@@ -71,7 +71,10 @@ export class MaicoKwlCard extends LitElement {
   public connectedCallback(): void {
     super.connectedCallback();
     this._resizeObserver ??= new ResizeObserver(([entry]) => {
-      this._width = Math.round(entry.contentRect.width);
+      const width = Math.round(entry.contentRect.width);
+      // Render in the next frame: a layout change inside the callback would
+      // start the observer again ("ResizeObserver loop", reported by Safari).
+      if (width !== this._width) requestAnimationFrame(() => (this._width = width));
     });
     this._resizeObserver.observe(this);
   }
@@ -90,6 +93,13 @@ export class MaicoKwlCard extends LitElement {
     for (const [control, pending] of this._pending) {
       if (REPORTED[control](device) === pending.value) this._clearPending(control);
     }
+  }
+
+  protected firstUpdated(): void {
+    // Measure right away: the resize observer reports later (in Safari after
+    // the first paint), and a narrow card would flash its wide layout.
+    const width = Math.round(this.getBoundingClientRect().width);
+    if (width) this._width = width;
   }
 
   protected updated(changed: PropertyValues<this>): void {

@@ -520,3 +520,45 @@ BIT_SENSORS: list[tuple[str, str, str | None]] = [
     ("notice_code", "room_filter_dirty", "problem"),
     ("notice_code", "frost_protection_active", None),
 ]
+
+
+@dataclass(frozen=True)
+class OptionalFilter:
+    """A filter that is an accessory and may not be fitted to the unit.
+
+    The registers of such a filter answer on every unit. Without the filter
+    the unit keeps its remaining days at 0 and never sets its notice bit, and
+    it ignores a filter change there.
+    """
+
+    remaining: str  # remaining days register
+    notice_bit: str  # "filter dirty" bit of the notice code
+    keys: tuple[str, ...]  # registers that only apply to this filter
+
+    def fitted(self, remaining: float, notice: float) -> bool:
+        """Whether the unit monitors this filter, from the current values.
+
+        A monitored filter has days left, or has run out and sets its notice
+        bit. The device filter is not listed: every unit has one.
+        """
+        bits = REGISTERS_BY_KEY["notice_code"].active_bits(notice)
+        return remaining > 0 or self.notice_bit in bits
+
+
+OPTIONAL_FILTERS: list[OptionalFilter] = [
+    OptionalFilter(
+        "filter_remaining_outdoor",
+        "outdoor_filter_dirty",
+        ("filter_runtime_outdoor", "filter_reset_outdoor", "filter_remaining_outdoor"),
+    ),
+    OptionalFilter(
+        "filter_remaining_room",
+        "room_filter_dirty",
+        ("filter_runtime_room", "filter_reset_room", "filter_remaining_room"),
+    ),
+]
+
+# Bit sensors that only exist together with another register.
+BIT_SENSOR_REQUIRES: dict[str, str] = {
+    f.notice_bit: f.remaining for f in OPTIONAL_FILTERS
+}

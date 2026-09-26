@@ -121,7 +121,8 @@ async def test_discovery_reads_blocks(hub: MaicoModbusHub, device: FakeDevice) -
     present, _ = await async_discover(hub)
     readable = [reg for reg in REGISTERS if reg.probe_via is None]
     assert present == {reg.key for reg in REGISTERS}
-    assert device.reads == len(build_blocks(readable))
+    # Plus the notice code and the remaining days of the two optional filters.
+    assert device.reads == len(build_blocks(readable)) + 3
     assert device.reads < 20
 
 
@@ -143,3 +144,68 @@ async def test_discovery_probes_32_bit_registers_whole(
     present, _ = await async_discover(hub)
     assert "op_hours_reduced" not in present
     assert {"op_hours_humidity_protection", "op_hours_nominal"} <= present
+
+
+OUTDOOR_FILTER = {"filter_runtime_outdoor", "filter_reset_outdoor", "filter_remaining_outdoor"}
+ROOM_FILTER = {"filter_runtime_room", "filter_reset_room", "filter_remaining_room"}
+
+
+async def test_discovery_skips_filters_that_are_not_fitted(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """0 days left without a notice: the unit has no such filter."""
+    device.registers[656] = 0
+    present, _ = await async_discover(hub)
+    assert not OUTDOOR_FILTER & present
+    assert ROOM_FILTER <= present
+    assert {"filter_runtime_device", "filter_reset_device"} <= present
+
+    device.registers[657] = 0
+    present, _ = await async_discover(hub)
+    assert not (OUTDOOR_FILTER | ROOM_FILTER) & present
+    assert "filter_remaining_device" in present
+
+
+async def test_discovery_keeps_filters_that_ran_out(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A fitted filter that ran out sets its notice bit and is kept."""
+    device.registers[656] = 0
+    device.registers[657] = 0
+    device.registers[404] = (1 << 10) | (1 << 11)  # outdoor and room filter dirty
+    present, _ = await async_discover(hub)
+    assert (OUTDOOR_FILTER | ROOM_FILTER) <= present
+
+
+async def test_discovery_keeps_filters_it_cannot_check(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Without the notice code, or if a value cannot be read, all filters stay."""
+    device.registers[656] = 0
+    device.absent |= {403, 404}
+    present, _ = await async_discover(hub)
+    assert "notice_code" not in present
+    assert OUTDOOR_FILTER <= present
+
+    device.absent -= {403, 404}
+    original = device.clients[0].read_holding_registers
+
+    async def failure_at_656(*, address, count, device_id):
+        if address == 656 and count == 1:
+            return FakeExceptionResponse(4)
+        return await original(address=address, count=count, device_id=device_id)
+
+    device.clients[0].read_holding_registers = failure_at_656
+    present, _ = await async_discover(hub)
+    assert OUTDOOR_FILTER <= present
+
+
+async def test_discovery_filter_check_aborts_on_connection_loss(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A connection loss while checking the filters aborts the discovery."""
+    readable = [reg for reg in REGISTERS if reg.probe_via is None]
+    device.fail_after_reads = len(build_blocks(readable)) + 1
+    device.absent = set()
+    with pytest.raises(MaicoConnectionError):
+        await async_discover(hub)

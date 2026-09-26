@@ -24,8 +24,9 @@ profile of the unit is derived from the registers it finds.
 ## Features
 
 - **Autonomous discovery** of the available registers at the first setup. Entities are created
-  only for registers the device responds to. The result is stored, so restarts are fast; a button
-  scans the unit again when needed.
+  only for registers the device responds to, and only for the outdoor and room filters the unit
+  actually has (see [Outdoor and room filter](#outdoor-and-room-filter)). The result is stored, so
+  restarts are fast; a button scans the unit again when needed.
 - **Capability-based model detection**: since the Maico registers contain no unique model
   identifier, a profile is derived from the registers and features that are present (e.g.
   "Maico KWL (EnOcean, CO2, ZP1)").
@@ -98,9 +99,23 @@ protection active*. The *Problem* sensor is on whenever any fault bit is set.
 The Maico KWL documentation only calls these registers a bitfield. The bit meanings are taken from
 the Modbus documentation of another Maico product (Geniovent), which uses the same registers. The
 bit numbering was confirmed on a live unit (notice bit 4 follows the summer bypass), the meaning of
-the other bits was not. On the test unit the filter bits stay off even when the remaining filter
-time is 0 days, so use the *Filter due* sensors (see [Calculated values](#calculated-values)) for filter
-change reminders.
+the other bits was not. For filter change reminders, the *Filter due* sensors (see
+[Calculated values](#calculated-values)) are the simpler choice: they follow the remaining days.
+
+### Outdoor and room filter
+
+Every unit has its device filter. The outdoor filter (e.g. in an external filter box) and the room
+filter are accessories. Their registers answer on every unit, so the register probe cannot tell
+whether they are fitted. Without such a filter the unit keeps its remaining time at 0 days, never
+reports it as dirty and ignores a filter change for it.
+
+Discovery therefore also reads the values once: an outdoor or room filter with **0 days left and
+no "filter dirty" notice** counts as not fitted. Its entities are not created: interval, reset
+button, remaining time, *Filter due*, the *dirty* binary sensor and its repair issue. *Filter next
+change* then only covers the fitted filters. A fitted filter that has run out is kept, because the
+unit sets its notice bit.
+
+If you add such a filter later and enable it on the unit, press *Rediscover registers*.
 
 ## Requirements
 
@@ -176,7 +191,8 @@ leave the option empty to set the value manually instead.
   ~9 minutes. Manual bus numbers are rewritten every ~9 minutes as well.
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
-  after a firmware update or after adding sensors to the unit.
+  after a firmware update or after adding sensors or filters to the unit. An update that changes
+  the discovery rules probes the unit once more on its own.
 
 ## Automations
 
@@ -264,6 +280,10 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 **Entities for features the unit does not have**
 - Some Modbus proxies answer every address instead of rejecting missing registers, so discovery
   cannot filter them. These entities usually show 0; disable the ones you don't need.
+
+**Outdoor or room filter entities are missing, or their filter reset has no effect**
+- The unit does not monitor this filter, see [Outdoor and room filter](#outdoor-and-room-filter).
+  Once the filter is fitted and enabled on the unit, press *Rediscover registers*.
 
 **A bus input has no effect**
 - The matching source on the unit must be set to **"Bus"**, e.g. the *Room temperature source*

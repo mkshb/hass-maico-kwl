@@ -19,9 +19,13 @@ from typing import Any
 from .const import CONF_DISCOVERY, MaicoProfile
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
+from .register_defs import OPTIONAL_FILTERS, REGISTERS, REGISTERS_BY_KEY, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
+
+# Version of the stored discovery. A stored result of an older version is
+# discovered again: 2 leaves out the filters the unit does not have.
+DISCOVERY_VERSION = 2
 
 
 async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
@@ -40,6 +44,9 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
     # Second pass: write-only registers inherit presence from a sibling.
     present = _resolve_probe_via(present)
 
+    # Third pass: registers that answer, but whose accessory is not fitted.
+    present -= await _unfitted_filter_keys(hub, present)
+
     profile = derive_profile(present)
     _LOGGER.info(
         "Maico discovery: %d/%d registers present, profile=%s",
@@ -50,13 +57,14 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
     return present, profile
 
 
-def cache_data(present: set[str]) -> dict[str, list[str]]:
+def cache_data(present: set[str]) -> dict[str, Any]:
     """Discovery result to store in the config entry.
 
     "probed" records which registers this version knew, so a later version
     that adds registers discovers again instead of never finding them.
     """
     return {
+        "version": DISCOVERY_VERSION,
         "probed": sorted(reg.key for reg in REGISTERS if reg.probe_via is None),
         "present": sorted(present),
     }
@@ -69,7 +77,7 @@ def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
 
 def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
     """Present registers from a stored discovery, or None to discover again."""
-    if not cache:
+    if not cache or cache.get("version", 1) < DISCOVERY_VERSION:
         return None
     probed = set(cache.get("probed", []))
     if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
@@ -108,6 +116,44 @@ async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
         # An unexpected exception code: handle it like a rejected read.
         _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
         return False
+
+
+async def _unfitted_filter_keys(hub: MaicoModbusHub, present: set[str]) -> set[str]:
+    """Keys of the optional filters the unit does not have.
+
+    Their registers answer on every unit, so only the values tell: see
+    OptionalFilter.fitted. A filter that cannot be checked is kept.
+    """
+    if "notice_code" not in present:
+        return set()
+    try:
+        notice = await _read_value(hub, "notice_code")
+        unfitted: set[str] = set()
+        for flt in OPTIONAL_FILTERS:
+            if flt.remaining not in present:
+                continue
+            if not flt.fitted(await _read_value(hub, flt.remaining), notice):
+                _LOGGER.info(
+                    "Maico discovery: %s not fitted (0 days left, no notice), "
+                    "skipping %s",
+                    flt.remaining,
+                    ", ".join(flt.keys),
+                )
+                unfitted.update(flt.keys)
+    except MaicoConnectionError:
+        raise
+    except MaicoModbusError as err:
+        _LOGGER.debug("Filter check failed, keeping all filters: %s", err)
+        return set()
+    return unfitted
+
+
+async def _read_value(hub: MaicoModbusHub, key: str) -> float:
+    reg = REGISTERS_BY_KEY[key]
+    value = reg.decode(await hub.read_block(reg.address, reg.word_count))
+    if not isinstance(value, (int, float)):
+        raise MaicoModbusError(f"{key} has no numeric value: {value!r}")
+    return value
 
 
 def _resolve_probe_via(present: set[str]) -> set[str]:

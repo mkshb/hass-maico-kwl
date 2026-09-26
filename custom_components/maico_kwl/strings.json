@@ -221,6 +221,9 @@
       "air_quality_bus_sent": {
         "name": "Air quality bus (sent)"
       },
+      "absolute_humidity_extract": {
+        "name": "Absolute humidity extract air"
+      },
       "airflow_exhaust": {
         "name": "Airflow exhaust"
       },
@@ -259,6 +262,9 @@
           "nominal": "Nominal",
           "intensive": "Intensive"
         }
+      },
+      "dew_point_extract": {
+        "name": "Dew point extract air"
       },
       "enocean_co2_id0": {
         "name": "EnOcean CO2 ID0"

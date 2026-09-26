@@ -221,6 +221,9 @@
       "air_quality_bus_sent": {
         "name": "Luftgüte Bus (gesendet)"
       },
+      "absolute_humidity_extract": {
+        "name": "Feuchte Abluft absolut"
+      },
       "airflow_exhaust": {
         "name": "Volumenstrom Abluft"
       },
@@ -259,6 +262,9 @@
           "nominal": "Nenn",
           "intensive": "Intensiv"
         }
+      },
+      "dew_point_extract": {
+        "name": "Taupunkt Abluft"
       },
       "enocean_co2_id0": {
         "name": "EnOcean CO2 ID0"

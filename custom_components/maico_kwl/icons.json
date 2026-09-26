@@ -85,6 +85,9 @@
           "intensive": "mdi:fan-speed-3"
         }
       },
+      "dew_point_extract": {
+        "default": "mdi:water-thermometer"
+      },
       "fan_speed_exhaust": {
         "default": "mdi:fan"
       },

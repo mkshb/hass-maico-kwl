@@ -64,6 +64,27 @@ async def test_airflow_imbalance_sensor(
     assert hass.states.get(eid).state == "-10"
 
 
+def test_absolute_humidity_and_dew_point() -> None:
+    # Reference values from common psychrometric tables.
+    assert derived.absolute_humidity(20.0, 50.0) == pytest.approx(8.6, abs=0.05)
+    assert derived.absolute_humidity(0.0, 100.0) == pytest.approx(4.85, abs=0.05)
+    assert derived.dew_point(20.0, 50.0) == 9.3
+    assert derived.dew_point(15.0, 100.0) == 15.0
+    assert derived.dew_point(-5.0, 80.0) == -7.9
+    assert derived.dew_point(20.0, 0.0) is None
+
+
+async def test_humidity_sensors(hass: HomeAssistant, loaded) -> None:
+    """Extract air at 22.0 degC and 45 %."""
+    absolute = hass.states.get(entity_id(hass, loaded, "sensor", "absolute_humidity_extract"))
+    assert absolute.state == "8.71"
+    assert absolute.attributes["unit_of_measurement"] == "g/m³"
+    assert absolute.attributes["device_class"] == "absolute_humidity"
+    dew = hass.states.get(entity_id(hass, loaded, "sensor", "dew_point_extract"))
+    assert dew.state == "9.5"
+    assert dew.attributes["device_class"] == "temperature"
+
+
 async def test_heat_recovery_power_sensor(
     hass: HomeAssistant, device: FakeDevice, loaded
 ) -> None:

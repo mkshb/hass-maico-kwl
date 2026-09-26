@@ -7,6 +7,7 @@ when all of them are present, and ``compute`` gets their values in that order.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -17,6 +18,11 @@ AIR_HEAT_CAPACITY = 0.34
 # Below this difference between extract and intake air the efficiency is mostly
 # sensor tolerance (e.g. on mild days), so it is not reported.
 MIN_EFFICIENCY_SPREAD = 5.0
+
+# Magnus formula constants over water (Sonntag 1990), for -45 to 60 degC.
+MAGNUS_A = 17.62
+MAGNUS_B = 243.12  # degC
+MAGNUS_E0 = 6.112  # hPa
 
 
 def heat_recovery_power(airflow_supply: float, intake: float, supply: float) -> float:
@@ -46,6 +52,26 @@ def heat_recovery_efficiency(
 def airflow_imbalance(airflow_supply: float, airflow_exhaust: float) -> float:
     """Supply minus exhaust airflow, in m3/h (positive: more air goes in)."""
     return round(airflow_supply - airflow_exhaust)
+
+
+def _vapour_pressure(temp: float, humidity: float) -> float:
+    """Partial pressure of water vapour in hPa."""
+    saturation = MAGNUS_E0 * math.exp(MAGNUS_A * temp / (MAGNUS_B + temp))
+    return saturation * humidity / 100
+
+
+def absolute_humidity(temp: float, humidity: float) -> float:
+    """Water content of the air in g/m3, from temperature and relative humidity."""
+    # 216.7 g*K/(m3*hPa) = molar mass of water / gas constant.
+    return round(216.7 * _vapour_pressure(temp, humidity) / (273.15 + temp), 2)
+
+
+def dew_point(temp: float, humidity: float) -> float | None:
+    """Temperature at which the air would start to condense, in degC."""
+    if humidity <= 0:
+        return None
+    gamma = math.log(_vapour_pressure(temp, humidity) / MAGNUS_E0)
+    return round(MAGNUS_B * gamma / (MAGNUS_A - gamma), 1)
 
 
 @dataclass(frozen=True)
@@ -86,5 +112,22 @@ DERIVED_SENSORS: list[DerivedDef] = [
         device_class="volume_flow_rate",
         precision=0,
         entity_category="diagnostic",
+    ),
+    # humidity_exhaust (750) is the humidity of the extract air ("Abluft").
+    DerivedDef(
+        "absolute_humidity_extract",
+        ("temp_extract_air", "humidity_exhaust"),
+        absolute_humidity,
+        unit="g/m³",
+        device_class="absolute_humidity",
+        precision=1,
+    ),
+    DerivedDef(
+        "dew_point_extract",
+        ("temp_extract_air", "humidity_exhaust"),
+        dew_point,
+        unit="°C",
+        device_class="temperature",
+        precision=1,
     ),
 ]

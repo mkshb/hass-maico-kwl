@@ -1,5 +1,5 @@
 blueprint:
-  name: Maico KWL – Reduce ventilation when a window is open
+  name: "Maico KWL: Reduce ventilation when a window is open"
   description: >
     Reduces the Maico KWL ventilation while one or more windows/doors are open
     (to avoid pulling unconditioned air), and restores normal operation once all
@@ -58,7 +58,8 @@ blueprint:
             - "auto_time"
             - "manual"
 
-mode: single
+mode: queued
+max_exceeded: silent
 
 variables:
   operating_mode: !input operating_mode

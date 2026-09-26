@@ -96,7 +96,8 @@ blueprint:
       selector:
         text:
 
-mode: single
+mode: queued
+max_exceeded: silent
 
 variables:
   operating_mode: !input operating_mode

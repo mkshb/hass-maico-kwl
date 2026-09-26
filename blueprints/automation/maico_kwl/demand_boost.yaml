@@ -1,5 +1,5 @@
 blueprint:
-  name: Maico KWL – Demand boost from any sensor
+  name: "Maico KWL: Demand boost from any sensor"
   description: >
     Boosts the Maico KWL to intensive ventilation when a Home Assistant sensor
     (e.g. CO2 or humidity from any room) rises above a threshold, and returns to
@@ -77,7 +77,8 @@ blueprint:
             - "auto_time"
             - "manual"
 
-mode: single
+mode: queued
+max_exceeded: silent
 
 variables:
   operating_mode: !input operating_mode

@@ -83,6 +83,12 @@ export class KwlDevice {
     return stateObj && !MISSING_STATES.has(stateObj.state) ? stateObj : undefined;
   }
 
+  /** The state object even when it has no value yet ("unknown"). */
+  rawStateObj(key: EntityKey): HassEntityState | undefined {
+    const entityId = this._entityIds.get(key);
+    return entityId ? this._hass.states[entityId] : undefined;
+  }
+
   state(key: EntityKey): string | undefined {
     return this.stateObj(key)?.state;
   }

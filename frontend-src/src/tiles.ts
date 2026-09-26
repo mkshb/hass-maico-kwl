@@ -44,9 +44,16 @@ function busTile(
   key: EntityKey,
   now: number,
 ): Tile | undefined {
+  // The "sent" sensor exists while a source is configured. Before its first
+  // write it is "unknown": the unit then has no bus value to regulate on.
+  const raw = device.rawStateObj(key);
+  const source = raw?.attributes.source_entity;
+  if (!raw || raw.state === "unavailable" || typeof source !== "string") return undefined;
+  const from = t("from_source", { name: friendlyName(hass, source) });
   const value = device.format(key);
-  const source = device.attribute<string>(key, "source_entity");
-  if (value === undefined || !source) return undefined;
+  if (value === undefined) {
+    return { label, key, moreInfo: source, value: t("no_value"), sub: from, bus: { stale: true } };
+  }
   const written = device.attribute<string>(key, "last_written");
   const minutes = written ? Math.floor((now - Date.parse(written)) / 60000) : undefined;
   const stale = minutes === undefined || minutes >= BUS_STALE_MINUTES;
@@ -55,11 +62,7 @@ function busTile(
     key,
     moreInfo: source,
     value,
-    sub: minutes === undefined
-      ? t("bus_never")
-      : stale
-        ? t("bus_stale", { minutes })
-        : t("from_source", { name: friendlyName(hass, source) }),
+    sub: minutes !== undefined && stale ? t("bus_stale", { minutes }) : from,
     bus: { stale },
   };
 }

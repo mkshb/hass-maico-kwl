@@ -116,3 +116,21 @@ test("filter days in another duration unit", async () => {
   assert.match(await view.card.locator(".filter").textContent(), /212 days/);
   await view.close();
 });
+
+test("a bus source that never delivered shows no value, in orange", async () => {
+  const view = await openCard({
+    states: {
+      humidity_bus_sent: {
+        state: "unknown",
+        attributes: { source_entity: "sensor.bathroom_humidity" },
+      },
+    },
+  });
+  const tile = view.card.locator(".tile").filter({ has: view.page.locator(".tile-label", { hasText: /^\s*Humidity/ }) });
+  assert.match(await tile.textContent(), /no value/);
+  assert.match(await tile.textContent(), /from Bathroom humidity/);
+  assert.equal(await tile.locator(".badge.stale").count(), 1);
+  await tile.click();
+  assert.deepEqual(await view.moreInfo(), ["sensor.bathroom_humidity"]);
+  await view.close();
+});

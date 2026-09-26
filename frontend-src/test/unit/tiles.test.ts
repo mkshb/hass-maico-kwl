@@ -41,7 +41,7 @@ test("a bus source without a sent value falls back to the unit's sensor", () => 
 });
 
 test("a bus value turns stale after 10 minutes", () => {
-  for (const [minutes, stale] of [[9, false], [10, true], [null, true]] as const) {
+  for (const [minutes, stale] of [[9, false], [10, true]] as const) {
     const { hass, device, t } = setup({ room_temp_source: { state: "bus" }, room_temp_bus_sent: bus("22.0", minutes) });
     const tile = roomTile(hass, device, t, NOW)!;
     assert.equal(tile.bus?.stale, stale, `${minutes} min`);
@@ -51,6 +51,30 @@ test("a bus value turns stale after 10 minutes", () => {
   assert.equal(roomTile(hass, device, t, NOW)?.sub, "no value for 14 min");
   const fresh = setup({ room_temp_source: { state: "bus" }, room_temp_bus_sent: bus("22.0", 2) });
   assert.equal(roomTile(fresh.hass, fresh.device, fresh.t, NOW)?.sub, "from Living room");
+});
+
+test("a bus source that never delivered: no value, and no fallback", () => {
+  // What the integration reports before the first write: unknown, with the
+  // source but without last_written.
+  const { hass, device, t } = setup({
+    room_temp_source: { state: "bus" },
+    room_temp_bus_sent: { state: "unknown", attributes: { source_entity: "sensor.source" } },
+    temp_room: { state: "21.0" },
+  });
+  const tile = roomTile(hass, device, t, NOW)!;
+  assert.equal(tile.value, "no value");
+  assert.equal(tile.sub, "from Living room");
+  assert.deepEqual(tile.bus, { stale: true });
+  assert.equal(tile.moreInfo, "sensor.source");
+});
+
+test("an unavailable bus sensor (integration down) counts as no bus value", () => {
+  const { hass, device, t } = setup({
+    room_temp_source: { state: "bus" },
+    room_temp_bus_sent: { state: "unavailable", attributes: { source_entity: "sensor.source" } },
+    temp_room: { state: "21.0" },
+  });
+  assert.equal(roomTile(hass, device, t, NOW)?.value, "21.0");
 });
 
 test("humidity: bus value, then the highest room sensor, then the extract air", () => {

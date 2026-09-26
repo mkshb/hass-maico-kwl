@@ -80,7 +80,8 @@ there, and each is only created when the unit has all the registers it needs.
 
 | Sensor | Calculation |
 |--------|-------------|
-| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. Feed it into an *Integral* helper to get the recovered energy in kWh. |
+| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. The *Heat recovery energy* sensor below adds it up. |
+| *Heat recovery energy* (kWh) | The recovered heat added up over time, as a total that only increases (cooling does not count). It survives restarts and skips periods without readings, and it keeps long-term statistics for daily, monthly and yearly values. |
 | *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; a slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
 | *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (diagnostic). A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
 | *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature and humidity (Magnus formula). The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |

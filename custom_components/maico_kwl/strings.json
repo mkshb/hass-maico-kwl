@@ -392,6 +392,9 @@
       "heat_recovery_efficiency": {
         "name": "Heat recovery efficiency"
       },
+      "heat_recovery_energy": {
+        "name": "Heat recovery energy"
+      },
       "heat_recovery_power": {
         "name": "Heat recovery power"
       },

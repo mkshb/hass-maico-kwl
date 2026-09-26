@@ -392,6 +392,9 @@
       "heat_recovery_efficiency": {
         "name": "Wärmerückgewinnung Bereitstellungsgrad"
       },
+      "heat_recovery_energy": {
+        "name": "Wärmerückgewinnung Energie"
+      },
       "heat_recovery_power": {
         "name": "Wärmerückgewinnung Leistung"
       },

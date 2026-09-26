@@ -19,6 +19,27 @@ from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef, RegisterValue
 
 
+async def async_write_register(
+    coordinator: MaicoCoordinator,
+    reg: RegisterDef,
+    value: float | datetime,
+    entity_id: str,
+) -> None:
+    """Write a real-world value to a register on behalf of an entity.
+
+    Raises HomeAssistantError so the UI shows a clear message instead of
+    an unexpected error with a traceback.
+    """
+    try:
+        await coordinator.hub.write(reg.address, reg.encode(value))
+    except MaicoModbusError as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="write_failed",
+            translation_placeholders={"entity": entity_id, "error": str(err)},
+        ) from err
+
+
 def async_add_maico_entities(
     entry: MaicoConfigEntry,
     async_add_entities: AddEntitiesCallback,
@@ -87,24 +108,8 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         return value if isinstance(value, (int, float)) else None
 
     async def _async_write(self, value: float | datetime) -> None:
-        """Write a real-world value to this entity's register.
-
-        Raises HomeAssistantError so the UI shows a clear message instead of
-        an unexpected error with a traceback.
-        """
-        try:
-            await self.coordinator.hub.write(
-                self._reg.address, self._reg.encode(value)
-            )
-        except MaicoModbusError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="write_failed",
-                translation_placeholders={
-                    "entity": self.entity_id,
-                    "error": str(err),
-                },
-            ) from err
+        """Write a real-world value to this entity's register."""
+        await async_write_register(self.coordinator, self._reg, value, self.entity_id)
 
 
 class MaicoDerivedEntity(CoordinatorEntity[MaicoCoordinator]):

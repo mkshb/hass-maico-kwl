@@ -125,6 +125,22 @@
         "name": "Register neu erkennen"
       }
     },
+    "fan": {
+      "ventilation": {
+        "name": "Lüftung",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manuell",
+              "auto_time": "Auto Zeit",
+              "auto_sensor": "Auto Sensor",
+              "eco_supply_air": "Eco Zuluft",
+              "eco_exhaust_air": "Eco Abluft"
+            }
+          }
+        }
+      }
+    },
     "number": {
       "airflow_intensive": {
         "name": "Volumenstrom Intensiv"

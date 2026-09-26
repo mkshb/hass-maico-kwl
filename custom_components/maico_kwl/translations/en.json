@@ -125,6 +125,22 @@
         "name": "Rediscover registers"
       }
     },
+    "fan": {
+      "ventilation": {
+        "name": "Ventilation",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manual",
+              "auto_time": "Auto time",
+              "auto_sensor": "Auto sensor",
+              "eco_supply_air": "Eco supply air",
+              "eco_exhaust_air": "Eco exhaust air"
+            }
+          }
+        }
+      }
+    },
     "number": {
       "airflow_intensive": {
         "name": "Airflow intensive"

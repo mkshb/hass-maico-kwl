@@ -55,6 +55,7 @@ MAX_BLOCK_SIZE = 100
 PLATFORMS: list[str] = [
     "binary_sensor",
     "button",
+    "fan",
     "number",
     "select",
     "sensor",

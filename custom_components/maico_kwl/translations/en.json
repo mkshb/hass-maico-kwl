@@ -10,13 +10,23 @@
           "slave": "Modbus address",
           "scan_interval": "Scan interval (seconds)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Maico KWL",
+        "description": "Change how the unit is reached, e.g. after the gateway got a new IP address. The connection is tested before the change is saved.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Modbus address"
+        }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the device."
     },
     "abort": {
-      "already_configured": "This device is already configured."
+      "already_configured": "This device is already configured.",
+      "reconfigure_successful": "The connection settings were updated."
     }
   },
   "options": {

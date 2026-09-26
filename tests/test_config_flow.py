@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import (
     CONF_HOST,
@@ -158,3 +159,91 @@ async def test_options_flow_suggests_current_source(
     )
     await hass.async_block_till_done()
     assert CONF_ROOM_TEMP_SOURCE_ENTITY not in config_entry.options
+
+
+# --- Reconfigure ----------------------------------------------------------
+
+NEW_HOST = "192.0.2.20"
+
+
+async def test_reconfigure_changes_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A new host is validated, stored and the entry reloads."""
+    await setup_entry(hass, config_entry)
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert config_entry.data[CONF_HOST] == NEW_HOST
+    assert config_entry.data[CONF_SCAN_INTERVAL] == 30  # untouched
+    assert config_entry.title == f"Maico KWL ({NEW_HOST})"
+    assert config_entry.unique_id is None  # legacy host based id dropped
+    assert config_entry.state is ConfigEntryState.LOADED
+
+
+async def test_reconfigure_keeps_custom_title_and_same_values(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Saving unchanged values works and a renamed entry keeps its title."""
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(config_entry, title="Basement KWL")
+    await setup_entry(hass, config_entry)
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert config_entry.title == "Basement KWL"
+
+
+async def test_reconfigure_cannot_connect(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """An unreachable new host shows an error and keeps the old data."""
+    await setup_entry(hass, config_entry)
+    result = await config_entry.start_reconfigure_flow(hass)
+
+    device.online = False
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert config_entry.data[CONF_HOST] == HOST
+
+    device.online = True
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+
+
+async def test_reconfigure_to_other_entry_aborts(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Pointing an entry at a unit that is already configured is refused."""
+    other = MockConfigEntry(
+        domain=DOMAIN,
+        data={**USER_INPUT, CONF_HOST: NEW_HOST},
+    )
+    other.add_to_hass(hass)
+    await setup_entry(hass, config_entry)
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert config_entry.data[CONF_HOST] == HOST

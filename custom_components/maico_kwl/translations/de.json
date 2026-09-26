@@ -10,13 +10,23 @@
           "slave": "Modbus-Adresse",
           "scan_interval": "Abfrageintervall (Sekunden)"
         }
+      },
+      "reconfigure": {
+        "title": "Maico KWL neu konfigurieren",
+        "description": "Ändere, wie das Gerät erreicht wird, z. B. wenn das Gateway eine neue IP-Adresse bekommen hat. Die Verbindung wird vor dem Speichern getestet.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Modbus-Adresse"
+        }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen."
     },
     "abort": {
-      "already_configured": "Dieses Gerät ist bereits eingerichtet."
+      "already_configured": "Dieses Gerät ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Verbindungseinstellungen wurden aktualisiert."
     }
   },
   "options": {

@@ -3,7 +3,7 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2026-09-27)
 
 Your ventilation at a glance: a dashboard card made for the unit, included with the integration.
 

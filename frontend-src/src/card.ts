@@ -16,6 +16,11 @@ const CARD_TYPE = "maico-kwl-card";
 // to this long while the unit has not confirmed it yet.
 const PENDING_TIMEOUT_MS = 35_000;
 
+// Below this card width the level bar shows icons instead of words.
+const NARROW_PX = 400;
+const SCHEMATIC_WIDTH = 420;
+const SCHEMATIC_MAX_PX = 460;
+
 interface Pending {
   value: string;
   timer: number;
@@ -31,6 +36,11 @@ export class MaicoKwlCard extends LitElement {
   @state() private _pending = new Map<Control, Pending>();
 
   @state() private _messagesExpanded = false;
+
+  /** Rendered width of the card, for the narrow layout. */
+  @state() private _width = 0;
+
+  private _resizeObserver?: ResizeObserver;
 
   public setConfig(config: MaicoKwlCardConfig): void {
     this._config = config;
@@ -50,8 +60,17 @@ export class MaicoKwlCard extends LitElement {
     return deviceId ? { device_id: deviceId } : {};
   }
 
+  public connectedCallback(): void {
+    super.connectedCallback();
+    this._resizeObserver ??= new ResizeObserver(([entry]) => {
+      this._width = Math.round(entry.contentRect.width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
     for (const control of [...this._pending.keys()]) this._clearPending(control);
   }
 
@@ -77,6 +96,7 @@ export class MaicoKwlCard extends LitElement {
     return {
       hass: this.hass!,
       device,
+      narrow: this._width > 0 && this._width < NARROW_PX,
       moreInfo: (key) => this._moreInfo(device.entityId(key)),
       shown: (control) => this._pending.get(control)?.value ?? REPORTED[control](device),
       pending: (control) => this._pending.has(control),
@@ -121,6 +141,8 @@ export class MaicoKwlCard extends LitElement {
             hass: this.hass,
             device,
             uid: this._uid,
+            // The SVG is 420 units wide, drawn into the card minus its padding.
+            scale: this._width ? SCHEMATIC_WIDTH / Math.min(SCHEMATIC_MAX_PX, this._width - 32) : 1,
             moreInfo: (key) => this._moreInfo(device.entityId(key)),
           })}
           ${renderTiles(this.hass, buildTiles(this.hass, device), (entityId) => this._moreInfo(entityId))}

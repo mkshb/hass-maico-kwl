@@ -29,11 +29,29 @@ export interface SchematicContext {
   device: KwlDevice;
   /** Unique per card, for ids inside the SVG. */
   uid: string;
+  /**
+   * How much the SVG is shrunk on screen (1 at full size, 1.5 at two thirds).
+   * Text grows by it, so it stays readable on a narrow card.
+   */
+  scale: number;
   moreInfo: (key: EntityKey) => void;
 }
 
 export function renderSchematic(ctx: SchematicContext): TemplateResult {
   const { hass, device, uid } = ctx;
+  // Font sizes in SVG units, at least the given screen size in px.
+  const f = Math.max(1, ctx.scale);
+  const size = {
+    small: Math.max(12, 11 * f),
+    value: Math.max(20, 17 * f),
+    fan: Math.max(12, 11.5 * f),
+    bypass: Math.max(11, 10.5 * f),
+    efficiency: Math.max(18, 15 * f),
+  };
+  const compact = f > 1.15;
+  const dotRadius = Math.max(4, 3.2 * f);
+  // The names under the lower temperatures move down as the text grows.
+  const bottomNameY = 176 + Math.max(18, size.small * 1.25);
   const dark = hass.themes?.darkMode ?? false;
   const t = (key: Parameters<typeof localize>[1]) => localize(hass, key);
 
@@ -89,9 +107,12 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
     return clickable(
       key,
       svg`
-        <text class="name" x=${left ? 20 : 400} y=${nameY} text-anchor=${left ? "start" : "end"}>${name}</text>
-        <circle cx=${left ? 24 : 396} cy=${valueY - 7} r="4" style=${`fill: ${color}`}></circle>
-        <text class="value" x=${left ? 34 : 386} y=${valueY} text-anchor=${left ? "start" : "end"}>${formatted}</text>
+        <text class="name" x=${left ? 20 : 400} y=${nameY} text-anchor=${left ? "start" : "end"}
+          style=${`font-size: ${size.small}px`}>${name}</text>
+        <circle cx=${left ? 20 + dotRadius : 400 - dotRadius} cy=${valueY - size.value * 0.35} r=${dotRadius}
+          style=${`fill: ${color}`}></circle>
+        <text class="value" x=${left ? 26 + 2 * dotRadius : 394 - 2 * dotRadius} y=${valueY}
+          text-anchor=${left ? "start" : "end"} style=${`font-size: ${size.value}px`}>${formatted}</text>
       `,
       `${name} ${formatted}`,
     );
@@ -103,8 +124,10 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
     running: boolean,
     speedKey: EntityKey,
     flowKey: EntityKey,
-    textY: number,
+    /** Baseline of the lower text line. */
+    lastLineY: number,
   ) => {
+    const lineGap = size.small * 1.2;
     const rpm = device.number(speedKey);
     const turn = rpm && rpm > 0 ? `${(4000 / rpm).toFixed(2)}s` : "2s";
     const speed = running ? device.format(speedKey) : t("fan_off");
@@ -120,8 +143,14 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
               svg`<ellipse cx=${x} cy=${y - 6} rx="3" ry="5.5" transform=${`rotate(${angle} ${x} ${y})`}></ellipse>`,
           )}
         </g>
-        ${speed ? svg`<text class="fan-speed" x=${x} y=${textY} text-anchor="middle">${speed}</text>` : nothing}
-        ${flow ? svg`<text class="small" x=${x} y=${textY + 14} text-anchor="middle">${flow}</text>` : nothing}
+        ${speed
+          ? svg`<text class="fan-speed" x=${x} y=${lastLineY - lineGap} text-anchor="middle"
+              style=${`font-size: ${size.fan}px`}>${speed}</text>`
+          : nothing}
+        ${flow
+          ? svg`<text class="small" x=${x} y=${lastLineY} text-anchor="middle"
+              style=${`font-size: ${size.small}px`}>${flow}</text>`
+          : nothing}
       `,
       `${speed ?? ""} ${flow ?? ""}`,
     );
@@ -177,7 +206,8 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
             svg`
               <path class=${bypassOpen ? "tube" : "bypass-closed"} d=${BYPASS_PATH}
                 style=${bypassOpen ? `stroke: ${outdoorColor}` : ""}></path>
-              <text class=${bypassOpen ? "bypass-label open" : "bypass-label"} x="210" y="6" text-anchor="middle">
+              <text class=${bypassOpen ? "bypass-label open" : "bypass-label"} x="210" y="6" text-anchor="middle"
+                style=${`font-size: ${size.bypass}px`}>
                 ${t(bypassOpen ? "bypass_open" : "bypass_closed")}
               </text>`,
             t(bypassOpen ? "bypass_open" : "bypass_closed"),
@@ -209,19 +239,24 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
             KEY.heatRecoveryEfficiency,
             svg`
               <rect class="exchanger" x="166" y="80" width="88" height="44" rx="8" stroke="none"></rect>
-              <text class="value" x="210" y="102" text-anchor="middle">${efficiency}</text>
-              <text class="small" x="210" y="117" text-anchor="middle">${t("heat_recovery")}</text>`,
+              ${compact
+                ? svg`<text class="value" x="210" y=${102 + size.efficiency * 0.35} text-anchor="middle"
+                    style=${`font-size: ${size.efficiency}px`}>${efficiency}</text>`
+                : svg`<text class="value" x="210" y="102" text-anchor="middle"
+                      style=${`font-size: ${size.efficiency}px`}>${efficiency}</text>
+                    <text class="small" x="210" y="117" text-anchor="middle"
+                      style=${`font-size: ${size.small}px`}>${t("heat_recovery")}</text>`}`,
             `${t("heat_recovery")} ${efficiency}`,
           )
         : nothing}
 
-      ${fan(SUPPLY_FAN_X, TOP, supplyRunning, KEY.fanSpeedSupply, KEY.airflowSupply, 96)}
-      ${fan(EXHAUST_FAN_X, BOTTOM, exhaustRunning, KEY.fanSpeedExhaust, KEY.airflowExhaust, 104)}
+      ${fan(SUPPLY_FAN_X, TOP, supplyRunning, KEY.fanSpeedSupply, KEY.airflowSupply, TOP + 17 + size.fan + size.small * 1.2)}
+      ${fan(EXHAUST_FAN_X, BOTTOM, exhaustRunning, KEY.fanSpeedExhaust, KEY.airflowExhaust, BOTTOM - 22)}
 
       ${temperature(KEY.tempOutdoor, t("outdoor_air"), outdoor, outdoorColor, "left", 18, 42)}
       ${temperature(KEY.tempSupply, t("supply_air"), supply, supplyColor, "right", 18, 42)}
-      ${temperature(KEY.tempExtract, t("extract_air"), extract, extractColor, "right", 194, 176)}
-      ${temperature(KEY.tempExhaust, t("exhaust_air"), exhaust, exhaustColor, "left", 194, 176)}
+      ${temperature(KEY.tempExtract, t("extract_air"), extract, extractColor, "right", bottomNameY, 176)}
+      ${temperature(KEY.tempExhaust, t("exhaust_air"), exhaust, exhaustColor, "left", bottomNameY, 176)}
     </svg>
   `;
 }
@@ -241,14 +276,9 @@ export const schematicStyles = css`
   .schematic .name,
   .schematic .small {
     fill: var(--secondary-text-color);
-    font-size: 12px;
   }
-  .schematic .value {
-    font-size: 20px;
-    font-weight: 500;
-  }
+  .schematic .value,
   .schematic .fan-speed {
-    font-size: 12px;
     font-weight: 500;
   }
   .exchanger {
@@ -282,7 +312,6 @@ export const schematicStyles = css`
     opacity: 0.35;
   }
   .bypass-label {
-    font-size: 11px;
     font-weight: 500;
     fill: var(--secondary-text-color);
   }

@@ -199,12 +199,16 @@ export const tileStyles = css`
     font-weight: 500;
   }
   .tile-sub {
+    display: -webkit-box;
     overflow: hidden;
     max-width: 100%;
     font-size: 11px;
+    line-height: 14px;
     color: var(--secondary-text-color);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
   }
   .badge {
     padding: 1px 6px;

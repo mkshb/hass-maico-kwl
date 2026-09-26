@@ -1,4 +1,5 @@
-import { css, html, nothing, type TemplateResult } from "lit";
+import { mdiFanOff, mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3, mdiWaterPercent } from "@mdi/js";
+import { css, html, nothing, svg, type TemplateResult } from "lit";
 
 import type { KwlDevice } from "./device";
 import { KEY, type EntityKey } from "./keys";
@@ -6,6 +7,15 @@ import { localize, type StringKey } from "./localize";
 import type { HomeAssistant } from "./types";
 
 const LEVELS = ["off", "humidity_protection", "reduced", "nominal", "intensive"] as const;
+
+// On a narrow card the level bar shows these instead of words.
+const LEVEL_ICONS: Record<(typeof LEVELS)[number], string> = {
+  off: mdiFanOff,
+  humidity_protection: mdiWaterPercent,
+  reduced: mdiFanSpeed1,
+  nominal: mdiFanSpeed2,
+  intensive: mdiFanSpeed3,
+};
 
 // In these modes the unit picks the level itself, so the level bar is locked.
 const AUTO_MODES = new Set(["auto_time", "auto_sensor"]);
@@ -34,6 +44,8 @@ export const REPORTED: Record<Control, (device: KwlDevice) => string | undefined
 export interface ControlsContext {
   hass: HomeAssistant;
   device: KwlDevice;
+  /** The card is too narrow for words in the level bar. */
+  narrow: boolean;
   moreInfo: (key: EntityKey) => void;
   /** The value to show: a pending change, else the reported one. */
   shown: (control: Control) => string | undefined;
@@ -74,20 +86,38 @@ function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
             type="button"
             class=${active ? (pending ? "segment active pending" : "segment active") : "segment"}
             aria-pressed=${active ? "true" : "false"}
+            aria-label=${t(`level_${level}`)}
+            title=${t(`level_${level}`)}
             ?disabled=${disabled}
             @click=${() => selectOption(ctx, "level", KEY.ventilationLevel, level)}
           >
-            ${t(`level_${level}`)}
+            ${ctx.narrow
+              ? html`<svg class="level-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  ${svg`<path d=${LEVEL_ICONS[level]}></path>`}
+                </svg>`
+              : t(`level_${level}`)}
           </button>`;
         })}
       </div>
-      ${auto && modeState
-        ? html`<div class="hint">
-            ${t("level_auto_hint", { mode: hass.formatEntityState(modeState, mode) })}
-          </div>`
-        : nothing}
+      ${renderLevelHint(ctx, current, auto && modeState ? hass.formatEntityState(modeState, mode) : undefined)}
     </div>
   `;
+}
+
+function renderLevelHint(
+  ctx: ControlsContext,
+  current: string | undefined,
+  autoMode: string | undefined,
+): TemplateResult | typeof nothing {
+  const t = (key: StringKey, values?: Record<string, string>) => localize(ctx.hass, key, values);
+  // With icons only, name the running level in words below the bar.
+  const parts = [
+    ctx.narrow && current && (LEVELS as readonly string[]).includes(current)
+      ? t(`level_${current as (typeof LEVELS)[number]}`)
+      : undefined,
+    autoMode ? t("level_auto_hint", { mode: autoMode }) : undefined,
+  ].filter(Boolean);
+  return parts.length ? html`<div class="hint">${parts.join(" · ")}</div>` : nothing;
 }
 
 function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothing {
@@ -234,6 +264,12 @@ export const controlStyles = css`
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+  }
+  .level-icon {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+    vertical-align: middle;
   }
   .segment.active {
     background: var(--primary-color);

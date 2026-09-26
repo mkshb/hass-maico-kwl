@@ -100,11 +100,6 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
         if state is None or state.state in ("unknown", "unavailable", "", None):
             return None
         try:
-            value = float(state.state)
+            return self._reg.clamp(float(state.state))
         except (TypeError, ValueError):
             return None
-        if self._reg.native_min is not None:
-            value = max(value, self._reg.native_min)
-        if self._reg.native_max is not None:
-            value = min(value, self._reg.native_max)
-        return value

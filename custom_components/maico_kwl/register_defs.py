@@ -126,6 +126,14 @@ class RegisterDef:
             for i in range(self.word_count)
         ]
 
+    def clamp(self, value: float) -> float:
+        """Limit a real-world value to the register's native_min/native_max."""
+        if self.native_min is not None:
+            value = max(value, self.native_min)
+        if self.native_max is not None:
+            value = min(value, self.native_max)
+        return float(value)
+
     def label_for(self, raw: int) -> str | None:
         """Map a raw enum value to its label (for select/enum sensors)."""
         if self.options is None:

@@ -87,6 +87,16 @@ def test_writable_flags_match_platform():
             assert r.writable, f"{r.key} should be writable"
 
 
+def test_clamp_limits_to_native_range():
+    reg = rd.REGISTERS_BY_KEY["room_temp_bus"]  # 0 .. 40 degC
+    assert reg.clamp(50) == 40.0
+    assert reg.clamp(-3.5) == 0.0
+    assert reg.clamp(21.5) == 21.5
+    assert isinstance(reg.clamp(50), float)
+    unbounded = rd.REGISTERS_BY_KEY["temp_room"]
+    assert unbounded.clamp(-12.5) == -12.5
+
+
 if __name__ == "__main__":
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in funcs:

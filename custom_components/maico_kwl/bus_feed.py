@@ -112,11 +112,7 @@ class BusFeeder:
                 "Bus feed %s: state %r is not numeric", reg.key, state.state
             )
             return
-        if reg.native_min is not None:
-            value = max(value, reg.native_min)
-        if reg.native_max is not None:
-            value = min(value, reg.native_max)
-        raw = reg.encode(value)
+        raw = reg.encode(reg.clamp(value))
         if not force and self._written.get(reg.key) == raw:
             return  # e.g. a source reporting 21.52 after 21.5
         try:

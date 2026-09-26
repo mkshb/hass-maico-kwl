@@ -12,6 +12,8 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import EntityCategory
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -174,3 +176,16 @@ async def test_failed_write_raises_home_assistant_error(
         await hass.services.async_call(
             "switch", "turn_on", {ATTR_ENTITY_ID: boost}, blocking=True
         )
+
+
+async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:
+    """The problem sensor sits on the unit's device as a diagnostic entity."""
+    ent_reg = er.async_get(hass)
+    problem = ent_reg.async_get(entity_id(hass, loaded, "binary_sensor", "problem"))
+    fault = ent_reg.async_get(entity_id(hass, loaded, "sensor", "fault_code"))
+
+    assert problem.device_id == fault.device_id
+    assert problem.entity_category is EntityCategory.DIAGNOSTIC
+    assert problem.original_device_class == "problem"
+    assert problem.original_icon is None
+    assert problem.translation_key == "problem"

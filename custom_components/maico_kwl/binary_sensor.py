@@ -6,14 +6,9 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
 from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import BINARY_SENSOR, REGISTERS_BY_KEY, RegisterDef
@@ -53,29 +48,19 @@ class MaicoBinarySensor(MaicoEntity, BinarySensorEntity):
         return None if value is None else bool(value)
 
 
-class MaicoProblemSensor(CoordinatorEntity, BinarySensorEntity):
+class MaicoProblemSensor(MaicoEntity, BinarySensorEntity):
     """On when the device reports a non-zero fault code."""
 
-    _attr_has_entity_name = True
-    _attr_translation_key = "problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coordinator, entry: MaicoConfigEntry) -> None:
+        # Device info and availability come from the fault code register.
+        super().__init__(coordinator, entry, REGISTERS_BY_KEY["fault_code"])
         self._attr_unique_id = f"{entry.entry_id}_problem"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            manufacturer=MANUFACTURER,
-            name=entry.title or DEFAULT_NAME,
-            model=coordinator.profile.get("model", DEFAULT_NAME),
-        )
-
-    @property
-    def available(self) -> bool:
-        return super().available and "fault_code" in self.coordinator.data
+        self._attr_translation_key = "problem"
+        self._attr_icon = None  # use the problem device class icon
 
     @property
     def is_on(self) -> bool | None:
-        value = self.coordinator.data.get("fault_code")
+        value = self._value
         return None if value is None else value != 0

@@ -1,6 +1,7 @@
 # Contributing
 
 Thanks for helping. The integration grows from real units, so reports matter as much as code.
+Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Ways to help
 

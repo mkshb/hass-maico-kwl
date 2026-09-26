@@ -209,8 +209,9 @@ These are starting points: copy and adapt them to your home.
 temporary snapshot scene before they intervene, and restore it afterwards. They leave the unit
 alone if it is already in manual mode at the target level, and they keep your setting if you change
 the mode or level yourself while they are active. Snapshot scenes do not survive a Home Assistant
-restart: if the unit is still in the state the automation set when Home Assistant starts and the
-reason is gone, the blueprint switches to the *Fallback* operating mode instead. All blueprints run
+restart: if the unit is still in the state the automation set when Home Assistant starts, the
+blueprint assumes it made that change and switches to the *Fallback* operating mode once the reason
+is gone. All blueprints run
 in `queued` mode, so frequent triggers do not log "Already running" warnings.
 
 ## Notes & limitations

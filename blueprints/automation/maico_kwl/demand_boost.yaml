@@ -10,6 +10,11 @@ blueprint:
     in a snapshot scene and restored afterwards. If you change the mode or level
     yourself during a boost, your setting is kept. If the unit is already in
     manual mode at the boost level, the automation does nothing.
+
+    Snapshot scenes do not survive a Home Assistant restart. If the unit is
+    still at the boost level when Home Assistant starts, the automation assumes
+    it boosted the unit and switches to the fallback revert mode once the value
+    has dropped.
   domain: automation
   author: hass-maico-kwl
   input:
@@ -92,7 +97,6 @@ variables:
   snapshot_id: >
     maico_kwl_boost_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
   snapshot: "scene.{{ snapshot_id }}"
-  has_snapshot: "{{ snapshot in states.scene | map(attribute='entity_id') | list }}"
   boosted: "{{ is_state(operating_mode, 'manual') and is_state(level, boost_level) }}"
 
 trigger:
@@ -102,26 +106,35 @@ trigger:
     event: start
     id: start
 
-condition:
-  - condition: template
-    value_template: "{{ value == value }}"  # skip unknown/unavailable (NaN)
-
 action:
+  # The snapshot is lost on a restart. If the unit is still boosted, stand in
+  # with a snapshot that only holds the fallback revert mode, so the normal
+  # restore below still ends the boost once the value has dropped.
+  - if:
+      - condition: template
+        value_template: >
+          {{ trigger.id == 'start' and boosted
+             and snapshot not in states.scene | map(attribute='entity_id') | list }}
+    then:
+      - action: scene.create
+        data:
+          scene_id: "{{ snapshot_id }}"
+          entities: "{{ {operating_mode: revert_mode} }}"
   - choose:
+      # A snapshot existing means the automation is active; if the unit is no
+      # longer boosted, the user changed it and it is left alone.
       - conditions:
           - condition: template
-            value_template: "{{ value >= (threshold_high | float) and not boosted }}"
+            value_template: >
+              {{ value == value and value >= (threshold_high | float) and not boosted
+                 and snapshot not in states.scene | map(attribute='entity_id') | list }}
         sequence:
-          - if:
-              - condition: template
-                value_template: "{{ not has_snapshot }}"
-            then:
-              - action: scene.create
-                data:
-                  scene_id: "{{ snapshot_id }}"
-                  snapshot_entities:
-                    - "{{ level }}"
-                    - "{{ operating_mode }}"
+          - action: scene.create
+            data:
+              scene_id: "{{ snapshot_id }}"
+              snapshot_entities:
+                - "{{ level }}"
+                - "{{ operating_mode }}"
           - action: select.select_option
             target:
               entity_id: !input operating_mode
@@ -134,7 +147,9 @@ action:
               option: "{{ boost_level }}"
       - conditions:
           - condition: template
-            value_template: "{{ value <= (threshold_low | float) and has_snapshot }}"
+            value_template: >
+              {{ value == value and value <= (threshold_low | float)
+                 and snapshot in states.scene | map(attribute='entity_id') | list }}
         sequence:
           # Only restore while the unit is still as the automation left it.
           - if:
@@ -147,15 +162,4 @@ action:
           - action: scene.delete
             target:
               entity_id: "{{ snapshot }}"
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ trigger.id == 'start' and value <= (threshold_low | float)
-                 and not has_snapshot and boosted }}
-        sequence:
-          - action: select.select_option
-            target:
-              entity_id: !input operating_mode
-            data:
-              option: "{{ revert_mode }}"
     default: []

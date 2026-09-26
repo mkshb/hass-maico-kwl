@@ -9,6 +9,11 @@ blueprint:
     in a snapshot scene and restored afterwards. If you change the mode or level
     yourself while a window is open, your setting is kept. If the unit is
     already in manual mode at the reduced level, the automation does nothing.
+
+    Snapshot scenes do not survive a Home Assistant restart. If the unit is
+    still at the reduced level when Home Assistant starts, the automation
+    assumes it reduced the unit and switches to the fallback restore mode once
+    all contacts are closed.
   domain: automation
   author: hass-maico-kwl
   input:
@@ -71,7 +76,6 @@ variables:
   snapshot_id: >
     maico_kwl_window_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
   snapshot: "scene.{{ snapshot_id }}"
-  has_snapshot: "{{ snapshot in states.scene | map(attribute='entity_id') | list }}"
   reduced: "{{ is_state(operating_mode, 'manual') and is_state(level, open_level) }}"
 
 trigger:
@@ -82,21 +86,34 @@ trigger:
     id: start
 
 action:
+  # The snapshot is lost on a restart. If the unit is still reduced, stand in
+  # with a snapshot that only holds the fallback restore mode, so the normal
+  # restore below still ends the reduction once all contacts are closed.
+  - if:
+      - condition: template
+        value_template: >
+          {{ trigger.id == 'start' and reduced
+             and snapshot not in states.scene | map(attribute='entity_id') | list }}
+    then:
+      - action: scene.create
+        data:
+          scene_id: "{{ snapshot_id }}"
+          entities: "{{ {operating_mode: restore_mode} }}"
   - choose:
+      # A snapshot existing means the automation is active; if the unit is no
+      # longer reduced, the user changed it and it is left alone.
       - conditions:
           - condition: template
-            value_template: "{{ any_open and not reduced }}"
+            value_template: >
+              {{ any_open and not reduced
+                 and snapshot not in states.scene | map(attribute='entity_id') | list }}
         sequence:
-          - if:
-              - condition: template
-                value_template: "{{ not has_snapshot }}"
-            then:
-              - action: scene.create
-                data:
-                  scene_id: "{{ snapshot_id }}"
-                  snapshot_entities:
-                    - "{{ level }}"
-                    - "{{ operating_mode }}"
+          - action: scene.create
+            data:
+              scene_id: "{{ snapshot_id }}"
+              snapshot_entities:
+                - "{{ level }}"
+                - "{{ operating_mode }}"
           - action: select.select_option
             target:
               entity_id: !input operating_mode
@@ -109,7 +126,9 @@ action:
               option: "{{ open_level }}"
       - conditions:
           - condition: template
-            value_template: "{{ not any_open and has_snapshot }}"
+            value_template: >
+              {{ not any_open
+                 and snapshot in states.scene | map(attribute='entity_id') | list }}
         sequence:
           # Only restore while the unit is still as the automation left it.
           - if:
@@ -122,13 +141,4 @@ action:
           - action: scene.delete
             target:
               entity_id: "{{ snapshot }}"
-      - conditions:
-          - condition: template
-            value_template: "{{ trigger.id == 'start' and not any_open and not has_snapshot and reduced }}"
-        sequence:
-          - action: select.select_option
-            target:
-              entity_id: !input operating_mode
-            data:
-              option: "{{ restore_mode }}"
     default: []

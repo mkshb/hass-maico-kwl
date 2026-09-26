@@ -32,6 +32,28 @@ test("the level bar is locked in the auto modes, off when the unit locks it", as
   await view.close();
 });
 
+test("the level bar is locked while the unit is off or boosting", async () => {
+  const hint = (card) => card.locator(".control").first().locator(".hint").textContent();
+  for (const [states, text] of [
+    [{ operating_mode: { state: "off" } }, "The unit is off"],
+    [{ ...MANUAL, boost_ventilation: { state: "on" } }, "Boost is running"],
+  ]) {
+    const view = await openCard({ states });
+    assert.equal(await view.card.locator(".segment:disabled").count(), 5, text);
+    assert.equal((await hint(view.card)).trim(), text);
+    await view.close();
+  }
+});
+
+test("starting a boost locks the level bar at once", async () => {
+  const view = await openCard({ states: MANUAL });
+  assert.equal(await view.card.locator(".segment:disabled").count(), 0);
+  await view.card.getByRole("button", { name: "Boost" }).click();
+  await view.settle();
+  assert.equal(await view.card.locator(".segment:disabled").count(), 5);
+  await view.close();
+});
+
 test("mode, boost and season", async () => {
   const view = await openCard();
   await view.card.locator("select").selectOption("manual");

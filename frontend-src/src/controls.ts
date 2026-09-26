@@ -75,21 +75,31 @@ function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
   const t = (key: StringKey, values?: Record<string, string>) => localize(hass, key, values);
   const levelState = device.stateObj(KEY.ventilationLevel);
   if (!levelState) return nothing;
+  const modeState = device.stateObj(KEY.operatingMode);
 
   const mode = ctx.shown("mode");
   const auto = mode !== undefined && AUTO_MODES.has(mode);
+  // The bar shows the running level, and a tap stores the setpoint. Where the
+  // two differ (auto modes, unit off, boost) a tap would store a level the
+  // unit does not run, so the bar is locked there.
+  const lock = auto && modeState
+    ? t("level_auto_hint", { mode: hass.formatEntityState(modeState, mode) })
+    : mode === "off"
+      ? t("level_off_hint")
+      : ctx.shown("boost") === "on"
+        ? t("level_boost_hint")
+        : undefined;
   const current = ctx.shown("level");
   const pending = ctx.pending("level");
   const offLocked = device.isOn(KEY.offLock) ?? false;
-  const modeState = device.stateObj(KEY.operatingMode);
 
   return html`
     <div class="control">
       <div class="control-label" id="kwl-level-label">${t("ventilation_level")}</div>
-      <div class=${auto ? "segments locked" : "segments"} role="group" aria-labelledby="kwl-level-label">
+      <div class=${lock ? "segments locked" : "segments"} role="group" aria-labelledby="kwl-level-label">
         ${LEVELS.map((level) => {
           const active = level === current;
-          const disabled = auto || (level === "off" && offLocked);
+          const disabled = lock !== undefined || (level === "off" && offLocked);
           return html`<button
             type="button"
             class=${active ? (pending ? "segment active pending" : "segment active") : "segment"}
@@ -107,7 +117,7 @@ function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
           </button>`;
         })}
       </div>
-      ${renderLevelHint(ctx, current, auto && modeState ? hass.formatEntityState(modeState, mode) : undefined)}
+      ${renderLevelHint(ctx, current, lock)}
     </div>
   `;
 }
@@ -115,15 +125,15 @@ function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
 function renderLevelHint(
   ctx: ControlsContext,
   current: string | undefined,
-  autoMode: string | undefined,
+  lock: string | undefined,
 ): TemplateResult | typeof nothing {
-  const t = (key: StringKey, values?: Record<string, string>) => localize(ctx.hass, key, values);
+  const t = (key: StringKey) => localize(ctx.hass, key);
   // With icons only, name the running level in words below the bar.
   const parts = [
     ctx.narrow && current && (LEVELS as readonly string[]).includes(current)
       ? t(`level_${current as (typeof LEVELS)[number]}`)
       : undefined,
-    autoMode ? t("level_auto_hint", { mode: autoMode }) : undefined,
+    lock,
   ].filter(Boolean);
   return parts.length ? html`<div class="hint">${parts.join(" · ")}</div>` : nothing;
 }

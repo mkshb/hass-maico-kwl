@@ -32,6 +32,13 @@ for (const width of [300, 328, 460]) {
   });
 }
 
+test("the card is a block, so its resize observer fires", async () => {
+  // The test page sets no display on the card: this has to come from the card.
+  const view = await openCard();
+  assert.equal(await view.card.evaluate((el) => getComputedStyle(el).display), "block");
+  await view.close();
+});
+
 test("fans turn and the air shimmers, but not with reduced motion", async () => {
   const running = (card) => card.evaluate((el) => el.shadowRoot.getAnimations().length);
   let view = await openCard();

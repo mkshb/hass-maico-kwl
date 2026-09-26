@@ -212,6 +212,10 @@ export class MaicoKwlCard extends LitElement {
     tileStyles,
     controlStyles,
     css`
+    /* A block, not the default inline: resize observers skip inline boxes. */
+    :host {
+      display: block;
+    }
     ha-card {
       color: var(--primary-text-color);
       --kwl-bus-bg: #dcebf6;

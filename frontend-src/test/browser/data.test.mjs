@@ -134,3 +134,29 @@ test("a bus source that never delivered shows no value, in orange", async () => 
   assert.deepEqual(await view.moreInfo(), ["sensor.bathroom_humidity"]);
   await view.close();
 });
+
+test("switching the unit reads its own energy, not the last one's", async () => {
+  const view = await openCard({
+    devices: {
+      unit: { id: "unit", name: "Maico KWL", name_by_user: null },
+      attic: { id: "attic", name: "Attic unit", name_by_user: null },
+    },
+    // The attic unit has a heat recovery power but no energy entity.
+    states: { "heat_recovery_power@attic": { state: "500", unit: "W", precision: 0, device: "attic" } },
+  });
+  const recovery = () =>
+    view.card
+      .locator(".tile")
+      .filter({ has: view.page.locator(".tile-label", { hasText: /^\s*Heat recovery/ }) })
+      .textContent();
+  assert.match(await recovery(), /903 W.*12\.4 kWh today/s);
+  await view.page.evaluate(() => window.kwl.card.setConfig({ type: "custom:maico-kwl-card", device_id: "attic" }));
+  await view.settle();
+  assert.match(await recovery(), /500 W/);
+  assert.doesNotMatch(await recovery(), /today/);
+  // Back to the first unit: its energy is read at once, not with the next update.
+  await view.page.evaluate(() => window.kwl.card.setConfig({ type: "custom:maico-kwl-card", device_id: "unit" }));
+  await view.settle();
+  assert.match(await recovery(), /12\.4 kWh today/);
+  await view.close();
+});

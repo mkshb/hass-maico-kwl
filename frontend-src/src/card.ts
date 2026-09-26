@@ -51,6 +51,11 @@ export class MaicoKwlCard extends LitElement {
   private _energyFetchedAt = 0;
 
   public setConfig(config: MaicoKwlCardConfig): void {
+    if (config.device_id !== this._config?.device_id) {
+      // Another unit: its energy is read anew, not taken from the last one.
+      this._energyToday = undefined;
+      this._energyFetchedAt = 0;
+    }
     this._config = config;
   }
 
@@ -104,17 +109,22 @@ export class MaicoKwlCard extends LitElement {
 
   protected updated(changed: PropertyValues<this>): void {
     super.updated(changed);
-    if (changed.has("hass") && Date.now() - this._energyFetchedAt > ENERGY_REFRESH_MS) {
+    const inputs = changed.has("hass") || changed.has("_config" as keyof MaicoKwlCard);
+    if (inputs && Date.now() - this._energyFetchedAt > ENERGY_REFRESH_MS) {
       this._fetchEnergyToday();
     }
   }
 
   /** The energy sensor counts up for ever; today's share is its change since midnight. */
   private async _fetchEnergyToday(): Promise<void> {
-    const device = this.hass && this._device();
-    const entityId = device?.entityId(KEY.heatRecoveryEnergy);
-    if (!entityId) return;
+    // Also without an energy entity: no new lookup on every update.
     this._energyFetchedAt = Date.now();
+    const entityId = this._energyEntityId();
+    if (!entityId) {
+      this._energyToday = undefined;
+      return;
+    }
+    let energy: number | undefined;
     try {
       const result = await this.hass!.callWS<{ change?: number | null }>({
         type: "recorder/statistic_during_period",
@@ -122,11 +132,17 @@ export class MaicoKwlCard extends LitElement {
         calendar: { period: "day" },
         types: ["change"],
       });
-      this._energyToday = typeof result.change === "number" ? Math.max(0, result.change) : undefined;
+      energy = typeof result.change === "number" ? Math.max(0, result.change) : undefined;
     } catch {
       // No statistics yet (e.g. a new entity): leave the line out.
-      this._energyToday = undefined;
+      energy = undefined;
     }
+    // The unit may have changed while the answer was on its way.
+    if (this._energyEntityId() === entityId) this._energyToday = energy;
+  }
+
+  private _energyEntityId(): string | undefined {
+    return (this.hass && this._device())?.entityId(KEY.heatRecoveryEnergy);
   }
 
   private _clearPending(control: Control): void {

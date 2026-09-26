@@ -78,7 +78,9 @@ export async function closeBrowser() {
  * options: theme ("light"|"dark"), width (px), language ("en"|"de"),
  * states (patch by translation_key; null removes an entity), config,
  * energyToday (kWh, undefined = no statistics), failServices, devices,
- * sources (friendly names of the bus source entities), reducedMotion.
+ * sources (friendly names of the bus source entities), reducedMotion,
+ * failDelay (ms before a refused call fails). A states key "key@name" adds
+ * the same kind of entity again, e.g. for a second unit.
  */
 export async function openCard(options = {}) {
   const ctx = await context_();
@@ -115,6 +117,7 @@ export async function openCard(options = {}) {
     config: options.config ?? {},
     energyToday: "energyToday" in options ? options.energyToday : ENERGY_TODAY_KWH,
     failServices: options.failServices ?? false,
+    failDelay: options.failDelay ?? 0,
   });
 
   await page.goto(`${ORIGIN}/?fixture=${id}`);

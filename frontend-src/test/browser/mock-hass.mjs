@@ -43,7 +43,11 @@ const number = (value, digits) =>
   new Intl.NumberFormat(fixture.language, { minimumFractionDigits: digits, maximumFractionDigits: digits })
     .format(value);
 
-const entityId = (key) => `sensor.maico_${key}`;
+// A fixture key is a translation_key, or "key@name" for the same kind of
+// entity on another unit.
+const entityId = (key) => `sensor.maico_${key.replace("@", "_")}`;
+const keyOf = (stateObj) =>
+  Object.keys(kwl.states).find((key) => entityId(key) === stateObj.entity_id) ?? "";
 
 /** A fresh hass object, as HA hands the card a new one on every change. */
 function buildHass() {
@@ -56,7 +60,7 @@ function buildHass() {
       entity_id: id,
       platform: "maico_kwl",
       device_id: spec.device ?? "unit",
-      translation_key: key,
+      translation_key: key.split("@")[0],
     };
     states[id] = {
       entity_id: id,
@@ -74,8 +78,8 @@ function buildHass() {
   for (const [id, name] of Object.entries(fixture.sources)) {
     states[id] = { entity_id: id, state: "1", attributes: { friendly_name: name } };
   }
-  const specOf = (stateObj) => kwl.states[stateObj.entity_id.replace("sensor.maico_", "")] ?? {};
-  const keyOf = (stateObj) => stateObj.entity_id.replace("sensor.maico_", "");
+  const specOf = (stateObj) => kwl.states[keyOf(stateObj)] ?? {};
+  const kindOf = (stateObj) => keyOf(stateObj).split("@")[0];
   const track = async (promise) => {
     kwl.pending++;
     try {
@@ -93,7 +97,7 @@ function buildHass() {
     devices: fixture.devices,
     formatEntityState(stateObj, value = stateObj.state) {
       const spec = specOf(stateObj);
-      const label = fixture.labels[keyOf(stateObj)]?.[value];
+      const label = fixture.labels[kindOf(stateObj)]?.[value];
       if (label) return label;
       if (spec.date) {
         return new Intl.DateTimeFormat(fixture.language, { dateStyle: "medium" }).format(new Date(value));
@@ -105,11 +109,17 @@ function buildHass() {
       return value;
     },
     formatEntityAttributeValue(stateObj, attribute, value) {
-      return fixture.attributeLabels[keyOf(stateObj)]?.[attribute]?.[value] ?? String(value);
+      return fixture.attributeLabels[kindOf(stateObj)]?.[attribute]?.[value] ?? String(value);
     },
     callService(domain, service, data) {
       kwl.serviceCalls.push({ domain, service, data });
-      return track(kwl.failServices ? Promise.reject(new Error("refused")) : Promise.resolve());
+      // failServices: true refuses every call, a number that many first calls,
+      // after failDelay ms (so a later call can overtake it).
+      const fail = kwl.failServices === true || kwl.failServices-- > 0;
+      if (!fail) return track(Promise.resolve());
+      return track(
+        new Promise((_, reject) => setTimeout(() => reject(new Error("refused")), fixture.failDelay ?? 0)),
+      );
     },
     callWS(message) {
       kwl.wsCalls.push(message);

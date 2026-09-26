@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
@@ -42,14 +42,20 @@ async def async_write_register(
 
 def async_add_maico_entities(
     entry: MaicoConfigEntry,
+    platform: Platform,
     async_add_entities: AddEntitiesCallback,
     entities: Iterable[Entity],
 ) -> None:
-    """Add entities and remember their unique ids for the orphan cleanup."""
+    """Add a platform's entities and remember them for the orphan cleanup.
+
+    Every platform calls this, also with no entities, so the cleanup knows
+    that the platform set up completely.
+    """
     entities = list(entities)
     entry.runtime_data.unique_ids.update(
         entity.unique_id for entity in entities if entity.unique_id
     )
+    entry.runtime_data.platforms.add(platform)
     async_add_entities(entities)
 
 

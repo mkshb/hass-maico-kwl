@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -30,7 +30,7 @@ async def async_setup_entry(
         if REGISTERS_BY_KEY[key].platform == BUTTON
     ]
     entities.append(MaicoRediscoverButton(coordinator, entry))
-    async_add_maico_entities(entry, async_add_entities, entities)
+    async_add_maico_entities(entry, Platform.BUTTON, async_add_entities, entities)
 
 
 class MaicoButton(MaicoEntity, ButtonEntity):

@@ -131,3 +131,5 @@ class MaicoRuntimeData:
     feeder: BusFeeder
     # Unique ids of the entities the platforms created in this setup.
     unique_ids: set[str] = field(default_factory=set)
+    # Platforms whose setup ran through; only their entities are cleaned up.
+    platforms: set[str] = field(default_factory=set)

@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
+from homeassistant.const import Platform
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -52,10 +53,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
+    fans: list[MaicoFan] = []
     if {MODE, LEVEL} <= coordinator.present:
-        async_add_maico_entities(
-            entry, async_add_entities, [MaicoFan(coordinator, entry)]
-        )
+        fans.append(MaicoFan(coordinator, entry))
+    async_add_maico_entities(entry, Platform.FAN, async_add_entities, fans)
 
 
 class MaicoFan(MaicoDerivedEntity, FanEntity):

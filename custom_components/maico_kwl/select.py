@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -22,6 +23,7 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     async_add_maico_entities(
         entry,
+        Platform.SELECT,
         async_add_entities,
         (
             MaicoSelect(coordinator, entry, REGISTERS_BY_KEY[key])

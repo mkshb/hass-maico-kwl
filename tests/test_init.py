@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 from custom_components.maico_kwl.const import CONF_DISCOVERY
 from custom_components.maico_kwl.discovery import async_discover
@@ -200,3 +203,37 @@ async def test_discovery_of_an_older_version_runs_again(
     assert config_entry.data[CONF_DISCOVERY]["version"] == 2
     assert "outdoor_filter" not in config_entry.data[CONF_DISCOVERY]["accessories"]
     assert "filter_remaining_outdoor" not in config_entry.runtime_data.coordinator.present
+
+
+async def test_failed_platform_keeps_its_entities(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A platform that raises during setup must not lose its registry entries.
+
+    They carry the user's names and areas; the cleanup only removes entities
+    of platforms that set up completely.
+    """
+    await setup_entry(hass, config_entry)
+    ent_reg = er.async_get(hass)
+
+    def entity_ids(domain: str) -> set[str]:
+        return {
+            e.entity_id
+            for e in er.async_entries_for_config_entry(ent_reg, config_entry.entry_id)
+            if e.domain == domain
+        }
+
+    switches = entity_ids("switch")
+    sensors = entity_ids("sensor")
+    assert switches
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch(
+        "custom_components.maico_kwl.switch.async_setup_entry",
+        side_effect=RuntimeError("platform failed"),
+    ):
+        assert await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+    assert entity_ids("switch") == switches
+    assert entity_ids("sensor") == sensors

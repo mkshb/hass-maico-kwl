@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -83,7 +83,7 @@ async def async_setup_entry(
     )
     if filters:
         entities.append(MaicoNextFilterChangeSensor(coordinator, entry, filters))
-    async_add_maico_entities(entry, async_add_entities, entities)
+    async_add_maico_entities(entry, Platform.SENSOR, async_add_entities, entities)
 
 
 class MaicoSensor(MaicoEntity, SensorEntity):

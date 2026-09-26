@@ -203,10 +203,16 @@ def _async_remove_orphaned_entities(
 
     E.g. registers a rediscovery did not find again, or the "sent" sensor of a
     bus input whose source entity was removed. They would stay unavailable.
+    A platform whose setup failed recorded nothing, so its entities are kept
+    rather than removed with their names and areas.
     """
+    runtime = entry.runtime_data
     ent_reg = er.async_get(hass)
     for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        if reg_entry.unique_id not in entry.runtime_data.unique_ids:
+        if (
+            reg_entry.domain in runtime.platforms
+            and reg_entry.unique_id not in runtime.unique_ids
+        ):
             ent_reg.async_remove(reg_entry.entity_id)
 
 

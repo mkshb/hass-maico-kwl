@@ -26,6 +26,14 @@ test("card picker entry, stub config and size", async () => {
   await view.close();
 });
 
+test("sections view: full width by default, never narrower than 9 columns, own height", async () => {
+  const view = await openCard();
+  const grid = await view.page.evaluate(() => window.kwl.card.getGridOptions());
+  assert.deepEqual(grid, { columns: 12, min_columns: 9, max_columns: 12 });
+  assert.ok(!("rows" in grid) && !("min_rows" in grid), "the card sets its own height");
+  await view.close();
+});
+
 test("the editor picks a unit of this integration and drops an empty one", async () => {
   const view = await openCard();
   const result = await view.page.evaluate(async () => {

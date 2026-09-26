@@ -79,6 +79,15 @@ export class MaicoKwlCard extends LitElement {
     return 6;
   }
 
+  /**
+   * Size in the sections view: a full section by default, at least 9 of its
+   * 12 columns (about 330 px, below which the diagram gets too small). No
+   * rows, so the grid leaves the card its own height.
+   */
+  public getGridOptions(): { columns: number; min_columns: number; max_columns: number } {
+    return { columns: 12, min_columns: 9, max_columns: 12 };
+  }
+
   public static async getConfigElement(): Promise<HTMLElement> {
     const { EDITOR_TYPE } = await import("./editor");
     return document.createElement(EDITOR_TYPE);

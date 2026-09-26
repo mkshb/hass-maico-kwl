@@ -256,6 +256,9 @@ REGISTERS: list[RegisterDef] = [
                 data_type="s16", scale=0.1, writable=True, unit=TEMP_C,
                 device_class="temperature", native_min=-3, native_max=3,
                 native_step=0.1, entity_category=CONFIG),
+    # The CSV says "Schrittweite 1 (= 0,1°C)" here, but the Format column is
+    # plain degC and a live unit reports 14 (= 14 degC in the range 8..29), so
+    # the value is not scaled.
     RegisterDef("supply_temp_min_cooling", 301, "Supply temp min cooling", NUMBER,
                 data_type="s16", writable=True, unit=TEMP_C,
                 device_class="temperature", native_min=8, native_max=29,
@@ -311,6 +314,10 @@ REGISTERS: list[RegisterDef] = [
     RegisterDef("temp_room", 700, "Temperature room", SENSOR, data_type="s16",
                 scale=0.1, unit=TEMP_C, device_class="temperature",
                 state_class="measurement"),
+    # Reading of a wired external room sensor (valid with room temperature
+    # source "external"). The CSV lists it as writable, but a written value
+    # would be overwritten by the sensor, so it stays read-only. Room
+    # temperature fed over Modbus goes to 707 (room_temp_bus) instead.
     RegisterDef("temp_room_external", 701, "Temperature room external", SENSOR,
                 data_type="s16", scale=0.1, unit=TEMP_C,
                 device_class="temperature", state_class="measurement",

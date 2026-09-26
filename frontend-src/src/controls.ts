@@ -148,18 +148,23 @@ function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothi
       ${modeState
         ? html`<label class="control mode">
             <span class="control-label">${t("operating_mode")}</span>
-            <select
-              class=${ctx.pending("mode") ? "pending" : ""}
-              .value=${mode ?? ""}
-              @change=${(ev: Event) =>
-                selectOption(ctx, "mode", KEY.operatingMode, (ev.target as HTMLSelectElement).value)}
-            >
-              ${options.map(
-                (option) => html`<option value=${option} ?selected=${option === mode}>
-                  ${hass.formatEntityState(modeState, option)}
-                </option>`,
-              )}
-            </select>
+            <span class="select">
+              <select
+                class=${ctx.pending("mode") ? "pending" : ""}
+                .value=${mode ?? ""}
+                @change=${(ev: Event) =>
+                  selectOption(ctx, "mode", KEY.operatingMode, (ev.target as HTMLSelectElement).value)}
+              >
+                ${options.map(
+                  (option) => html`<option value=${option} ?selected=${option === mode}>
+                    ${hass.formatEntityState(modeState, option)}
+                  </option>`,
+                )}
+              </select>
+              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 10l5 5 5-5"></path>
+              </svg>
+            </span>
           </label>`
         : nothing}
       ${boostEntity
@@ -340,15 +345,40 @@ export const controlStyles = css`
     flex: 1 1 auto;
     min-width: 0;
   }
+  /* Without appearance: none Safari draws its own control and ignores the
+     border and background; the arrow is drawn by the card instead. */
+  .select {
+    position: relative;
+    display: flex;
+  }
   select {
+    flex: 1 1 auto;
+    min-width: 0;
     height: 44px;
-    padding: 0 12px;
+    padding: 0 36px 0 12px;
     border: 0;
     border-radius: 10px;
     background: var(--secondary-background-color, #f5f5f5);
     color: var(--primary-text-color);
     font: inherit;
     font-size: 14px;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+  }
+  .chevron {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    transform: translateY(-50%);
+    fill: none;
+    stroke: var(--primary-text-color);
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
   }
   .button {
     display: flex;

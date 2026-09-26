@@ -1,5 +1,5 @@
 // What Home Assistant asks of a custom card: picker entry, stub config, size,
-// and the visual editor.
+// and the editor form.
 
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
@@ -69,7 +69,8 @@ test("an invalid config is refused with a message and changes nothing", async ()
     };
   });
   assert.match(results.number, /device_id must be the id of a Maico KWL unit, got 123/);
-  assert.match(results.empty, /device_id/);
+  // The form leaves an empty id when the unit is cleared: the first unit.
+  assert.equal(results.empty, "accepted");
   assert.match(results.list, /expected an object/);
   assert.equal(results.haKeys, "accepted");
   assert.equal(await view.card.locator(".tile").count(), 4, "still showing the unit");
@@ -96,29 +97,33 @@ test("sections view: full width by default, never narrower than 9 columns, own h
   await view.close();
 });
 
-test("the editor picks a unit of this integration and drops an empty one", async () => {
+test("the editor is HA's own form with a unit picker", async () => {
   const view = await openCard();
-  const result = await view.page.evaluate(async () => {
-    const editor = await customElements.get("maico-kwl-card").getConfigElement();
-    editor.hass = window.kwl.hass;
-    editor.setConfig({ type: "custom:maico-kwl-card", device_id: "unit" });
-    document.body.appendChild(editor);
-    await editor.updateComplete;
-    const form = editor.shadowRoot.querySelector("ha-form");
-    const configs = [];
-    editor.addEventListener("config-changed", (ev) => configs.push(ev.detail.config));
-    const change = (value) =>
-      form.dispatchEvent(new CustomEvent("value-changed", { detail: { value }, bubbles: true, composed: true }));
-    change({ type: "custom:maico-kwl-card", device_id: "" });
-    change({ type: "custom:maico-kwl-card", device_id: "attic" });
-    editor.remove();
-    return { schema: form.schema, data: form.data, configs };
+  const form = await view.page.evaluate(() => {
+    const Card = customElements.get("maico-kwl-card");
+    const form = Card.getConfigForm();
+    const refused = (config) => {
+      try {
+        form.assertConfig(config);
+        return false;
+      } catch {
+        return true;
+      }
+    };
+    return {
+      customEditor: typeof Card.getConfigElement,
+      schema: form.schema,
+      label: form.computeLabel(form.schema[0]),
+      refusesNumber: refused({ type: "custom:maico-kwl-card", device_id: 7 }),
+      refusesUnit: refused({ type: "custom:maico-kwl-card", device_id: "unit" }),
+    };
   });
-  assert.deepEqual(result.schema[0].selector, { device: { filter: { integration: "maico_kwl" } } });
-  assert.deepEqual(result.data, { type: "custom:maico-kwl-card", device_id: "unit" });
-  assert.deepEqual(result.configs, [
-    { type: "custom:maico-kwl-card" },
-    { type: "custom:maico-kwl-card", device_id: "attic" },
+  assert.equal(form.customEditor, "undefined", "no custom editor element");
+  assert.deepEqual(form.schema, [
+    { name: "device_id", selector: { device: { filter: { integration: "maico_kwl" } } } },
   ]);
+  assert.equal(form.label, "Unit");
+  assert.equal(form.refusesNumber, true);
+  assert.equal(form.refusesUnit, false);
   await view.close();
 });

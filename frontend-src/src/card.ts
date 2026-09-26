@@ -30,6 +30,29 @@ const ENERGY_REFRESH_MS = 5 * 60_000;
 const CLOCK_MS = 60_000;
 const SCHEMATIC_MAX_PX = 460;
 
+/**
+ * The config, or an error HA shows as an error card (the previous config
+ * stays). An empty device_id, as the form leaves it when the unit is cleared,
+ * means the first unit. Keys HA adds itself (grid_options, visibility,
+ * view_layout) are left alone.
+ */
+function checkedConfig(config: MaicoKwlCardConfig): MaicoKwlCardConfig {
+  if (typeof config !== "object" || config === null || Array.isArray(config)) {
+    throw new Error("Invalid configuration: expected an object.");
+  }
+  if (config.device_id === undefined || config.device_id === null) return config;
+  if (typeof config.device_id !== "string") {
+    throw new Error(
+      `Invalid configuration: device_id must be the id of a Maico KWL unit, got ${JSON.stringify(config.device_id)}.`,
+    );
+  }
+  if (config.device_id.trim() === "") {
+    const { device_id: _empty, ...rest } = config;
+    return rest;
+  }
+  return config;
+}
+
 /** A card HA offers when the user picks an entity in the card picker. */
 interface EntitySuggestion {
   config: MaicoKwlCardConfig;
@@ -76,19 +99,7 @@ export class MaicoKwlCard extends LitElement {
   private _clock?: number;
 
   public setConfig(config: MaicoKwlCardConfig): void {
-    // Thrown errors show as an error card; the previous config stays. Keys HA
-    // adds itself (grid_options, visibility, view_layout) are left alone.
-    if (typeof config !== "object" || config === null || Array.isArray(config)) {
-      throw new Error("Invalid configuration: expected an object.");
-    }
-    if (
-      config.device_id !== undefined &&
-      (typeof config.device_id !== "string" || config.device_id.trim() === "")
-    ) {
-      throw new Error(
-        `Invalid configuration: device_id must be the id of a Maico KWL unit, got ${JSON.stringify(config.device_id)}.`,
-      );
-    }
+    config = checkedConfig(config);
     if (config.device_id !== this._config?.device_id) {
       // Another unit: its energy is read anew, not taken from the last one.
       this._energyToday = undefined;
@@ -112,9 +123,15 @@ export class MaicoKwlCard extends LitElement {
     return { columns: 12, min_columns: 9, max_columns: 12 };
   }
 
-  public static async getConfigElement(): Promise<HTMLElement> {
-    const { EDITOR_TYPE } = await import("./editor");
-    return document.createElement(EDITOR_TYPE);
+  /** The editor: HA's own form with a unit picker, no custom element. */
+  public static getConfigForm() {
+    return {
+      schema: [{ name: "device_id", selector: { device: { filter: { integration: DOMAIN } } } }],
+      computeLabel: () => browserLocalize("editor_device"),
+      assertConfig: (config: MaicoKwlCardConfig) => {
+        checkedConfig(config);
+      },
+    };
   }
 
   /**

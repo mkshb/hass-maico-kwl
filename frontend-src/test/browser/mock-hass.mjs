@@ -1,4 +1,4 @@
-// Runs in the test page: a stand-in for ha-card and ha-form, a hass object
+// Runs in the test page: a stand-in for ha-card, a hass object
 // built from the fixture, and the card loaded through its own loader.
 // Everything the card sends to HA is recorded on window.kwl.
 
@@ -14,10 +14,6 @@ if (!customElements.get("ha-card")) {
         " background: var(--card-background-color); color: var(--primary-text-color); }</style><slot></slot>";
     }
   });
-}
-if (!customElements.get("ha-form")) {
-  // Records what the editor hands to HA's form.
-  customElements.define("ha-form", class extends HTMLElement {});
 }
 
 for (const [name, value] of Object.entries(fixture.theme)) {

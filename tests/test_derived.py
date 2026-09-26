@@ -10,9 +10,13 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import mock_restore_cache_with_extra_data
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    mock_restore_cache_with_extra_data,
+)
 
 from custom_components.maico_kwl import derived
+from custom_components.maico_kwl.const import CONF_SCAN_INTERVAL, DOMAIN
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -203,6 +207,26 @@ async def test_heat_recovery_energy_skips_gaps(
     freezer.tick(timedelta(minutes=30))  # longer than the maximum gap
     await _refresh(hass, config_entry)
     assert _energy(hass, config_entry) == 0.0
+
+
+async def test_heat_recovery_energy_with_a_long_scan_interval(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """Polls 15 min apart still count; only a missed poll is a gap."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=config_entry.title,
+        data={**config_entry.data, CONF_SCAN_INTERVAL: 900},
+        unique_id=config_entry.unique_id,
+    )
+    await setup_entry(hass, config_entry)
+    freezer.tick(timedelta(minutes=15))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 4 / 1000, abs=0.001)
+
+    freezer.tick(timedelta(minutes=31))  # more than two intervals: a gap
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 4 / 1000, abs=0.001)
 
 
 async def test_heat_recovery_energy_restored(

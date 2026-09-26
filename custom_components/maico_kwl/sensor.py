@@ -41,9 +41,11 @@ PARALLEL_UPDATES = 0
 # this are not shown, so the state does not change on every poll.
 CLOCK_TOLERANCE = 2  # seconds
 
-# Longer gaps between two readings (e.g. the unit was unreachable) are not
-# integrated, since the power in between is unknown.
+# Longer gaps between two readings (e.g. missed polls) are not integrated,
+# since the power in between is unknown. A long scan interval widens the gap:
+# two polls are always one interval apart.
 MAX_ENERGY_GAP = timedelta(minutes=10)
+MAX_ENERGY_GAP_INTERVALS = 2
 
 
 async def async_setup_entry(
@@ -262,6 +264,10 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
         self._add_reading()
         super()._handle_coordinator_update()
 
+    def _max_gap(self) -> timedelta:
+        interval = self.coordinator.update_interval or timedelta(0)
+        return max(MAX_ENERGY_GAP, interval * MAX_ENERGY_GAP_INTERVALS)
+
     def _add_reading(self) -> None:
         numbers = self._numbers
         if numbers is None:
@@ -272,7 +278,7 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
         if self._last is not None:
             last_time, last_power = self._last
             elapsed = now - last_time
-            if elapsed <= MAX_ENERGY_GAP:
+            if elapsed <= self._max_gap():
                 hours = elapsed.total_seconds() / 3600
                 self._energy += (last_power + power) / 2 * hours / 1000
         self._last = (now, power)

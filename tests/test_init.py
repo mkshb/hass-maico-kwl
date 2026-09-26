@@ -5,14 +5,21 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from custom_components.maico_kwl.register_defs import REGISTERS
+from custom_components.maico_kwl.discovery import async_discover
+from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
 
-from .conftest import FakeDevice
+from .conftest import HOST, PORT, SLAVE, FakeDevice
 from .helpers import setup_entry
 
-# Discovery reads each register once, except the write-only ones that inherit
-# their presence from a sibling.
-PROBE_READS = sum(1 for reg in REGISTERS if reg.probe_via is None)
+
+async def _discovery_reads(device: FakeDevice) -> int:
+    """Number of requests a discovery of the simulated unit takes."""
+    hub = MaicoModbusHub(HOST, PORT, SLAVE)
+    await hub.connect()
+    await async_discover(hub)
+    await hub.close()
+    reads, device.reads = device.reads, 0
+    return reads
 
 
 async def test_setup_and_unload(
@@ -60,7 +67,7 @@ async def test_setup_retry_when_first_refresh_fails(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """A failing first poll retries the setup and closes the connection."""
-    device.fail_after_reads = PROBE_READS
+    device.fail_after_reads = await _discovery_reads(device)
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
     assert device.open_connections == 0

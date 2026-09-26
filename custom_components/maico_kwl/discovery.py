@@ -1,17 +1,22 @@
 """Autonomous discovery of the registers a Maico KWL actually implements.
 
 The documented register map (docs/modbus.csv) covers the whole product family,
-but a given unit only implements a subset. At setup we probe each register and
+but a given unit only implements a subset. At setup we probe the registers and
 keep only the ones the device answers to, then derive a capability profile from
 that subset (there is no dedicated model/type register on the device).
+
+Probing is done in blocks of adjacent registers, since each request costs a
+round trip (about 100 ms through a typical Modbus TCP proxy). Only the
+registers of a block the device rejects are probed one by one.
 """
 
 from __future__ import annotations
 
 import logging
 
+from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import REGISTERS
+from .register_defs import REGISTERS, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,19 +29,10 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
     """
     present: set[str] = set()
 
-    # First pass: read-probe every register that can be read.
-    for reg in REGISTERS:
-        if reg.probe_via is not None:
-            continue  # resolved in the second pass
-        try:
-            if await hub.probe(reg.address, reg.word_count):
-                present.add(reg.key)
-        except MaicoConnectionError:
-            raise
-        except MaicoModbusError as err:
-            # The device answered with an unexpected exception code; treat the
-            # single register as absent rather than aborting.
-            _LOGGER.debug("Probe failed for %s (%s): %s", reg.key, reg.address, err)
+    # First pass: probe every register that can be read, block by block.
+    readable = [reg for reg in REGISTERS if reg.probe_via is None]
+    for _start, _count, defs in build_blocks(readable):
+        present |= await _probe_group(hub, defs)
 
     # Second pass: write-only registers inherit presence from a sibling.
     for reg in REGISTERS:
@@ -51,6 +47,34 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
         profile["model"],
     )
     return present, profile
+
+
+async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]:
+    """Return the keys of the adjacent registers in defs the device answers to.
+
+    Reads the whole group at once. If the device rejects it, each register is
+    probed on its own: absent registers usually come as whole banks (EnOcean,
+    ZP1), where halving the block would need more requests than this.
+    """
+    if len(defs) > 1:
+        start = defs[0].address
+        count = defs[-1].address + defs[-1].word_count - start
+        if await _probe(hub, start, count):
+            return {reg.key for reg in defs}
+    return {
+        reg.key for reg in defs if await _probe(hub, reg.address, reg.word_count)
+    }
+
+
+async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
+    try:
+        return await hub.probe(address, count)
+    except MaicoConnectionError:
+        raise
+    except MaicoModbusError as err:
+        # An unexpected exception code: handle it like a rejected read.
+        _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
+        return False
 
 
 def _derive_profile(present: set[str]) -> dict:

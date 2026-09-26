@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from custom_components.maico_kwl.coordinator import build_blocks
 from custom_components.maico_kwl.discovery import _derive_profile, async_discover
 from custom_components.maico_kwl.modbus_hub import MaicoConnectionError, MaicoModbusHub
 from custom_components.maico_kwl.register_defs import REGISTERS
@@ -93,3 +94,33 @@ def test_profile_features(present: set[str], features: list[str]) -> None:
         assert profile["model"] == f"Maico KWL ({', '.join(features)})"
     else:
         assert profile["model"] == "Maico KWL"
+
+
+async def test_discovery_reads_blocks(hub: MaicoModbusHub, device: FakeDevice) -> None:
+    """A unit that answers everything is probed with one request per block."""
+    device.absent = set()
+    present, _ = await async_discover(hub)
+    readable = [reg for reg in REGISTERS if reg.probe_via is None]
+    assert present == {reg.key for reg in REGISTERS}
+    assert device.reads == len(build_blocks(readable))
+    assert device.reads < 20
+
+
+async def test_discovery_rejected_block_probes_registers_singly(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """One missing register in a block does not hide its neighbours."""
+    device.absent = {803}
+    present, _ = await async_discover(hub)
+    assert "ptc_heater_active" not in present
+    assert {"fan_supply_active", "base_board_contact", "zone_damper_state"} <= present
+
+
+async def test_discovery_probes_32_bit_registers_whole(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A missing low word drops the whole 32-bit counter, not half of it."""
+    device.absent = {853}
+    present, _ = await async_discover(hub)
+    assert "op_hours_reduced" not in present
+    assert {"op_hours_humidity_protection", "op_hours_nominal"} <= present

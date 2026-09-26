@@ -77,7 +77,8 @@ export async function closeBrowser() {
  *
  * options: theme ("light"|"dark"), width (px), language ("en"|"de"),
  * states (patch by translation_key; null removes an entity), config,
- * energyToday (kWh, undefined = no statistics), failServices, devices.
+ * energyToday (kWh, undefined = no statistics), failServices, devices,
+ * sources (friendly names of the bus source entities), reducedMotion.
  */
 export async function openCard(options = {}) {
   const ctx = await context_();
@@ -88,6 +89,7 @@ export async function openCard(options = {}) {
   } else {
     await page.clock.setSystemTime(FIXED_TIME);
   }
+  await page.emulateMedia({ reducedMotion: options.reducedMotion ? "reduce" : "no-preference" });
   const errors = [];
   const onError = (err) => errors.push(err.message);
   const onConsole = (msg) => msg.type() === "error" && errors.push(msg.text());
@@ -106,7 +108,7 @@ export async function openCard(options = {}) {
     width: options.width ?? 460,
     language: options.language ?? "en",
     states,
-    sources: SOURCES,
+    sources: options.sources ?? SOURCES,
     labels: LABELS,
     attributeLabels: ATTRIBUTE_LABELS,
     devices: options.devices ?? { unit: { id: "unit", name: "Maico KWL", name_by_user: null } },

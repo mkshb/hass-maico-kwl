@@ -7,7 +7,9 @@ import logging
 from pathlib import Path
 
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http.server import StaticPathConfig
+# Defined in http/__init__ up to HA 2026.7 and re-exported there from
+# http/server since 2026.8, without marking it as exported for mypy.
+from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er

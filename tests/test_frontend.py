@@ -35,6 +35,13 @@ async def test_card_is_served_and_loaded(hass: HomeAssistant) -> None:
     )
 
 
+def test_static_path_config_from_the_http_package() -> None:
+    """http.server only exists from HA 2026.8; hacs.json allows older versions."""
+    source = (FRONTEND_DIR.parent / "__init__.py").read_text(encoding="utf-8")
+    assert "from homeassistant.components.http import StaticPathConfig" in source
+    assert "homeassistant.components.http.server" not in source
+
+
 async def test_card_is_skipped_without_frontend(hass: HomeAssistant) -> None:
     """Without the frontend (e.g. a headless install) nothing is registered."""
     with patch("custom_components.maico_kwl.add_extra_js_url") as add_js:

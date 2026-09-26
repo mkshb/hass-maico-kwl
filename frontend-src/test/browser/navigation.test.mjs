@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { closeBrowser, openCard } from "./harness.mjs";
+import { ENGINE, closeBrowser, openCard } from "./harness.mjs";
 
 after(closeBrowser);
 
@@ -104,5 +104,23 @@ test("a fault turns the chip red and comes first", async () => {
     (await view.card.locator(".messages button").allTextContents()).map((s) => s.trim()),
     ["Supply air fan", "Device filter dirty"],
   );
+  await view.close();
+});
+
+test("screen readers reach the diagram's buttons", async () => {
+  const view = await openCard();
+  const svg = view.card.locator(".schematic");
+  // An img would make its buttons presentational under ARIA.
+  assert.equal(await svg.getAttribute("role"), "group");
+  assert.ok(await svg.getAttribute("aria-label"));
+  if (ENGINE === "chromium") {
+    // The tree screen readers get, straight from the browser.
+    const cdp = await view.page.context().newCDPSession(view.page);
+    const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+    const names = nodes.filter((n) => n.role?.value === "button" && !n.ignored).map((n) => n.name?.value);
+    for (const name of ["Outdoor air 2.0 °C", "Bypass closed", "Heat recovery 81 %", "1,690 rpm 160 m³/h"]) {
+      assert.ok(names.includes(name), `${name} is a button`);
+    }
+  }
   await view.close();
 });

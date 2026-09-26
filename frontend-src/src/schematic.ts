@@ -181,7 +181,9 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
   const efficiency = device.format(KEY.heatRecoveryEfficiency);
 
   return html`
-    <svg class="schematic" viewBox="0 -14 420 214" role="img"
+    <!-- A group, not an img: the children of an img are presentational, and
+         its buttons would be hidden from screen readers that follow ARIA. -->
+    <svg class="schematic" viewBox="0 -14 420 214" role="group"
       aria-label=${[t("outdoor_air"), t("supply_air"), t("extract_air"), t("exhaust_air")].join(", ")}>
       <defs>
         <linearGradient id=${`${uid}-top`} gradientUnits="userSpaceOnUse" x1=${BOX_LEFT} y1="0" x2=${BOX_RIGHT} y2="0">

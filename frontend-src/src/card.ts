@@ -3,6 +3,7 @@ import { property, state } from "lit/decorators.js";
 
 import { KwlDevice, maicoDeviceIds } from "./device";
 import { REPORTED, controlStyles, renderControls, type Control, type ControlsContext } from "./controls";
+import { renderHeader, headerStyles } from "./header";
 import { browserLocalize, localize } from "./localize";
 import { renderSchematic, schematicStyles } from "./schematic";
 import { buildTiles, renderTiles, tileStyles } from "./tiles";
@@ -28,6 +29,8 @@ export class MaicoKwlCard extends LitElement {
   private readonly _uid = `kwl${Math.random().toString(36).slice(2, 10)}`;
 
   @state() private _pending = new Map<Control, Pending>();
+
+  @state() private _messagesExpanded = false;
 
   public setConfig(config: MaicoKwlCardConfig): void {
     this._config = config;
@@ -105,7 +108,14 @@ export class MaicoKwlCard extends LitElement {
       return html`<ha-card><p class="empty">${localize(this.hass, message)}</p></ha-card>`;
     }
     return html`
-      <ha-card .header=${device.name} class=${this.hass.themes?.darkMode ? "dark" : ""}>
+      <ha-card class=${this.hass.themes?.darkMode ? "dark" : ""}>
+        ${renderHeader({
+          hass: this.hass,
+          device,
+          expanded: this._messagesExpanded,
+          toggle: () => (this._messagesExpanded = !this._messagesExpanded),
+          moreInfo: (key) => this._moreInfo(device.entityId(key)),
+        })}
         <div class="content">
           ${renderSchematic({
             hass: this.hass,
@@ -128,11 +138,13 @@ export class MaicoKwlCard extends LitElement {
   }
 
   static styles = [
+    headerStyles,
     schematicStyles,
     tileStyles,
     controlStyles,
     css`
     ha-card {
+      color: var(--primary-text-color);
       --kwl-bus-bg: #dcebf6;
       --kwl-bus-fg: #01497c;
       --kwl-warn-bg: #fff1dc;
@@ -140,6 +152,8 @@ export class MaicoKwlCard extends LitElement {
       --kwl-good: #2e7d32;
       --kwl-moderate: #f9a825;
       --kwl-poor: #c62828;
+      --kwl-fault-bg: #fde7e7;
+      --kwl-fault-fg: #9b1c1c;
     }
     ha-card.dark {
       --kwl-bus-bg: #123447;
@@ -149,9 +163,11 @@ export class MaicoKwlCard extends LitElement {
       --kwl-good: #81c784;
       --kwl-moderate: #ffd54f;
       --kwl-poor: #ef5350;
+      --kwl-fault-bg: #4a1c1c;
+      --kwl-fault-fg: #ffb4b4;
     }
     .content {
-      padding: 0 16px 16px;
+      padding: 16px;
     }
     .empty {
       padding: 16px;

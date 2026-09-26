@@ -30,6 +30,7 @@ export interface HomeAssistant {
   locale?: { language: string };
   themes?: { darkMode?: boolean };
   formatEntityState(state: HassEntityState, value?: string): string;
+  formatEntityAttributeValue(state: HassEntityState, attribute: string, value?: unknown): string;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<unknown>;
 }
 

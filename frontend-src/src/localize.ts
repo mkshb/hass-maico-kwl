@@ -49,6 +49,10 @@ const STRINGS = {
     filter_days: "{days} days",
     filter_due: "due",
     filter_next_change: "Next change on {date}",
+    notices_one: "1 notice",
+    notices_many: "{count} notices",
+    faults_one: "Fault",
+    faults_many: "{count} faults",
   },
   de: {
     card_name: "Maico KWL",
@@ -98,6 +102,10 @@ const STRINGS = {
     filter_days: "{days} Tage",
     filter_due: "fällig",
     filter_next_change: "Nächster Wechsel am {date}",
+    notices_one: "1 Hinweis",
+    notices_many: "{count} Hinweise",
+    faults_one: "Störung",
+    faults_many: "{count} Störungen",
   },
 } as const;
 

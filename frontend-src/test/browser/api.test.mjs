@@ -26,6 +26,38 @@ test("card picker entry, stub config and size", async () => {
   await view.close();
 });
 
+test("an invalid config is refused with a message and changes nothing", async () => {
+  const view = await openCard();
+  const results = await view.page.evaluate(() => {
+    const card = window.kwl.card;
+    const attempt = (config) => {
+      try {
+        card.setConfig(config);
+        return "accepted";
+      } catch (err) {
+        return err.message;
+      }
+    };
+    return {
+      number: attempt({ type: "custom:maico-kwl-card", device_id: 123 }),
+      empty: attempt({ type: "custom:maico-kwl-card", device_id: "  " }),
+      list: attempt(["device_id"]),
+      haKeys: attempt({
+        type: "custom:maico-kwl-card",
+        grid_options: { columns: 9 },
+        visibility: [],
+        view_layout: { position: "main" },
+      }),
+    };
+  });
+  assert.match(results.number, /device_id must be the id of a Maico KWL unit, got 123/);
+  assert.match(results.empty, /device_id/);
+  assert.match(results.list, /expected an object/);
+  assert.equal(results.haKeys, "accepted");
+  assert.equal(await view.card.locator(".tile").count(), 4, "still showing the unit");
+  await view.close();
+});
+
 test("the card size matches its rendered height", async () => {
   const view = await openCard();
   const { size, height, estimate } = await view.page.evaluate(() => {

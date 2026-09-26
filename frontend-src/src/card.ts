@@ -69,6 +69,19 @@ export class MaicoKwlCard extends LitElement {
   private _clock?: number;
 
   public setConfig(config: MaicoKwlCardConfig): void {
+    // Thrown errors show as an error card; the previous config stays. Keys HA
+    // adds itself (grid_options, visibility, view_layout) are left alone.
+    if (typeof config !== "object" || config === null || Array.isArray(config)) {
+      throw new Error("Invalid configuration: expected an object.");
+    }
+    if (
+      config.device_id !== undefined &&
+      (typeof config.device_id !== "string" || config.device_id.trim() === "")
+    ) {
+      throw new Error(
+        `Invalid configuration: device_id must be the id of a Maico KWL unit, got ${JSON.stringify(config.device_id)}.`,
+      );
+    }
     if (config.device_id !== this._config?.device_id) {
       // Another unit: its energy is read anew, not taken from the last one.
       this._energyToday = undefined;

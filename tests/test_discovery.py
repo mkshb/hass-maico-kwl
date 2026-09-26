@@ -80,6 +80,8 @@ async def test_discovery_aborts_on_connection_loss(
         (set(), []),
         ({"enocean_humidity_id3"}, ["EnOcean"]),
         ({"enocean_co2_id0"}, ["EnOcean", "CO2"]),
+        ({"enocean_co2_id5"}, ["EnOcean", "CO2"]),
+        ({"enocean_voc_id2"}, ["EnOcean", "VOC"]),
         ({"co2_sensor_2"}, ["CO2"]),
         ({"voc_sensor_1"}, ["VOC"]),
         ({"summer_bypass_open", "ptc_heater_active"}, ["Summer bypass", "PTC heater"]),

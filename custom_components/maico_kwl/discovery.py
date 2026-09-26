@@ -117,9 +117,10 @@ def derive_profile(present: set[str]) -> dict:
 
     if any(k.startswith("enocean_") for k in present):
         features.append("EnOcean")
-    if any(k.startswith("co2_sensor") for k in present) or "enocean_co2_id0" in present:
+    # Wired sensor inputs or any of the eight EnOcean IDs.
+    if any(k.startswith(("co2_sensor", "enocean_co2_")) for k in present):
         features.append("CO2")
-    if any(k.startswith("voc_sensor") for k in present):
+    if any(k.startswith(("voc_sensor", "enocean_voc_")) for k in present):
         features.append("VOC")
     if "summer_bypass_open" in present:
         features.append("Summer bypass")

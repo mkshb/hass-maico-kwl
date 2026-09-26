@@ -51,6 +51,8 @@ profile of the unit is derived from the registers it finds.
   entities. Failed write actions show an error message in the UI.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
+- **Repair issues** under *Settings > System > Repairs* while the unit reports a fault, a filter is
+  due or its clock is off by more than 5 minutes. They disappear on their own once the problem is gone.
 - **Diagnostics** download with every discovered register, its value and raw words.
 - **Automation blueprints** for demand boost, open windows and summer night cooling.
 - **Local**: purely local Modbus communication, no cloud (`iot_class: local_polling`).

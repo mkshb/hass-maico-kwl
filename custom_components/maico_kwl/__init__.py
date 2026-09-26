@@ -29,6 +29,7 @@ from .discovery import (
     derive_profile,
     present_from_cache,
 )
+from .issues import async_delete_issues, async_update_issues
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 
@@ -72,6 +73,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _async_remove_orphaned_entities(hass, entry)
+
+    async_update_issues(hass, entry)
+    entry.async_on_unload(
+        coordinator.async_add_listener(lambda: async_update_issues(hass, entry))
+    )
+    entry.async_on_unload(lambda: async_delete_issues(hass, entry))
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 

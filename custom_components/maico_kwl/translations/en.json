@@ -533,5 +533,27 @@
     "write_failed": {
       "message": "Writing {entity} to the Maico KWL failed: {error}"
     }
+  },
+  "issues": {
+    "fault_active": {
+      "title": "{name} reports a fault",
+      "description": "The ventilation unit reports an active fault: {faults}.\n\nCheck the unit and its control panel. Once the cause is fixed, the fault can be cleared with the *Reset errors* button. This message disappears as soon as the unit no longer reports the fault."
+    },
+    "filter_due_device": {
+      "title": "Device filter of {name} is due",
+      "description": "The remaining time of the device filter has run out.\n\nReplace or clean the filter, then press the *Reset device filter* button. This message disappears once the unit counts the filter time again."
+    },
+    "filter_due_outdoor": {
+      "title": "Outdoor filter of {name} is due",
+      "description": "The remaining time of the outdoor filter has run out.\n\nReplace or clean the filter, then press the *Reset outdoor filter* button. This message disappears once the unit counts the filter time again."
+    },
+    "filter_due_room": {
+      "title": "Room filter of {name} is due",
+      "description": "The remaining time of the room filter has run out.\n\nReplace or clean the filter, then press the *Reset room filter* button. This message disappears once the unit counts the filter time again."
+    },
+    "clock_drift": {
+      "title": "Clock of {name} is off",
+      "description": "The clock of the ventilation unit is off by about {minutes} minutes, so its time programs run at the wrong time.\n\nPress the *Sync clock with Home Assistant* button to set it to the time of Home Assistant."
+    }
   }
 }

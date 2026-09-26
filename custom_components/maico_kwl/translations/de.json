@@ -352,6 +352,9 @@
       "filter_remaining_room": {
         "name": "Filter Restlaufzeit Raum"
       },
+      "heat_recovery_power": {
+        "name": "Wärmerückgewinnung Leistung"
+      },
       "humidity_exhaust": {
         "name": "Feuchte Abluft"
       },

@@ -352,6 +352,9 @@
       "filter_remaining_room": {
         "name": "Filter remaining room"
       },
+      "heat_recovery_power": {
+        "name": "Heat recovery power"
+      },
       "humidity_exhaust": {
         "name": "Humidity exhaust"
       },

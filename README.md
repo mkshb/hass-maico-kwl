@@ -65,6 +65,15 @@ Around **100 registers** are mapped in total. Rarely used or duplicated sensors 
 additional sensor IDs, ZP1 counters) are still discovered but **disabled by default** to keep the
 UI tidy. They can be enabled individually when needed.
 
+### Calculated values
+
+Some useful values have no register of their own. They are calculated from the registers that are
+there, and each is only created when the unit has all the registers it needs.
+
+| Sensor | Calculation |
+|--------|-------------|
+| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. Feed it into an *Integral* helper to get the recovered energy in kWh. |
+
 ### Fault and notice codes
 
 The *Fault code* and *Notice code* sensors show the raw 32-bit value of registers 401/402 and

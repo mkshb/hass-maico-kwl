@@ -17,7 +17,8 @@ from homeassistant.util import dt as dt_util
 from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
-from .entity import MaicoEntity
+from .derived import DERIVED_SENSORS, DerivedDef
+from .entity import MaicoDerivedEntity, MaicoEntity
 from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
 
 # Read-only: data comes from the coordinator, no per-entity limit needed.
@@ -46,6 +47,12 @@ async def async_setup_entry(
                     coordinator, entry, REGISTERS_BY_KEY[reg_key], feeder, source
                 )
             )
+    # Values the unit does not report, computed from the registers it has.
+    entities.extend(
+        MaicoDerivedSensor(coordinator, entry, derived)
+        for derived in DERIVED_SENSORS
+        if all(key in coordinator.present for key in derived.sources)
+    )
     async_add_entities(entities)
 
 
@@ -136,3 +143,27 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
             "source_entity": self._source_entity_id,
             "last_written": None if sent is None else sent.written_at.isoformat(),
         }
+
+
+class MaicoDerivedSensor(MaicoDerivedEntity, SensorEntity):
+    """A value computed from several registers (see derived.py)."""
+
+    def __init__(
+        self,
+        coordinator: MaicoCoordinator,
+        entry: MaicoConfigEntry,
+        derived: DerivedDef,
+    ) -> None:
+        super().__init__(coordinator, entry, derived.key, derived.sources)
+        self._derived = derived
+        self._attr_native_unit_of_measurement = derived.unit
+        if derived.device_class:
+            self._attr_device_class = SensorDeviceClass(derived.device_class)
+        if derived.state_class:
+            self._attr_state_class = SensorStateClass(derived.state_class)
+        self._attr_suggested_display_precision = derived.precision
+
+    @property
+    def native_value(self) -> float | None:
+        numbers = self._numbers
+        return None if numbers is None else self._derived.compute(*numbers)

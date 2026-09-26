@@ -89,3 +89,39 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
                     "error": str(err),
                 },
             ) from err
+
+
+class MaicoDerivedEntity(CoordinatorEntity[MaicoCoordinator]):
+    """Common base for values computed from several registers."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: MaicoCoordinator,
+        entry: ConfigEntry,
+        key: str,
+        sources: tuple[str, ...],
+    ) -> None:
+        super().__init__(coordinator)
+        self._sources = sources
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_translation_key = key
+        self._attr_device_info = maico_device_info(entry, coordinator)
+
+    @property
+    def available(self) -> bool:
+        return super().available and all(
+            key in self.coordinator.data for key in self._sources
+        )
+
+    @property
+    def _numbers(self) -> list[float] | None:
+        """The source values in order, or None if one is missing."""
+        numbers: list[float] = []
+        for key in self._sources:
+            value = self.coordinator.data.get(key)
+            if not isinstance(value, (int, float)):
+                return None
+            numbers.append(float(value))
+        return numbers

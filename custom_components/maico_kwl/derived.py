@@ -43,6 +43,11 @@ def heat_recovery_efficiency(
     return round((supply - intake) / spread * 100, 1)
 
 
+def airflow_imbalance(airflow_supply: float, airflow_exhaust: float) -> float:
+    """Supply minus exhaust airflow, in m3/h (positive: more air goes in)."""
+    return round(airflow_supply - airflow_exhaust)
+
+
 @dataclass(frozen=True)
 class DerivedDef:
     """A sensor computed from one or more registers."""
@@ -54,6 +59,7 @@ class DerivedDef:
     device_class: str | None = None
     state_class: str | None = "measurement"
     precision: int | None = None
+    entity_category: str | None = None
 
 
 DERIVED_SENSORS: list[DerivedDef] = [
@@ -71,5 +77,14 @@ DERIVED_SENSORS: list[DerivedDef] = [
         heat_recovery_efficiency,
         unit="%",
         precision=0,
+    ),
+    DerivedDef(
+        "airflow_imbalance",
+        ("airflow_supply", "airflow_exhaust"),
+        airflow_imbalance,
+        unit="m³/h",
+        device_class="volume_flow_rate",
+        precision=0,
+        entity_category="diagnostic",
     ),
 ]

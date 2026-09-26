@@ -9,6 +9,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -162,6 +163,8 @@ class MaicoDerivedSensor(MaicoDerivedEntity, SensorEntity):
         if derived.state_class:
             self._attr_state_class = SensorStateClass(derived.state_class)
         self._attr_suggested_display_precision = derived.precision
+        if derived.entity_category:
+            self._attr_entity_category = EntityCategory(derived.entity_category)
 
     @property
     def native_value(self) -> float | None:

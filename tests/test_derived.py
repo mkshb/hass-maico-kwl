@@ -6,6 +6,7 @@ import pytest
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import EntityCategory
 
 from custom_components.maico_kwl import derived
 
@@ -49,6 +50,18 @@ async def test_heat_recovery_efficiency_sensor(
     device.registers[703] = 190  # 19.0 degC, 3 K below the extract air
     await _refresh(hass, loaded)
     assert hass.states.get(eid).state == STATE_UNKNOWN
+
+
+async def test_airflow_imbalance_sensor(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    eid = entity_id(hass, loaded, "sensor", "airflow_imbalance")
+    assert hass.states.get(eid).state == "2"  # 150 - 148 m3/h
+    assert er.async_get(hass).async_get(eid).entity_category is EntityCategory.DIAGNOSTIC
+
+    device.registers[654] = 160
+    await _refresh(hass, loaded)
+    assert hass.states.get(eid).state == "-10"
 
 
 async def test_heat_recovery_power_sensor(

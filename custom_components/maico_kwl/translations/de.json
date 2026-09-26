@@ -224,6 +224,9 @@
       "airflow_exhaust": {
         "name": "Volumenstrom Abluft"
       },
+      "airflow_imbalance": {
+        "name": "Volumenstrom Disbalance"
+      },
       "airflow_supply": {
         "name": "Volumenstrom Zuluft"
       },

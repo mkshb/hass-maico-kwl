@@ -224,6 +224,9 @@
       "airflow_exhaust": {
         "name": "Airflow exhaust"
       },
+      "airflow_imbalance": {
+        "name": "Airflow imbalance"
+      },
       "airflow_supply": {
         "name": "Airflow supply"
       },

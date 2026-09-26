@@ -72,6 +72,9 @@
       }
     },
     "sensor": {
+      "airflow_imbalance": {
+        "default": "mdi:scale-unbalanced"
+      },
       "current_vent_level": {
         "default": "mdi:fan",
         "state": {

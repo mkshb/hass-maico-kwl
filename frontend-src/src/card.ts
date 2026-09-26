@@ -145,9 +145,10 @@ export class MaicoKwlCard extends LitElement {
     return (this.hass && this._device())?.entityId(KEY.heatRecoveryEnergy);
   }
 
-  private _clearPending(control: Control): void {
+  /** Drop the pending change of a control, or only this one if given. */
+  private _clearPending(control: Control, only?: Pending): void {
     const pending = this._pending.get(control);
-    if (!pending) return;
+    if (!pending || (only && pending !== only)) return;
     window.clearTimeout(pending.timer);
     this._pending.delete(control);
     this._pending = new Map(this._pending);
@@ -164,12 +165,15 @@ export class MaicoKwlCard extends LitElement {
       change: (control, value, send) => {
         this._clearPending(control);
         if (REPORTED[control](device) === value) {
-          send();
+          // Nothing to wait for, and nothing to undo if HA refuses it.
+          send().catch(() => undefined);
           return;
         }
-        const timer = window.setTimeout(() => this._clearPending(control), PENDING_TIMEOUT_MS);
-        this._pending = new Map(this._pending).set(control, { value, timer });
-        send().catch(() => this._clearPending(control));
+        const pending: Pending = { value, timer: 0 };
+        pending.timer = window.setTimeout(() => this._clearPending(control, pending), PENDING_TIMEOUT_MS);
+        this._pending = new Map(this._pending).set(control, pending);
+        // A refused call undoes its own change only, not a later one.
+        send().catch(() => this._clearPending(control, pending));
       },
     };
   }

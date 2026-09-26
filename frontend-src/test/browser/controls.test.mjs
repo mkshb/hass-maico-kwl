@@ -92,6 +92,30 @@ test("a refused change goes back at once", async () => {
   await view.close();
 });
 
+test("a refused tap on the level that already runs raises no error", async () => {
+  const view = await openCard({ states: MANUAL, failServices: true });
+  await segment(view.card, "Nominal").click();
+  await view.settle();
+  assert.equal(await active(view.card), "Nominal");
+  assert.deepEqual(view.errors, []);
+  await view.close();
+});
+
+test("a failing earlier tap does not undo a later one", async () => {
+  // The first call fails after 100 ms, when the second tap is already out.
+  const view = await openCard({ states: MANUAL, failServices: 1, failDelay: 100 });
+  await view.page.evaluate(() => {
+    const buttons = [...window.kwl.card.shadowRoot.querySelectorAll(".segment")];
+    buttons.find((b) => b.getAttribute("aria-label") === "Reduced").click();
+    buttons.find((b) => b.getAttribute("aria-label") === "Intensive").click();
+  });
+  await view.page.waitForTimeout(300);
+  await view.settle();
+  assert.equal(await active(view.card), "Intensive");
+  assert.equal(await isPending(view.card), 1);
+  await view.close();
+});
+
 test("a change the unit never confirms goes back after 35 s", async () => {
   const view = await openCard({ states: MANUAL });
   await segment(view.card, "Reduced").click();

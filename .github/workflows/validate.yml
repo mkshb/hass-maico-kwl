@@ -31,5 +31,3 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
-          # The domain is not (yet) in the home-assistant/brands repo.
-          ignore: "brands"

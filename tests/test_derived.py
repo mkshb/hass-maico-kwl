@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
@@ -29,6 +29,26 @@ def test_heat_recovery_power() -> None:
     assert derived.heat_recovery_power(122, 16.7, 22.4) == 236
     # The exchanger cools the supply air: negative on purpose.
     assert derived.heat_recovery_power(100, 25.0, 22.0) == -102
+
+
+def test_heat_recovery_efficiency() -> None:
+    assert derived.heat_recovery_efficiency(-5.0, 18.0, 22.0) == 85.2
+    # Summer: intake warmer than extract air, the formula still holds.
+    assert derived.heat_recovery_efficiency(30.0, 24.0, 22.0) == 75.0
+    # Too little spread to say anything.
+    assert derived.heat_recovery_efficiency(19.0, 20.0, 22.0) is None
+
+
+async def test_heat_recovery_efficiency_sensor(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    eid = entity_id(hass, loaded, "sensor", "heat_recovery_efficiency")
+    assert hass.states.get(eid).state == "85.2"
+    assert hass.states.get(eid).attributes["unit_of_measurement"] == "%"
+
+    device.registers[703] = 190  # 19.0 degC, 3 K below the extract air
+    await _refresh(hass, loaded)
+    assert hass.states.get(eid).state == STATE_UNKNOWN
 
 
 async def test_heat_recovery_power_sensor(

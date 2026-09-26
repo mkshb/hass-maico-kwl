@@ -14,6 +14,10 @@ from dataclasses import dataclass
 # so P[W] = flow[m3/h] * 0.34 * dT[K].
 AIR_HEAT_CAPACITY = 0.34
 
+# Below this difference between extract and intake air the efficiency is mostly
+# sensor tolerance (e.g. on mild days), so it is not reported.
+MIN_EFFICIENCY_SPREAD = 5.0
+
 
 def heat_recovery_power(airflow_supply: float, intake: float, supply: float) -> float:
     """Heat the exchanger adds to the supply air, in W.
@@ -22,6 +26,21 @@ def heat_recovery_power(airflow_supply: float, intake: float, supply: float) -> 
     kept on purpose instead of clamping to zero.
     """
     return round(airflow_supply * AIR_HEAT_CAPACITY * (supply - intake))
+
+
+def heat_recovery_efficiency(
+    intake: float, supply: float, extract: float
+) -> float | None:
+    """Supply-side temperature efficiency of the exchanger, in %.
+
+    The share of the difference between extract and intake air that the supply
+    air gains. Close to 0 while the summer bypass is open; fan heat can push it
+    slightly above 100.
+    """
+    spread = extract - intake
+    if abs(spread) < MIN_EFFICIENCY_SPREAD:
+        return None
+    return round((supply - intake) / spread * 100, 1)
 
 
 @dataclass(frozen=True)
@@ -44,6 +63,13 @@ DERIVED_SENSORS: list[DerivedDef] = [
         heat_recovery_power,
         unit="W",
         device_class="power",
+        precision=0,
+    ),
+    DerivedDef(
+        "heat_recovery_efficiency",
+        ("temp_air_intake", "temp_supply_air", "temp_extract_air"),
+        heat_recovery_efficiency,
+        unit="%",
         precision=0,
     ),
 ]

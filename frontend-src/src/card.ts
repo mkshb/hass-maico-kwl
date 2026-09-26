@@ -22,6 +22,9 @@ const NARROW_PX = 400;
 const SCHEMATIC_WIDTH = 420;
 // How often today's recovered energy is read from the statistics.
 const ENERGY_REFRESH_MS = 5 * 60_000;
+// The card's own clock: ages of bus values and the energy refresh follow it,
+// not unrelated updates from HA.
+const CLOCK_MS = 60_000;
 const SCHEMATIC_MAX_PX = 460;
 
 interface Pending {
@@ -50,6 +53,19 @@ export class MaicoKwlCard extends LitElement {
 
   private _energyFetchedAt = 0;
 
+  /**
+   * The entities the last render read: the unit's own and the sources of its
+   * bus values. A new hass object only renders the card when one of them, the
+   * registry, the language or the theme changed; HA keeps the state object of
+   * an entity that did not change.
+   */
+  private _watched: string[] = [];
+
+  /** Whether the last render showed bus values, whose age follows the clock. */
+  private _showsBusValues = false;
+
+  private _clock?: number;
+
   public setConfig(config: MaicoKwlCardConfig): void {
     if (config.device_id !== this._config?.device_id) {
       // Another unit: its energy is read anew, not taken from the last one.
@@ -75,6 +91,7 @@ export class MaicoKwlCard extends LitElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    this._clock ??= window.setInterval(() => this._onClock(), CLOCK_MS);
     this._resizeObserver ??= new ResizeObserver(([entry]) => {
       const width = Math.round(entry.contentRect.width);
       // Render in the next frame: a layout change inside the callback would
@@ -86,6 +103,8 @@ export class MaicoKwlCard extends LitElement {
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.clearInterval(this._clock);
+    this._clock = undefined;
     this._resizeObserver?.disconnect();
     for (const control of [...this._pending.keys()]) this._clearPending(control);
   }
@@ -98,6 +117,30 @@ export class MaicoKwlCard extends LitElement {
     for (const [control, pending] of this._pending) {
       if (REPORTED[control](device) === pending.value) this._clearPending(control);
     }
+  }
+
+  protected shouldUpdate(changed: PropertyValues<this>): boolean {
+    // Anything but hass (config, width, pending changes, energy) renders.
+    if (!changed.has("hass") || changed.size > 1) return true;
+    const old = changed.get("hass") as HomeAssistant | undefined;
+    const hass = this.hass;
+    if (!old || !hass) return true;
+    if (
+      old.entities !== hass.entities ||
+      old.devices !== hass.devices ||
+      old.language !== hass.language ||
+      old.locale !== hass.locale ||
+      old.themes?.darkMode !== hass.themes?.darkMode
+    ) {
+      return true;
+    }
+    return this._watched.some((entityId) => old.states[entityId] !== hass.states[entityId]);
+  }
+
+  private _onClock(): void {
+    if (this.hass && Date.now() - this._energyFetchedAt > ENERGY_REFRESH_MS) this._fetchEnergyToday();
+    // "no value for 12 min" changes with the time alone.
+    if (this._showsBusValues) this.requestUpdate();
   }
 
   protected firstUpdated(): void {
@@ -189,9 +232,15 @@ export class MaicoKwlCard extends LitElement {
     if (!this.hass || !this._config) return nothing;
     const device = this._device();
     if (!device) {
+      this._watched = [];
+      this._showsBusValues = false;
       const message = this._config.device_id ? "device_missing" : "no_device";
       return html`<ha-card><p class="empty">${localize(this.hass, message)}</p></ha-card>`;
     }
+    const tiles = buildTiles(this.hass, device, this._energyToday);
+    const busSources = tiles.filter((tile) => tile.bus && tile.moreInfo).map((tile) => tile.moreInfo!);
+    this._watched = [...device.entityIds, ...busSources];
+    this._showsBusValues = busSources.length > 0;
     return html`
       <ha-card class=${this.hass.themes?.darkMode ? "dark" : ""}>
         ${renderHeader({
@@ -210,9 +259,7 @@ export class MaicoKwlCard extends LitElement {
             scale: this._width ? SCHEMATIC_WIDTH / Math.min(SCHEMATIC_MAX_PX, this._width - 32) : 1,
             moreInfo: (key) => this._moreInfo(device.entityId(key)),
           })}
-          ${renderTiles(this.hass, buildTiles(this.hass, device, this._energyToday), (entityId) =>
-            this._moreInfo(entityId),
-          )}
+          ${renderTiles(this.hass, tiles, (entityId) => this._moreInfo(entityId))}
           ${renderControls(this._controls(device))}
         </div>
       </ha-card>

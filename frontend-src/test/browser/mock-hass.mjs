@@ -49,10 +49,18 @@ const entityId = (key) => `sensor.maico_${key.replace("@", "_")}`;
 const keyOf = (stateObj) =>
   Object.keys(kwl.states).find((key) => entityId(key) === stateObj.entity_id) ?? "";
 
+// Like HA: a new hass object on every change, but the registry, locale and
+// theme objects stay the same, and so does the state object of every entity
+// that did not change.
+const locale = { language: fixture.language };
+const themes = { darkMode: fixture.dark };
+let previous = { entities: undefined, entityKeys: "", states: {}, specs: {} };
+
 /** A fresh hass object, as HA hands the card a new one on every change. */
 function buildHass() {
   const entities = {};
   const states = {};
+  const specs = {};
   for (const [key, spec] of Object.entries(kwl.states)) {
     if (spec === null) continue;
     const id = entityId(key);
@@ -62,6 +70,11 @@ function buildHass() {
       device_id: spec.device ?? "unit",
       translation_key: key.split("@")[0],
     };
+    specs[id] = JSON.stringify(spec);
+    if (previous.specs[id] === specs[id]) {
+      states[id] = previous.states[id];
+      continue;
+    }
     states[id] = {
       entity_id: id,
       state: spec.state,
@@ -76,8 +89,11 @@ function buildHass() {
     };
   }
   for (const [id, name] of Object.entries(fixture.sources)) {
-    states[id] = { entity_id: id, state: "1", attributes: { friendly_name: name } };
+    states[id] = previous.states[id] ?? { entity_id: id, state: "1", attributes: { friendly_name: name } };
   }
+  const entityKeys = JSON.stringify(entities);
+  const sameRegistry = entityKeys === previous.entityKeys;
+  previous = { entities: sameRegistry ? previous.entities : entities, entityKeys, states, specs };
   const specOf = (stateObj) => kwl.states[keyOf(stateObj)] ?? {};
   const kindOf = (stateObj) => keyOf(stateObj).split("@")[0];
   const track = async (promise) => {
@@ -90,9 +106,9 @@ function buildHass() {
   };
   return {
     language: fixture.language,
-    locale: { language: fixture.language },
-    themes: { darkMode: fixture.dark },
-    entities,
+    locale,
+    themes,
+    entities: previous.entities,
     states,
     devices: fixture.devices,
     formatEntityState(stateObj, value = stateObj.state) {

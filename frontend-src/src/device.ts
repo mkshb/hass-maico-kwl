@@ -33,13 +33,30 @@ const TO_BASE: Record<string, Record<string, (value: number) => number>> = {
   },
 };
 
+/**
+ * The integration's entities per device, as translation_key -> entity_id.
+ * HA hands out a new entities object only when the registry changes, so this
+ * is worked out once per registry state instead of on every update.
+ */
+const registryCache = new WeakMap<object, Map<string, Map<string, string>>>();
+
+function entitiesByDevice(hass: HomeAssistant): Map<string, Map<string, string>> {
+  let devices = registryCache.get(hass.entities);
+  if (!devices) {
+    devices = new Map();
+    for (const entry of Object.values(hass.entities)) {
+      if (entry.platform !== DOMAIN || !entry.device_id || !entry.translation_key) continue;
+      if (!devices.has(entry.device_id)) devices.set(entry.device_id, new Map());
+      devices.get(entry.device_id)!.set(entry.translation_key, entry.entity_id);
+    }
+    registryCache.set(hass.entities, devices);
+  }
+  return devices;
+}
+
 /** Ids of all devices that have entities of this integration. */
 export function maicoDeviceIds(hass: HomeAssistant): string[] {
-  const ids = new Set<string>();
-  for (const entry of Object.values(hass.entities)) {
-    if (entry.platform === DOMAIN && entry.device_id) ids.add(entry.device_id);
-  }
-  return [...ids];
+  return [...entitiesByDevice(hass).keys()];
 }
 
 /**
@@ -50,17 +67,18 @@ export function maicoDeviceIds(hass: HomeAssistant): string[] {
  * the card leaves that part out instead of showing a broken value.
  */
 export class KwlDevice {
-  private readonly _entityIds = new Map<string, string>();
+  private readonly _entityIds: Map<string, string>;
 
   constructor(
     private readonly _hass: HomeAssistant,
     public readonly deviceId: string,
   ) {
-    for (const entry of Object.values(_hass.entities)) {
-      if (entry.platform === DOMAIN && entry.device_id === deviceId && entry.translation_key) {
-        this._entityIds.set(entry.translation_key, entry.entity_id);
-      }
-    }
+    this._entityIds = entitiesByDevice(_hass).get(deviceId) ?? new Map();
+  }
+
+  /** Every entity id of the unit, for telling whether a hass update matters. */
+  get entityIds(): string[] {
+    return [...this._entityIds.values()];
   }
 
   get name(): string {

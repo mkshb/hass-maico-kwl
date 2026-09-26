@@ -261,6 +261,25 @@ async def test_reconfigure_changes_connection(
     assert "should use it for scheduling a reload" not in caplog.text
 
 
+async def test_reconfigure_recovers_an_entry_that_failed_to_set_up(
+    hass: HomeAssistant, device: FakeDevice, config_entry, caplog
+) -> None:
+    """Fixing the connection of a retrying entry sets it up right away."""
+    device.online = False
+    await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
+
+    device.online = True
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert "should use it for scheduling a reload" not in caplog.text
+
+
 async def test_reconfigure_keeps_custom_title_and_same_values(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

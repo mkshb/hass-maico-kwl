@@ -9,6 +9,7 @@ import voluptuous as vol
 
 from homeassistant.config_entries import (
     ConfigEntry,
+    ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
@@ -144,8 +145,10 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 title = entry.title
                 if title == f"{DEFAULT_NAME} ({entry.data[CONF_HOST]})":
                     title = f"{DEFAULT_NAME} ({host})"
-                # The entry's update listener reloads it; reloading here as
-                # well would set the unit up twice.
+                # A loaded entry is reloaded by its update listener; reloading
+                # here as well would set the unit up twice. An entry that
+                # failed to set up (retrying, or in error) has no listener, so
+                # it is reloaded here, which also ends a pending retry.
                 self.hass.config_entries.async_update_entry(
                     entry,
                     title=title,
@@ -159,6 +162,11 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_SLAVE: slave,
                     },
                 )
+                if entry.state in (
+                    ConfigEntryState.SETUP_RETRY,
+                    ConfigEntryState.SETUP_ERROR,
+                ):
+                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="reconfigure_successful")
 
         current = user_input or entry.data

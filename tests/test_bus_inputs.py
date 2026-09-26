@@ -363,3 +363,78 @@ async def test_feed_retries_value_after_failed_write(
     hass.states.async_set("sensor.room", "22.01")  # same raw value 220
     await hass.async_block_till_done()
     assert device.writes[-1] == (707, [220])
+
+
+# --- "Sent" sensor ---------------------------------------------------------
+
+
+def _sent(hass: HomeAssistant, entry, key: str) -> State:
+    eid = er.async_get(hass).async_get_entity_id(
+        "sensor", DOMAIN, f"{entry.entry_id}_{key}_sent"
+    )
+    return hass.states.get(eid)
+
+
+async def test_sent_sensor_shows_value_as_written(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The sensor shows the value on the wire, not the raw source value."""
+    hass.states.async_set("sensor.humidity", "55.4")
+    await _setup_with_feeds(hass, config_entry)
+
+    state = _sent(hass, config_entry, "humidity_bus")
+    assert (763, [55]) in device.writes
+    assert state.state == "55"
+    assert state.attributes["source_entity"] == "sensor.humidity"
+    assert state.attributes["last_written"] is not None
+
+
+async def test_sent_sensor_keeps_value_when_write_fails(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A failed write does not show up as sent."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+
+    device.write_exception = 4
+    hass.states.async_set("sensor.room", "23.0")
+    await hass.async_block_till_done()
+    assert _sent(hass, config_entry, "room_temp_bus").state == "21.5"
+
+
+async def test_sent_sensor_unknown_before_first_write(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await _setup_with_feeds(hass, config_entry)
+    state = _sent(hass, config_entry, "room_temp_bus")
+    assert state.state == STATE_UNKNOWN
+    assert state.attributes["last_written"] is None
+
+
+async def test_sent_sensor_updates_time_on_rewrite(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """The periodic refresh updates the time of the last write."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+    first = _sent(hass, config_entry, "room_temp_bus").attributes["last_written"]
+
+    freezer.tick(REWRITE)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    state = _sent(hass, config_entry, "room_temp_bus")
+    assert state.state == "21.5"
+    assert state.attributes["last_written"] > first
+
+
+async def test_sent_sensor_stops_listening_on_unload(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+    feeder = config_entry.runtime_data.feeder
+    assert feeder._listeners["room_temp_bus"]
+
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert feeder._listeners["room_temp_bus"] == []

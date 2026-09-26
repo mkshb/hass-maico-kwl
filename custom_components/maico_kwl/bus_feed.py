@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, State, callback
@@ -16,6 +19,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.util import dt as dt_util
 
 from .const import BUS_REWRITE_INTERVAL
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
@@ -24,6 +28,14 @@ from .register_defs import RegisterDef
 _LOGGER = logging.getLogger(__name__)
 
 _INVALID = {None, "", "unknown", "unavailable"}
+
+
+@dataclass(frozen=True)
+class SentValue:
+    """The value the unit last received for a bus input."""
+
+    value: float
+    written_at: datetime
 
 
 class BusFeeder:
@@ -46,6 +58,21 @@ class BusFeeder:
         self._failing: set[str] = set()
         # Last raw words written per register, to skip unchanged values.
         self._written: dict[str, list[int]] = {}
+        self._sent: dict[str, SentValue] = {}
+        self._listeners: dict[str, list[Callable[[], None]]] = {}
+
+    def sent(self, key: str) -> SentValue | None:
+        """Return what was last written successfully to a bus input."""
+        return self._sent.get(key)
+
+    @callback
+    def async_add_listener(
+        self, key: str, listener: Callable[[], None]
+    ) -> Callable[[], None]:
+        """Call listener after every successful write to key."""
+        listeners = self._listeners.setdefault(key, [])
+        listeners.append(listener)
+        return lambda: listeners.remove(listener)
 
     async def async_start(self) -> None:
         if not self._feeds:
@@ -123,6 +150,10 @@ class BusFeeder:
                 _LOGGER.info("Bus feed %s write failed: %s", reg.key, err)
             return
         self._written[reg.key] = raw
+        # Decode the raw words so the value shows what the unit received.
+        self._sent[reg.key] = SentValue(reg.decode(raw), dt_util.utcnow())
+        for listener in list(self._listeners.get(reg.key, [])):
+            listener()
         if reg.key in self._failing:
             self._failing.discard(reg.key)
             _LOGGER.info("Bus feed %s writes succeed again", reg.key)

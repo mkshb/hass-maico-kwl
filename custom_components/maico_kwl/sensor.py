@@ -9,8 +9,8 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change_event
 
+from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
 from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
@@ -32,13 +32,14 @@ async def async_setup_entry(
         if REGISTERS_BY_KEY[key].platform == SENSOR
     ]
     # When a bus input is fed from a source entity, expose a read-only sensor
-    # showing the value being sent (the write-only register can't be read back).
+    # showing the value last sent (the write-only register can't be read back).
+    feeder = entry.runtime_data.feeder
     for reg_key, conf_key, _device_class in BUS_FEEDS:
         source = entry.options.get(conf_key)
         if source and reg_key in coordinator.present:
             entities.append(
                 MaicoBusFeedSensor(
-                    coordinator, entry, REGISTERS_BY_KEY[reg_key], source
+                    coordinator, entry, REGISTERS_BY_KEY[reg_key], feeder, source
                 )
             )
     async_add_entities(entities)
@@ -69,10 +70,25 @@ class MaicoSensor(MaicoEntity, SensorEntity):
 
 
 class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
-    """Read-only mirror of the value fed into a write-only bus input register."""
+    """The value last written to a write-only bus input register.
 
-    def __init__(self, coordinator, entry, reg: RegisterDef, source_entity_id: str) -> None:
+    Shows what the unit actually received: nothing before the first successful
+    write, the previous value while writes fail, and the value as encoded on
+    the wire (e.g. 55 for a humidity source reporting 55.4).
+    """
+
+    _unrecorded_attributes = frozenset({"last_written"})
+
+    def __init__(
+        self,
+        coordinator,
+        entry,
+        reg: RegisterDef,
+        feeder: BusFeeder,
+        source_entity_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, reg)
+        self._feeder = feeder
         self._source_entity_id = source_entity_id
         self._attr_unique_id = f"{entry.entry_id}_{reg.key}_sent"
         self._attr_translation_key = f"{reg.key}_sent"
@@ -85,21 +101,22 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self.async_on_remove(
-            async_track_state_change_event(
-                self.hass, [self._source_entity_id], self._handle_source_event
-            )
+            self._feeder.async_add_listener(self._reg.key, self._handle_sent)
         )
 
     @callback
-    def _handle_source_event(self, _event) -> None:
+    def _handle_sent(self) -> None:
         self.async_write_ha_state()
 
     @property
     def native_value(self):
-        state = self.hass.states.get(self._source_entity_id)
-        if state is None or state.state in ("unknown", "unavailable", "", None):
-            return None
-        try:
-            return self._reg.clamp(float(state.state))
-        except (TypeError, ValueError):
-            return None
+        sent = self._feeder.sent(self._reg.key)
+        return None if sent is None else sent.value
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | None]:
+        sent = self._feeder.sent(self._reg.key)
+        return {
+            "source_entity": self._source_entity_id,
+            "last_written": None if sent is None else sent.written_at.isoformat(),
+        }

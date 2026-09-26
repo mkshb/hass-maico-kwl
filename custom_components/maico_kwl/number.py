@@ -12,10 +12,11 @@ from homeassistant.components.number import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL
+from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL, DOMAIN
 from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import NUMBER, REGISTERS_BY_KEY, RegisterDef
@@ -36,6 +37,7 @@ async def async_setup_entry(
     fed_by_source = {
         reg_key for reg_key, conf_key, _dc in BUS_FEEDS if entry.options.get(conf_key)
     }
+    ent_reg = er.async_get(hass)
     entities: list[NumberEntity] = []
     for key in coordinator.present:
         reg = REGISTERS_BY_KEY[key]
@@ -45,6 +47,11 @@ async def async_setup_entry(
             entities.append(MaicoNumber(coordinator, entry, reg))
         elif reg.key not in fed_by_source:
             entities.append(MaicoBusInputNumber(coordinator, entry, reg))
+        elif stale := ent_reg.async_get_entity_id(
+            "number", DOMAIN, f"{entry.entry_id}_{reg.key}"
+        ):
+            # Created before a source was configured; it would stay unavailable.
+            ent_reg.async_remove(stale)
     async_add_entities(entities)
 
 

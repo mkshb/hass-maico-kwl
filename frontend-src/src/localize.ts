@@ -21,6 +21,19 @@ const STRINGS = {
     heat_recovery: "Heat recovery",
     fan_off: "off",
     ptc_heater: "PTC heater",
+    tile_room: "Room",
+    tile_humidity: "Humidity",
+    tile_air_quality: "Air quality",
+    tile_heat_recovery: "Heat recovery",
+    bus_badge: "BUS",
+    from_source: "from {name}",
+    bus_stale: "no new value for {minutes} min",
+    bus_never: "no value sent yet",
+    sub_extract_air: "extract air",
+    sub_external_sensor: "external sensor",
+    air_good: "good",
+    air_moderate: "moderate",
+    air_poor: "poor",
   },
   de: {
     card_name: "Maico KWL",
@@ -42,16 +55,35 @@ const STRINGS = {
     heat_recovery: "Rückgewinnung",
     fan_off: "aus",
     ptc_heater: "PTC-Heizregister",
+    tile_room: "Raum",
+    tile_humidity: "Feuchte",
+    tile_air_quality: "Luftgüte",
+    tile_heat_recovery: "Rückgewinnung",
+    bus_badge: "BUS",
+    from_source: "von {name}",
+    bus_stale: "seit {minutes} min kein neuer Wert",
+    bus_never: "noch kein Wert gesendet",
+    sub_extract_air: "Abluft",
+    sub_external_sensor: "externer Fühler",
+    air_good: "gut",
+    air_moderate: "mäßig",
+    air_poor: "schlecht",
   },
 } as const;
 
 export type StringKey = keyof (typeof STRINGS)["en"];
 
-export function localize(hass: HomeAssistant | undefined, key: StringKey): string {
+export function localize(
+  hass: HomeAssistant | undefined,
+  key: StringKey,
+  values: Record<string, string | number> = {},
+): string {
   const language = (hass?.locale?.language ?? hass?.language ?? "en").split("-")[0];
   const strings: Record<StringKey, string> =
     language in STRINGS ? STRINGS[language as keyof typeof STRINGS] : STRINGS.en;
-  return strings[key];
+  return strings[key].replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in values ? String(values[name]) : match,
+  );
 }
 
 /** For the card picker, before any hass object exists. */

@@ -2,9 +2,10 @@ import { LitElement, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 
 import { KwlDevice, maicoDeviceIds } from "./device";
-import { CO2_SENSOR_KEYS, HUMIDITY_SENSOR_KEYS, KEY, VOC_SENSOR_KEYS, type EntityKey } from "./keys";
+import { KEY, type EntityKey } from "./keys";
 import { browserLocalize, localize, type StringKey } from "./localize";
 import { renderSchematic, schematicStyles } from "./schematic";
+import { buildTiles, renderTiles, tileStyles } from "./tiles";
 import type { HomeAssistant, MaicoKwlCardConfig } from "./types";
 
 const CARD_TYPE = "maico-kwl-card";
@@ -12,14 +13,6 @@ const CARD_TYPE = "maico-kwl-card";
 // Until the tiles and controls land, the card lists the rest of what it
 // resolved, grouped the way the layout will use it. Entities the unit lacks do not show up.
 const GROUPS: [StringKey, readonly EntityKey[]][] = [
-  [
-    "group_room",
-    [
-      KEY.roomTempSource, KEY.tempRoom, KEY.tempRoomExternal, KEY.roomTempBusSent,
-      KEY.humidityExhaust, KEY.humidityBusSent, KEY.airQualityBusSent,
-      ...HUMIDITY_SENSOR_KEYS, ...CO2_SENSOR_KEYS, ...VOC_SENSOR_KEYS,
-    ],
-  ],
   ["group_controls", [KEY.operatingMode, KEY.ventilationLevel, KEY.currentVentLevel, KEY.boost, KEY.season]],
   [
     "group_filters",
@@ -68,7 +61,7 @@ export class MaicoKwlCard extends LitElement {
       return html`<ha-card><p class="empty">${localize(this.hass, message)}</p></ha-card>`;
     }
     return html`
-      <ha-card .header=${device.name}>
+      <ha-card .header=${device.name} class=${this.hass.themes?.darkMode ? "dark" : ""}>
         <div class="content">
           ${renderSchematic({
             hass: this.hass,
@@ -76,6 +69,7 @@ export class MaicoKwlCard extends LitElement {
             uid: this._uid,
             moreInfo: (key) => this._moreInfo(device.entityId(key)),
           })}
+          ${renderTiles(this.hass, buildTiles(this.hass, device), (entityId) => this._moreInfo(entityId))}
           ${GROUPS.map(([title, keys]) => {
             const present = device.present(keys);
             if (!present.length) return nothing;
@@ -105,7 +99,26 @@ export class MaicoKwlCard extends LitElement {
 
   static styles = [
     schematicStyles,
+    tileStyles,
     css`
+    ha-card {
+      --kwl-bus-bg: #dcebf6;
+      --kwl-bus-fg: #01497c;
+      --kwl-warn-bg: #fff1dc;
+      --kwl-warn-fg: #7a4a00;
+      --kwl-good: #2e7d32;
+      --kwl-moderate: #f9a825;
+      --kwl-poor: #c62828;
+    }
+    ha-card.dark {
+      --kwl-bus-bg: #123447;
+      --kwl-bus-fg: #8fd3f7;
+      --kwl-warn-bg: #3b2c12;
+      --kwl-warn-fg: #ffcc80;
+      --kwl-good: #81c784;
+      --kwl-moderate: #ffd54f;
+      --kwl-poor: #ef5350;
+    }
     .content {
       padding: 0 16px 16px;
     }

@@ -248,9 +248,10 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, the first unit if left 
   integration feeds to the unit over the bus carry a **BUS** badge and name their source entity;
   the badge turns orange when no value has been written for 10 minutes. Air quality gets a
   coloured dot (up to 800 ppm good, up to 1400 ppm moderate, above poor).
-- **Controls**: ventilation level, operating mode and boost. In the auto modes the unit picks the
-  level itself, so the level bar is locked there. A change shows at once and pulses until the unit
-  reports it, which can take a few seconds.
+- **Controls**: operating mode, boost, season and, below them, the ventilation level. The level bar
+  shows the level that runs; where the unit picks it itself (auto modes) or runs another one (off,
+  boost) it is locked. A change shows at once and pulses until the unit reports it, which can take
+  a few seconds. A tap on the season opens its entity to switch between summer and winter.
 - **Filters**: remaining days of every fitted filter and the date of the next change.
 - **Notices and faults**: a chip in the header while the unit reports any, with the messages by
   name when tapped. The bypass notice is left out, the diagram already shows it.

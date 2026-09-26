@@ -94,7 +94,7 @@ function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
   const offLocked = device.isOn(KEY.offLock) ?? false;
 
   return html`
-    <div class="control">
+    <div class="control levels">
       <div class="control-label" id="kwl-level-label">${t("ventilation_level")}</div>
       <div class=${lock ? "segments locked" : "segments"} role="group" aria-labelledby="kwl-level-label">
         ${LEVELS.map((level) => {
@@ -258,7 +258,7 @@ export function formatDay(hass: HomeAssistant, isoDay: string | undefined): stri
 }
 
 export function renderControls(ctx: ControlsContext): TemplateResult {
-  return html`${renderLevels(ctx)}${renderModeAndBoost(ctx)}${renderFilters(ctx)}`;
+  return html`${renderModeAndBoost(ctx)}${renderLevels(ctx)}${renderFilters(ctx)}`;
 }
 
 export const controlStyles = css`

@@ -33,7 +33,7 @@ test("the level bar is locked in the auto modes, off when the unit locks it", as
 });
 
 test("the level bar is locked while the unit is off or boosting", async () => {
-  const hint = (card) => card.locator(".control").first().locator(".hint").textContent();
+  const hint = (card) => card.locator(".levels").locator(".hint").textContent();
   for (const [states, text] of [
     [{ operating_mode: { state: "off" } }, "The unit is off"],
     [{ ...MANUAL, boost_ventilation: { state: "on" } }, "Boost is running"],

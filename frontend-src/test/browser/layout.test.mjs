@@ -23,7 +23,7 @@ for (const width of [300, 328, 460]) {
     assert.deepEqual(await overflowing(view.card), []);
     const narrow = width < 400;
     assert.equal(await view.card.locator(".segment .level-icon").count(), narrow ? 5 : 0, "level icons");
-    const levels = await view.card.locator(".control").first().textContent();
+    const levels = await view.card.locator(".levels").textContent();
     // With icons, the running level is named below the bar.
     assert.equal(/Nominal ·/.test(levels), narrow);
     assert.equal(await view.card.locator(".mode-row .button span").count(), narrow ? 0 : 2, "button labels");

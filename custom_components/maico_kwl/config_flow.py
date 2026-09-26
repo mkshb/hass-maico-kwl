@@ -145,6 +145,15 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 title = entry.title
                 if title == f"{DEFAULT_NAME} ({entry.data[CONF_HOST]})":
                     title = f"{DEFAULT_NAME} ({host})"
+                # A new connection may lead to another unit: the accessories
+                # chosen for the old one no longer apply, detection decides.
+                options = dict(entry.options)
+                if (host, port, slave) != (
+                    entry.data[CONF_HOST],
+                    entry.data.get(CONF_PORT, DEFAULT_PORT),
+                    entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
+                ):
+                    options.pop(CONF_ACCESSORIES, None)
                 # A loaded entry is reloaded by its update listener; reloading
                 # here as well would set the unit up twice. An entry that
                 # failed to set up (retrying, or in error) has no listener, so
@@ -161,6 +170,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_PORT: port,
                         CONF_SLAVE: slave,
                     },
+                    options=options,
                 )
                 if entry.state in (
                     ConfigEntryState.SETUP_RETRY,

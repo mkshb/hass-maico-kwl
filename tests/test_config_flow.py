@@ -280,6 +280,41 @@ async def test_reconfigure_recovers_an_entry_that_failed_to_set_up(
     assert "should use it for scheduling a reload" not in caplog.text
 
 
+async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Another connection may be another unit: detection decides again."""
+    await setup_entry(hass, config_entry)
+    hass.config_entries.async_update_entry(
+        config_entry, options={**config_entry.options, CONF_ACCESSORIES: ["room_filter"]}
+    )
+    await hass.async_block_till_done()
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert CONF_ACCESSORIES not in config_entry.options
+
+
+async def test_reconfigure_with_the_same_connection_keeps_the_accessories(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await setup_entry(hass, config_entry)
+    hass.config_entries.async_update_entry(
+        config_entry, options={**config_entry.options, CONF_ACCESSORIES: ["room_filter"]}
+    )
+    await hass.async_block_till_done()
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert config_entry.options[CONF_ACCESSORIES] == ["room_filter"]
+
+
 async def test_reconfigure_keeps_custom_title_and_same_values(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

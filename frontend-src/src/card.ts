@@ -1,10 +1,39 @@
 import { LitElement, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 
+import { KwlDevice, maicoDeviceIds } from "./device";
+import { CO2_SENSOR_KEYS, HUMIDITY_SENSOR_KEYS, KEY, VOC_SENSOR_KEYS, type EntityKey } from "./keys";
+import { browserLocalize, localize, type StringKey } from "./localize";
 import type { HomeAssistant, MaicoKwlCardConfig } from "./types";
 
-export const DOMAIN = "maico_kwl";
 const CARD_TYPE = "maico-kwl-card";
+
+// Until the real layout lands, the card lists what it resolved, grouped the
+// way the layout will use it. Entities the unit lacks do not show up.
+const GROUPS: [StringKey, readonly EntityKey[]][] = [
+  [
+    "group_airflow",
+    [
+      KEY.tempOutdoor, KEY.tempSupply, KEY.tempExtract, KEY.tempExhaust,
+      KEY.airflowSupply, KEY.airflowExhaust, KEY.fanSpeedSupply, KEY.fanSpeedExhaust,
+      KEY.bypassOpen, KEY.ptcHeaterActive, KEY.heatRecoveryEfficiency, KEY.heatRecoveryPower,
+    ],
+  ],
+  [
+    "group_room",
+    [
+      KEY.roomTempSource, KEY.tempRoom, KEY.tempRoomExternal, KEY.roomTempBusSent,
+      KEY.humidityExhaust, KEY.humidityBusSent, KEY.airQualityBusSent,
+      ...HUMIDITY_SENSOR_KEYS, ...CO2_SENSOR_KEYS, ...VOC_SENSOR_KEYS,
+    ],
+  ],
+  ["group_controls", [KEY.operatingMode, KEY.ventilationLevel, KEY.currentVentLevel, KEY.boost, KEY.season]],
+  [
+    "group_filters",
+    [KEY.filterRemainingDevice, KEY.filterRemainingOutdoor, KEY.filterRemainingRoom, KEY.filterNextChange],
+  ],
+  ["group_status", [KEY.problem, KEY.faultCode, KEY.noticeCode]],
+];
 
 export class MaicoKwlCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -16,43 +45,51 @@ export class MaicoKwlCard extends LitElement {
   }
 
   public getCardSize(): number {
-    return 4;
+    return 6;
   }
 
-  public static getStubConfig(): Omit<MaicoKwlCardConfig, "type"> {
-    return {};
+  public static async getConfigElement(): Promise<HTMLElement> {
+    const { EDITOR_TYPE } = await import("./editor");
+    return document.createElement(EDITOR_TYPE);
   }
 
-  private _deviceId(): string | undefined {
-    if (this._config?.device_id) return this._config.device_id;
-    return Object.values(this.hass!.entities).find(
-      (entry) => entry.platform === DOMAIN && entry.device_id,
-    )?.device_id;
+  public static getStubConfig(hass: HomeAssistant): Omit<MaicoKwlCardConfig, "type"> {
+    const [deviceId] = maicoDeviceIds(hass);
+    return deviceId ? { device_id: deviceId } : {};
+  }
+
+  /** The configured unit, or the only/first one when none is configured. */
+  private _device(): KwlDevice | undefined {
+    const deviceId = this._config?.device_id ?? maicoDeviceIds(this.hass!)[0];
+    if (!deviceId || !this.hass!.devices[deviceId]) return undefined;
+    return new KwlDevice(this.hass!, deviceId);
   }
 
   protected render() {
     if (!this.hass || !this._config) return nothing;
-    const deviceId = this._deviceId();
-    const device = deviceId ? this.hass.devices[deviceId] : undefined;
-    const entities = Object.values(this.hass.entities).filter(
-      (entry) => entry.platform === DOMAIN && entry.device_id === deviceId && !entry.hidden,
-    );
+    const device = this._device();
+    if (!device) {
+      const message = this._config.device_id ? "device_missing" : "no_device";
+      return html`<ha-card><p class="empty">${localize(this.hass, message)}</p></ha-card>`;
+    }
     return html`
-      <ha-card .header=${device?.name_by_user || device?.name || "Maico KWL"}>
+      <ha-card .header=${device.name}>
         <div class="content">
-          ${entities.length
-            ? html`<table>
-                ${entities.map((entry) => {
-                  const stateObj = this.hass!.states[entry.entity_id];
-                  return html`<tr>
-                    <td>${stateObj?.attributes.friendly_name ?? entry.entity_id}</td>
-                    <td class="state">
-                      ${stateObj ? this.hass!.formatEntityState(stateObj) : ""}
-                    </td>
-                  </tr>`;
-                })}
-              </table>`
-            : html`<p class="empty">No Maico KWL unit found.</p>`}
+          ${GROUPS.map(([title, keys]) => {
+            const present = device.present(keys);
+            if (!present.length) return nothing;
+            return html`
+              <h3>${localize(this.hass, title)}</h3>
+              <table>
+                ${present.map(
+                  (key) => html`<tr>
+                    <td>${device.stateObj(key)!.attributes.friendly_name ?? key}</td>
+                    <td class="state">${device.format(key)}</td>
+                  </tr>`,
+                )}
+              </table>
+            `;
+          })}
         </div>
       </ha-card>
     `;
@@ -61,6 +98,12 @@ export class MaicoKwlCard extends LitElement {
   static styles = css`
     .content {
       padding: 0 16px 16px;
+    }
+    h3 {
+      margin: 16px 0 4px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--secondary-text-color);
     }
     table {
       width: 100%;
@@ -75,6 +118,8 @@ export class MaicoKwlCard extends LitElement {
       color: var(--secondary-text-color);
     }
     .empty {
+      padding: 16px;
+      margin: 0;
       color: var(--secondary-text-color);
     }
   `;
@@ -82,7 +127,7 @@ export class MaicoKwlCard extends LitElement {
 
 declare global {
   interface Window {
-    customCards?: { type: string; name: string; description: string }[];
+    customCards?: { type: string; name: string; description: string; preview?: boolean }[];
   }
 }
 
@@ -91,7 +136,8 @@ if (!customElements.get(CARD_TYPE)) {
   window.customCards = window.customCards ?? [];
   window.customCards.push({
     type: CARD_TYPE,
-    name: "Maico KWL",
-    description: "Airflow, temperatures and controls of a Maico ventilation unit.",
+    name: browserLocalize("card_name"),
+    description: browserLocalize("card_description"),
+    preview: true,
   });
 }

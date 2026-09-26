@@ -40,10 +40,28 @@ async def test_card_is_skipped_without_frontend(hass: HomeAssistant) -> None:
 
 
 def test_built_card_is_complete() -> None:
-    """The committed build has the loader and the chunk it imports."""
-    loader = (FRONTEND_DIR / CARD_LOADER).read_text(encoding="utf-8")
-    chunks = re.findall(r'import\("\./([\w-]+\.js)"\)', loader)
-    assert chunks, "the loader imports no card chunk"
-    for chunk in chunks:
-        assert (FRONTEND_DIR / chunk).is_file(), f"missing chunk {chunk}"
-    assert {p.name for p in Path(FRONTEND_DIR).iterdir()} == {CARD_LOADER, *chunks}
+    """The committed build has the loader and every chunk it reaches, nothing else."""
+    reached: set[str] = set()
+    pending = [CARD_LOADER]
+    while pending:
+        name = pending.pop()
+        reached.add(name)
+        source = (FRONTEND_DIR / name).read_text(encoding="utf-8")
+        for chunk in re.findall(r'(?:import\(|from)"\./([\w-]+\.js)"', source):
+            assert (FRONTEND_DIR / chunk).is_file(), f"{name} imports missing {chunk}"
+            if chunk not in reached:
+                pending.append(chunk)
+    assert len(reached) > 1, "the loader imports no card chunk"
+    assert {p.name for p in FRONTEND_DIR.iterdir()} == reached
+
+
+def test_card_uses_existing_entity_keys() -> None:
+    """Every translation_key the card looks up is one the integration creates."""
+    keys_ts = (
+        Path(__file__).parent.parent / "frontend-src" / "src" / "keys.ts"
+    ).read_text(encoding="utf-8")
+    card_keys = set(re.findall(r'"([a-z0-9_]+)"', keys_ts))
+    strings = json.loads((FRONTEND_DIR.parent / "strings.json").read_text())
+    entity_keys = {key for platform in strings["entity"].values() for key in platform}
+    assert card_keys
+    assert card_keys - entity_keys == set()

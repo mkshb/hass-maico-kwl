@@ -5,15 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
 from .coordinator import MaicoCoordinator
 from .modbus_hub import MaicoModbusError
-from .register_defs import BUTTON, RegisterDef
+from .register_defs import BUTTON, RegisterDef, RegisterValue
 
 
 def maico_device_info(
@@ -60,9 +60,15 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         return self._reg.key in self.coordinator.data
 
     @property
-    def _value(self):
+    def _value(self) -> RegisterValue | None:
         """The decoded value for this register, or None if absent this cycle."""
         return self.coordinator.data.get(self._reg.key)
+
+    @property
+    def _number(self) -> float | None:
+        """The value of a numeric register, or None if absent this cycle."""
+        value = self._value
+        return value if isinstance(value, (int, float)) else None
 
     async def _async_write(self, value: float | datetime) -> None:
         """Write a real-world value to this entity's register.

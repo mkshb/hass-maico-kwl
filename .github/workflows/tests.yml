@@ -27,3 +27,6 @@ jobs:
 
       - name: "Run tests"
         run: pytest --cov --cov-report=term-missing --cov-fail-under=95
+
+      - name: "Type check"
+        run: mypy

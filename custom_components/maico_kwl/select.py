@@ -6,7 +6,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import MaicoConfigEntry
+from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import MaicoEntity
 from .register_defs import SELECT, REGISTERS_BY_KEY, RegisterDef
 
@@ -30,13 +30,15 @@ async def async_setup_entry(
 class MaicoSelect(MaicoEntity, SelectEntity):
     """A writable enum Maico register."""
 
-    def __init__(self, coordinator, entry, reg: RegisterDef) -> None:
+    def __init__(
+        self, coordinator: MaicoCoordinator, entry: MaicoConfigEntry, reg: RegisterDef
+    ) -> None:
         super().__init__(coordinator, entry, reg)
-        self._attr_options = list(reg.options.values())
+        self._attr_options = list((reg.options or {}).values())
 
     @property
     def current_option(self) -> str | None:
-        value = self._value
+        value = self._number
         if value is None:
             return None
         return self._reg.label_for(int(value))

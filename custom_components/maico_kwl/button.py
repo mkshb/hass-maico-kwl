@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_DISCOVERY
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import MaicoEntity, maico_device_info
-from .register_defs import BUTTON, CLOCK, REGISTERS_BY_KEY
+from .register_defs import BUTTON, CLOCK, REGISTERS_BY_KEY, RegisterValue
 
 # Send actions to the unit one at a time.
 PARALLEL_UPDATES = 1
@@ -37,6 +37,7 @@ class MaicoButton(MaicoEntity, ButtonEntity):
     """A momentary command: writes a fixed value to a register on press."""
 
     async def async_press(self) -> None:
+        value: RegisterValue
         if self._reg.data_type == CLOCK:
             # The unit keeps local time without a time zone.
             value = dt_util.now().replace(tzinfo=None, microsecond=0)

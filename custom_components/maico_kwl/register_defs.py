@@ -44,6 +44,9 @@ HOURS = "h"
 MINUTES = "min"
 MONTHS = "mo"
 
+# A decoded register value: a number, or the unit's clock.
+type RegisterValue = float | int | datetime
+
 # Enum maps (raw value -> option slug). The slug is the canonical state stored by
 # HA; its display text is translated via entity .../state/<slug> in the translation
 # files (translations/en.json, translations/de.json).
@@ -170,12 +173,13 @@ class RegisterDef:
             return 6
         return 2 if self.data_type.endswith("32") else 1
 
-    def decode(self, regs: list[int]) -> float | int | datetime | None:
+    def decode(self, regs: list[int]) -> RegisterValue | None:
         """Combine raw registers into the real-world value."""
         if self.data_type == CLOCK:
             # Year, month, day, hour, minute, second in local time of the unit.
             try:
-                return datetime(*regs[:6])
+                year, month, day, hour, minute, second = regs[:6]
+                return datetime(year, month, day, hour, minute, second)
             except (TypeError, ValueError):
                 return None  # clock not set or invalid
         raw = 0
@@ -213,7 +217,7 @@ class RegisterDef:
             value = min(value, self.native_max)
         return float(value)
 
-    def active_bits(self, value: int) -> list[str]:
+    def active_bits(self, value: float) -> list[str]:
         """Slugs of the set bits of a bitfield register, in bit order.
 
         Set bits without a documented meaning show up as ``bit_<n>``.
@@ -244,7 +248,7 @@ class RegisterDef:
 
 def _enocean_bank(
     start: int, prefix: str, name: str, unit: str, dev_class: str, scale: float = 0.1
-):
+) -> list[RegisterDef]:
     return [
         RegisterDef(
             key=f"{prefix}_id{i}",
@@ -263,7 +267,7 @@ def _enocean_bank(
 
 def _sensor_bank(
     start: int, prefix: str, name: str, unit: str, dev_class: str, scale: float = 0.1
-):
+) -> list[RegisterDef]:
     return [
         RegisterDef(
             key=f"{prefix}_{i + 1}",

@@ -10,6 +10,7 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
+    ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.core import callback
@@ -53,7 +54,9 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None):
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
@@ -98,7 +101,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ):
+    ) -> ConfigFlowResult:
         """Change host, port or Modbus address of an existing entry."""
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
@@ -173,7 +176,9 @@ class MaicoOptionsFlow(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._entry = config_entry
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
             # Keys left empty are omitted -> the corresponding feed is cleared.
             return self.async_create_entry(title="", data=user_input)
@@ -183,7 +188,7 @@ class MaicoOptionsFlow(OptionsFlow):
             CONF_SCAN_INTERVAL,
             self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        fields: dict = {
+        fields: dict[vol.Marker, Any] = {
             vol.Optional(CONF_SCAN_INTERVAL, default=scan_current): vol.All(
                 vol.Coerce(int), vol.Range(min=5, max=3600)
             )

@@ -11,15 +11,17 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .bus_feed import BusFeeder
-from .const import DOMAIN, MAX_BLOCK_SIZE
+from .const import DOMAIN, MAX_BLOCK_SIZE, MaicoProfile
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef
+from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef, RegisterValue
 
 _LOGGER = logging.getLogger(__name__)
 
 Block = tuple[int, int, list[RegisterDef]]  # (start, count, defs)
 
 type MaicoConfigEntry = ConfigEntry[MaicoRuntimeData]
+# Decoded values keyed by register; a key is missing while its read fails.
+type MaicoData = dict[str, RegisterValue | None]
 
 
 def build_blocks(defs: list[RegisterDef]) -> list[Block]:
@@ -48,7 +50,7 @@ def build_blocks(defs: list[RegisterDef]) -> list[Block]:
     return blocks
 
 
-class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
+class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
     """Polls the present registers and exposes decoded values keyed by register."""
 
     def __init__(
@@ -56,7 +58,7 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
         hass: HomeAssistant,
         hub: MaicoModbusHub,
         present: set[str],
-        profile: dict,
+        profile: MaicoProfile,
         scan_interval: int,
     ) -> None:
         super().__init__(
@@ -77,7 +79,7 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
         ]
         self._blocks = build_blocks(read_defs)
 
-    async def _async_update_data(self) -> dict[str, float]:
+    async def _async_update_data(self) -> MaicoData:
         try:
             return await self._read_all()
         except MaicoConnectionError as err:
@@ -88,8 +90,8 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
                 translation_placeholders={"error": str(err)},
             ) from err
 
-    async def _read_all(self) -> dict[str, float]:
-        data: dict[str, float] = {}
+    async def _read_all(self) -> MaicoData:
+        data: MaicoData = {}
         for start, count, defs in self._blocks:
             try:
                 regs = await self.hub.read_block(start, count)
@@ -108,7 +110,7 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
         return data
 
     async def _read_singly(
-        self, defs: list[RegisterDef], data: dict[str, float]
+        self, defs: list[RegisterDef], data: MaicoData
     ) -> None:
         for reg in defs:
             try:

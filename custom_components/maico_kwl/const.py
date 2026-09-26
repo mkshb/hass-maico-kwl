@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TypedDict
 
 DOMAIN = "maico_kwl"
 
@@ -34,6 +35,16 @@ BUS_REWRITE_INTERVAL = timedelta(minutes=9)
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 10
 DEFAULT_SCAN_INTERVAL = 30  # seconds
+
+
+class MaicoProfile(TypedDict):
+    """Capability profile derived from the present registers (discovery.py)."""
+
+    model: str
+    features: list[str]
+    present_count: int
+    total_count: int
+
 
 MANUFACTURER = "Maico"
 DEFAULT_NAME = "Maico KWL"

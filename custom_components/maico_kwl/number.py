@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -17,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL, DOMAIN
-from .coordinator import MaicoConfigEntry
+from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import MaicoEntity
 from .register_defs import NUMBER, REGISTERS_BY_KEY, RegisterDef
 
@@ -71,13 +72,15 @@ def _apply_number_attrs(entity: NumberEntity, reg: RegisterDef) -> None:
 class MaicoNumber(MaicoEntity, NumberEntity):
     """A writable, readable numeric Maico register."""
 
-    def __init__(self, coordinator, entry, reg: RegisterDef) -> None:
+    def __init__(
+        self, coordinator: MaicoCoordinator, entry: MaicoConfigEntry, reg: RegisterDef
+    ) -> None:
         super().__init__(coordinator, entry, reg)
         _apply_number_attrs(self, reg)
 
     @property
-    def native_value(self):
-        return self._value
+    def native_value(self) -> float | None:
+        return self._number
 
     async def async_set_native_value(self, value: float) -> None:
         await self._async_write(value)
@@ -94,7 +97,9 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
 
     _attr_mode = NumberMode.BOX
 
-    def __init__(self, coordinator, entry, reg: RegisterDef) -> None:
+    def __init__(
+        self, coordinator: MaicoCoordinator, entry: MaicoConfigEntry, reg: RegisterDef
+    ) -> None:
         super().__init__(coordinator, entry, reg)
         _apply_number_attrs(self, reg)
         self._attr_native_value = None
@@ -119,7 +124,7 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
         self._attr_native_value = value
         self.async_write_ha_state()
 
-    async def _async_rewrite(self, _now) -> None:
+    async def _async_rewrite(self, _now: datetime | None) -> None:
         if self._attr_native_value is None:
             return
         try:

@@ -11,11 +11,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
 from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
-from .coordinator import MaicoConfigEntry
+from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import MaicoEntity
 from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
 
@@ -51,7 +52,9 @@ async def async_setup_entry(
 class MaicoSensor(MaicoEntity, SensorEntity):
     """A read-only Maico register exposed as a sensor."""
 
-    def __init__(self, coordinator, entry, reg: RegisterDef) -> None:
+    def __init__(
+        self, coordinator: MaicoCoordinator, entry: MaicoConfigEntry, reg: RegisterDef
+    ) -> None:
         super().__init__(coordinator, entry, reg)
         if reg.unit:
             self._attr_native_unit_of_measurement = reg.unit
@@ -63,23 +66,23 @@ class MaicoSensor(MaicoEntity, SensorEntity):
             self._attr_options = list(reg.options.values())
 
     @property
-    def native_value(self):
+    def native_value(self) -> StateType | datetime:
         value = self._value
         if value is None:
             return None
-        if self._reg.options is not None:
-            return self._reg.label_for(int(value))
         if isinstance(value, datetime):
             # The unit's clock runs in local time; timestamps need a time zone.
             return value.replace(tzinfo=dt_util.get_default_time_zone())
+        if self._reg.options is not None:
+            return self._reg.label_for(int(value))
         return value
 
     @property
     def extra_state_attributes(self) -> dict[str, list[str]] | None:
         """For bitfield registers, the meanings of the bits that are set."""
-        if self._reg.bits is None or self._value is None:
+        if self._reg.bits is None or self._number is None:
             return None
-        return {"active": self._reg.active_bits(self._value)}
+        return {"active": self._reg.active_bits(self._number)}
 
 
 class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
@@ -94,8 +97,8 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator,
-        entry,
+        coordinator: MaicoCoordinator,
+        entry: MaicoConfigEntry,
         reg: RegisterDef,
         feeder: BusFeeder,
         source_entity_id: str,
@@ -122,7 +125,7 @@ class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
         self.async_write_ha_state()
 
     @property
-    def native_value(self):
+    def native_value(self) -> StateType | datetime:
         sent = self._feeder.sent(self._reg.key)
         return None if sent is None else sent.value
 

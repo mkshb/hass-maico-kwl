@@ -14,7 +14,14 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Event, HomeAssistant, State, callback
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
@@ -23,7 +30,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import BUS_REWRITE_INTERVAL
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
-from .register_defs import RegisterDef
+from .register_defs import RegisterDef, RegisterValue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +41,7 @@ _INVALID = {None, "", "unknown", "unavailable"}
 class SentValue:
     """The value the unit last received for a bus input."""
 
-    value: float
+    value: RegisterValue | None
     written_at: datetime
 
 
@@ -52,8 +59,8 @@ class BusFeeder:
         self._entry = entry
         self._hub = hub
         self._feeds = feeds
-        self._unsubs: list = []
-        self._tasks: set[asyncio.Task] = set()
+        self._unsubs: list[CALLBACK_TYPE] = []
+        self._tasks: set[asyncio.Task[None]] = set()
         # Registers whose last write failed, so a lasting outage is logged once.
         self._failing: set[str] = set()
         # Last raw words written per register, to skip unchanged values.
@@ -114,7 +121,7 @@ class BusFeeder:
         task.add_done_callback(self._tasks.discard)
 
     @callback
-    def _handle_state_event(self, event: Event) -> None:
+    def _handle_state_event(self, event: Event[EventStateChangedData]) -> None:
         entity_id = event.data["entity_id"]
         new_state = event.data.get("new_state")
         for reg, feed_entity_id in self._feeds:
@@ -122,7 +129,7 @@ class BusFeeder:
                 self._schedule_write(reg, new_state)
 
     @callback
-    def _handle_interval(self, _now) -> None:
+    def _handle_interval(self, _now: datetime) -> None:
         # Always write here: the unit needs the value refreshed periodically.
         for reg, entity_id in self._feeds:
             self._schedule_write(reg, self.hass.states.get(entity_id), force=True)

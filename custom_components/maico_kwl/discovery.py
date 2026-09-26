@@ -13,7 +13,9 @@ registers of a block the device rejects are probed one by one.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
+from .const import MaicoProfile
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
@@ -21,7 +23,7 @@ from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
+async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
     """Probe the device and return (present register keys, capability profile).
 
     Raises MaicoConnectionError if the device becomes unreachable while probing,
@@ -59,7 +61,7 @@ def cache_data(present: set[str]) -> dict[str, list[str]]:
     }
 
 
-def present_from_cache(cache: dict | None) -> set[str] | None:
+def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
     """Present registers from a stored discovery, or None to discover again."""
     if not cache:
         return None
@@ -111,7 +113,7 @@ def _resolve_probe_via(present: set[str]) -> set[str]:
     }
 
 
-def derive_profile(present: set[str]) -> dict:
+def derive_profile(present: set[str]) -> MaicoProfile:
     """Infer a capability profile from the set of present registers."""
     features: list[str] = []
 

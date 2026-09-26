@@ -15,6 +15,10 @@ CONF_SCAN_INTERVAL = "scan_interval"
 # Result of the last discovery, stored in the entry data (see discovery.py).
 CONF_DISCOVERY = "discovery"
 
+# Accessories the user marked as fitted (option). Only stored while it differs
+# from the detected ones, so a later rediscovery still applies otherwise.
+CONF_ACCESSORIES = "accessories"
+
 # Optional source entities whose value is fed cyclically into a write-only
 # "bus" input register.
 CONF_ROOM_TEMP_SOURCE_ENTITY = "room_temp_source_entity"

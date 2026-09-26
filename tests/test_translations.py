@@ -11,6 +11,7 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 
 from custom_components.maico_kwl.const import DOMAIN
+from custom_components.maico_kwl.register_defs import ACCESSORIES
 
 from .conftest import FakeDevice
 from .helpers import setup_entry
@@ -99,3 +100,9 @@ def test_code_only_uses_known_exception_keys() -> None:
             used |= set(re.findall(r'translation_key="(\w+)"', block))
     assert used
     assert used <= known
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_every_accessory_is_named(name: str) -> None:
+    options = _load(name)["selector"]["accessory"]["options"]
+    assert options.keys() == {acc.key for acc in ACCESSORIES}

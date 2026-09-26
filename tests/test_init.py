@@ -179,22 +179,24 @@ async def test_empty_stored_discovery_probes_again(
 async def test_discovery_of_an_older_version_runs_again(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    """A stored discovery without the filter check is redone once."""
+    """A stored discovery without the accessories is redone once."""
     device.registers[656] = 0  # no outdoor filter fitted
     await setup_entry(hass, config_entry)
     cache = config_entry.data[CONF_DISCOVERY]
-    assert "filter_remaining_outdoor" not in cache["present"]
+    assert "filter_remaining_outdoor" in cache["present"]
+    assert "outdoor_filter" not in cache["accessories"]
+    assert "room_filter" in cache["accessories"]
+    present = config_entry.runtime_data.coordinator.present
+    assert "filter_remaining_outdoor" not in present
+    assert "filter_remaining_room" in present
 
-    old = {
-        "probed": cache["probed"],
-        "present": [*cache["present"], "filter_remaining_outdoor"],
-    }
+    old = {"probed": cache["probed"], "present": cache["present"]}
     hass.config_entries.async_update_entry(
         config_entry, data={**config_entry.data, CONF_DISCOVERY: old}
     )
     await hass.async_block_till_done()  # the data change reloads the entry
 
     assert config_entry.state is ConfigEntryState.LOADED
-    present = config_entry.runtime_data.coordinator.present
-    assert "filter_remaining_outdoor" not in present
     assert config_entry.data[CONF_DISCOVERY]["version"] == 2
+    assert "outdoor_filter" not in config_entry.data[CONF_DISCOVERY]["accessories"]
+    assert "filter_remaining_outdoor" not in config_entry.runtime_data.coordinator.present

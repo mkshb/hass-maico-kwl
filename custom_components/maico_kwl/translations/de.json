@@ -44,15 +44,17 @@
     "step": {
       "init": {
         "title": "Maico-KWL-Optionen",
-        "description": "Optional Quell-Entitäten wählen, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Leer lassen, um den Wert manuell zu steuern.",
+        "description": "Wähle das Zubehör, das an deinem Gerät verbaut ist, und optional Quell-Entitäten, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Eine Quelle leer lassen, um den Wert manuell zu steuern.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
+          "accessories": "Verbautes Zubehör",
           "room_temp_source_entity": "Quell-Entität Raumtemperatur",
           "humidity_source_entity": "Quell-Entität Feuchte",
           "air_quality_source_entity": "Quell-Entität Luftgüte"
         },
         "data_description": {
           "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen.",
+          "accessories": "Vorbelegt mit dem, was die Integration am Gerät erkannt hat. Entitäten von nicht ausgewähltem Zubehör werden entfernt.",
           "room_temp_source_entity": "Temperatursensor, dessen Wert als Raumtemperatur ans Gerät gesendet wird. Das Gerät nutzt ihn nur, wenn die Raumtemperatur-Quelle auf \"Bus\" steht.",
           "humidity_source_entity": "Feuchtesensor, dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Feuchte über den Bus beziehen soll.",
           "air_quality_source_entity": "Luftgütesensor (ppm), dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Luftgüte über den Bus beziehen soll."
@@ -571,6 +573,19 @@
           "name": "Dauer",
           "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet. Ohne Dauer beendet das Gerät sie selbst."
         }
+      }
+    }
+  },
+  "selector": {
+    "accessory": {
+      "options": {
+        "outdoor_filter": "Außenfilter",
+        "room_filter": "Raumfilter",
+        "wired_sensors": "Kabelgebundene Sensoren (Feuchte, CO2, VOC 1 bis 4)",
+        "enocean": "EnOcean-Funksensoren",
+        "external_room_sensor": "Externer Raumtemperaturfühler",
+        "ptc_heater": "PTC-Heizregister",
+        "zp1": "Erweiterungsmodul ZP1"
       }
     }
   }

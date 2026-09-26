@@ -14,10 +14,18 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     BUS_FEEDS,
+    CONF_ACCESSORIES,
+    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -28,8 +36,14 @@ from .const import (
     DEFAULT_SLAVE,
     DOMAIN,
 )
-from .discovery import data_without_discovery
+from .discovery import (
+    active_accessories,
+    data_without_discovery,
+    offered_accessories,
+    present_from_cache,
+)
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
+from .register_defs import ACCESSORIES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -170,7 +184,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class MaicoOptionsFlow(OptionsFlow):
-    """Allow changing the scan interval after setup."""
+    """Scan interval, fitted accessories and bus feed sources."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._entry = config_entry
@@ -178,11 +192,24 @@ class MaicoOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        cache = self._entry.data.get(CONF_DISCOVERY) or {}
+        offered = offered_accessories(present_from_cache(cache) or set())
+        opts = self._entry.options
+
         if user_input is not None:
             # Keys left empty are omitted -> the corresponding feed is cleared.
-            return self.async_create_entry(title="", data=user_input)
+            data = dict(user_input)
+            if not offered:
+                # No stored discovery to choose from: keep the last choice.
+                if CONF_ACCESSORIES in opts:
+                    data[CONF_ACCESSORIES] = opts[CONF_ACCESSORIES]
+            elif set(data.get(CONF_ACCESSORIES, [])) == set(
+                cache.get("accessories", [])
+            ):
+                # Same as detected: store nothing, a rediscovery still applies.
+                data.pop(CONF_ACCESSORIES, None)
+            return self.async_create_entry(title="", data=data)
 
-        opts = self._entry.options
         scan_current = opts.get(
             CONF_SCAN_INTERVAL,
             self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -192,6 +219,20 @@ class MaicoOptionsFlow(OptionsFlow):
                 vol.Coerce(int), vol.Range(min=5, max=3600)
             )
         }
+        if offered:
+            fields[
+                vol.Optional(
+                    CONF_ACCESSORIES,
+                    default=sorted(active_accessories(cache, opts) & offered),
+                )
+            ] = SelectSelector(
+                SelectSelectorConfig(
+                    options=[acc.key for acc in ACCESSORIES if acc.key in offered],
+                    multiple=True,
+                    mode=SelectSelectorMode.LIST,
+                    translation_key="accessory",
+                )
+            )
         for _reg_key, conf_key, device_class in BUS_FEEDS:
             config = (
                 EntitySelectorConfig(domain="sensor", device_class=device_class)

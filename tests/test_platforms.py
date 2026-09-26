@@ -300,6 +300,7 @@ async def test_rediscover_button(
     """Pressing the button probes the unit again, e.g. after adding EnOcean."""
     assert "enocean_co2_id0" not in loaded.runtime_data.coordinator.present
     device.absent -= set(range(350, 374))  # EnOcean module retrofitted
+    device.registers[350] = 6500  # with a CO2 sensor at ID0
 
     button = entity_id(hass, loaded, "button", "rediscover")
     await hass.services.async_call(
@@ -315,9 +316,12 @@ async def test_rediscover_button(
 
 
 async def test_rediscover_removes_entities_of_missing_registers(
-    hass: HomeAssistant, device: FakeDevice, loaded
+    hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """Entities of registers the unit no longer answers are removed."""
+    device.registers[109] = 1  # room temperature from the external sensor
+    loaded = config_entry
+    await setup_entry(hass, loaded)
     ent_reg = er.async_get(hass)
     humidity = entity_id(hass, loaded, "sensor", "humidity_exhaust")
     dew_point = entity_id(hass, loaded, "sensor", "dew_point_extract")

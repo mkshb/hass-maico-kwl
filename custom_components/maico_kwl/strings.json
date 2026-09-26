@@ -44,15 +44,17 @@
     "step": {
       "init": {
         "title": "Maico KWL options",
-        "description": "Optionally choose source entities whose values are sent to the unit cyclically (the matching source, e.g. room temperature, must be set to \"Bus\"). Leave empty to control the value manually.",
+        "description": "Choose the accessories fitted to your unit and, optionally, source entities whose values are sent to the unit cyclically (the matching source, e.g. room temperature, must be set to \"Bus\"). Leave a source empty to control the value manually.",
         "data": {
           "scan_interval": "Scan interval (seconds)",
+          "accessories": "Fitted accessories",
           "room_temp_source_entity": "Room temperature source entity",
           "humidity_source_entity": "Humidity source entity",
           "air_quality_source_entity": "Air quality source entity"
         },
         "data_description": {
           "scan_interval": "How often the values are read from the unit. 30 seconds is enough for most uses.",
+          "accessories": "Preselected from what the integration detected on the unit. Entities of accessories that are not selected are removed.",
           "room_temp_source_entity": "Temperature sensor whose value is sent to the unit as room temperature. Only used by the unit if the room temperature source is set to \"Bus\".",
           "humidity_source_entity": "Humidity sensor whose value is sent to the unit. Only used if the unit is configured to take the humidity over the bus.",
           "air_quality_source_entity": "Air quality sensor (ppm) whose value is sent to the unit. Only used if the unit is configured to take the air quality over the bus."
@@ -571,6 +573,19 @@
           "name": "Duration",
           "description": "Minutes after which Home Assistant ends the boost. Without a duration the unit ends it on its own terms."
         }
+      }
+    }
+  },
+  "selector": {
+    "accessory": {
+      "options": {
+        "outdoor_filter": "Outdoor filter",
+        "room_filter": "Room filter",
+        "wired_sensors": "Wired sensors (humidity, CO2, VOC 1 to 4)",
+        "enocean": "EnOcean wireless sensors",
+        "external_room_sensor": "External room temperature sensor",
+        "ptc_heater": "PTC heater",
+        "zp1": "ZP1 extension module"
       }
     }
   }

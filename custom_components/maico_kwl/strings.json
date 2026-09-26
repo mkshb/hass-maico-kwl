@@ -9,6 +9,26 @@
           "port": "Port",
           "slave": "Modbus address",
           "scan_interval": "Scan interval (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the unit or of the Modbus TCP gateway in front of it.",
+          "port": "Modbus TCP port, usually 502.",
+          "slave": "Modbus address (unit ID) of the ventilation unit. Maico units use 10 by default.",
+          "scan_interval": "How often the values are read from the unit. 30 seconds is enough for most uses."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Maico KWL",
+        "description": "Change how the unit is reached, e.g. after the gateway got a new IP address. The connection is tested before the change is saved.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Modbus address"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the unit or of the Modbus TCP gateway in front of it.",
+          "port": "Modbus TCP port, usually 502.",
+          "slave": "Modbus address (unit ID) of the ventilation unit. Maico units use 10 by default."
         }
       }
     },
@@ -16,7 +36,8 @@
       "cannot_connect": "Failed to connect to the device."
     },
     "abort": {
-      "already_configured": "This device is already configured."
+      "already_configured": "This device is already configured.",
+      "reconfigure_successful": "The connection settings were updated."
     }
   },
   "options": {
@@ -29,6 +50,12 @@
           "room_temp_source_entity": "Room temperature source entity",
           "humidity_source_entity": "Humidity source entity",
           "air_quality_source_entity": "Air quality source entity"
+        },
+        "data_description": {
+          "scan_interval": "How often the values are read from the unit. 30 seconds is enough for most uses.",
+          "room_temp_source_entity": "Temperature sensor whose value is sent to the unit as room temperature. Only used by the unit if the room temperature source is set to \"Bus\".",
+          "humidity_source_entity": "Humidity sensor whose value is sent to the unit. Only used if the unit is configured to take the humidity over the bus.",
+          "air_quality_source_entity": "Air quality sensor (ppm) whose value is sent to the unit. Only used if the unit is configured to take the air quality over the bus."
         }
       }
     }
@@ -38,11 +65,29 @@
       "base_board_contact": {
         "name": "Base board contact"
       },
+      "device_filter_dirty": {
+        "name": "Device filter dirty"
+      },
       "fan_exhaust_active": {
         "name": "Fan exhaust active"
       },
       "fan_supply_active": {
         "name": "Fan supply active"
+      },
+      "filter_due_device": {
+        "name": "Filter due device"
+      },
+      "filter_due_outdoor": {
+        "name": "Filter due outdoor"
+      },
+      "filter_due_room": {
+        "name": "Filter due room"
+      },
+      "frost_protection_active": {
+        "name": "Frost protection active"
+      },
+      "outdoor_filter_dirty": {
+        "name": "Outdoor filter dirty"
       },
       "problem": {
         "name": "Problem"
@@ -52,6 +97,9 @@
       },
       "reheating_relay_active": {
         "name": "Reheating relay active"
+      },
+      "room_filter_dirty": {
+        "name": "Room filter dirty"
       },
       "summer_bypass_open": {
         "name": "Summer bypass open"
@@ -69,6 +117,12 @@
       },
       "filter_reset_room": {
         "name": "Reset room filter"
+      },
+      "clock_sync": {
+        "name": "Sync clock with Home Assistant"
+      },
+      "rediscover": {
+        "name": "Rediscover registers"
       }
     },
     "number": {
@@ -176,8 +230,14 @@
       "air_quality_bus_sent": {
         "name": "Air quality bus (sent)"
       },
+      "absolute_humidity_extract": {
+        "name": "Absolute humidity extract air"
+      },
       "airflow_exhaust": {
         "name": "Airflow exhaust"
+      },
+      "airflow_imbalance": {
+        "name": "Airflow imbalance"
       },
       "airflow_supply": {
         "name": "Airflow supply"
@@ -211,6 +271,9 @@
           "nominal": "Nominal",
           "intensive": "Intensive"
         }
+      },
+      "dew_point_extract": {
+        "name": "Dew point extract air"
       },
       "enocean_co2_id0": {
         "name": "EnOcean CO2 ID0"
@@ -291,7 +354,15 @@
         "name": "Fan speed supply"
       },
       "fault_code": {
-        "name": "Fault code"
+        "name": "Fault code",
+        "state_attributes": {
+          "active": {
+            "name": "Active faults"
+          }
+        }
+      },
+      "filter_next_change": {
+        "name": "Filter next change"
       },
       "filter_remaining_device": {
         "name": "Filter remaining device"
@@ -301,6 +372,12 @@
       },
       "filter_remaining_room": {
         "name": "Filter remaining room"
+      },
+      "heat_recovery_efficiency": {
+        "name": "Heat recovery efficiency"
+      },
+      "heat_recovery_power": {
+        "name": "Heat recovery power"
       },
       "humidity_exhaust": {
         "name": "Humidity exhaust"
@@ -318,7 +395,12 @@
         "name": "Humidity sensor 4"
       },
       "notice_code": {
-        "name": "Notice code"
+        "name": "Notice code",
+        "state_attributes": {
+          "active": {
+            "name": "Active notices"
+          }
+        }
       },
       "op_hours_brine_pump": {
         "name": "Operating hours brine pump"
@@ -399,6 +481,9 @@
           "zone_2": "Zone 2",
           "zone_sensor": "Zone sensor"
         }
+      },
+      "clock_deviation": {
+        "name": "Clock deviation"
       }
     },
     "switch": {
@@ -411,6 +496,26 @@
       "off_lock": {
         "name": "Disable off level"
       }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Cannot connect to the Maico KWL at {host}:{port}"
+    },
+    "discovery_failed": {
+      "message": "Discovering the registers of the Maico KWL failed: {error}"
+    },
+    "no_registers": {
+      "message": "The unit did not answer any known Maico KWL register"
+    },
+    "device_unreachable": {
+      "message": "The Maico KWL is not reachable: {error}"
+    },
+    "no_data": {
+      "message": "No register could be read from the Maico KWL"
+    },
+    "write_failed": {
+      "message": "Writing {entity} to the Maico KWL failed: {error}"
     }
   }
 }

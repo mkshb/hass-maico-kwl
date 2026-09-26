@@ -54,16 +54,44 @@ profile of the unit is derived from the registers it finds.
 
 | Platform         | Examples |
 |------------------|----------|
-| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code, current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
-| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code) |
+| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors, deviation of the unit clock from Home Assistant |
+| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits) |
 | `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
-| `button`         | Reset filter (device/outdoor/room), reset errors |
+| `button`         | Reset filter (device/outdoor/room), reset errors, sync the unit clock with Home Assistant, rediscover registers |
 
 Around **100 registers** are mapped in total. Rarely used or duplicated sensors (EnOcean banks,
 additional sensor IDs, ZP1 counters) are still discovered but **disabled by default** to keep the
 UI tidy. They can be enabled individually when needed.
+
+### Calculated values
+
+Some useful values have no register of their own. They are calculated from the registers that are
+there, and each is only created when the unit has all the registers it needs.
+
+| Sensor | Calculation |
+|--------|-------------|
+| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. Feed it into an *Integral* helper to get the recovered energy in kWh. |
+| *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; a slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
+| *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (diagnostic). A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
+| *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature and humidity (Magnus formula). The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
+| *Filter due device / outdoor / room* (on/off), *Filter next change* (date) | From the remaining filter days: a filter is due once its days reach 0, the date is when the first filter runs out. Use these for filter change reminders. |
+
+### Fault and notice codes
+
+The *Fault code* and *Notice code* sensors show the raw 32-bit value of registers 401/402 and
+403/404. Their `active` attribute lists the bits that are set, e.g. `["bypass_active"]` for notice
+code 16. Bits without a documented meaning appear as `bit_<n>`. The most useful bits also have their
+own binary sensors: *Device filter dirty*, *Outdoor filter dirty*, *Room filter dirty* and *Frost
+protection active*. The *Problem* sensor is on whenever any fault bit is set.
+
+The Maico KWL documentation only calls these registers a bitfield. The bit meanings are taken from
+the Modbus documentation of another Maico product (Geniovent), which uses the same registers. The
+bit numbering was confirmed on a live unit (notice bit 4 follows the summer bypass), the meaning of
+the other bits was not. On the test unit the filter bits stay off even when the remaining filter
+time is 0 days, so use the *Filter due* sensors (see [Calculated values](#calculated-values)) for filter
+change reminders.
 
 ## Requirements
 
@@ -75,6 +103,17 @@ UI tidy. They can be enabled individually when needed.
 
 > Note: this integration speaks **Modbus TCP** only. Modbus RTU (serial) is not currently
 > supported.
+
+## Supported devices
+
+- **Maico KWL units with Modbus TCP**, whose register map matches the Maico KWL Modbus
+  documentation (`docs/modbus.csv`). According to that documentation, Modbus TCP is available from
+  firmware **V1.1.1**.
+- Units without some of the optional parts (EnOcean, ZP1, brine ground heat exchanger, extra
+  sensors) are supported: registers the unit does not implement get no entity.
+- Tested so far with **one unit**, connected through a Modbus TCP proxy. Reports from other models
+  are welcome, see [Contributing](#contributing).
+- Not supported: Modbus RTU (serial) and other Maico product lines with a different register map.
 
 ## Installation
 
@@ -114,6 +153,18 @@ source must be set to **"Bus"** (e.g. the *Room temperature source* select for r
 While a source entity is configured, the manual bus `number` is hidden ("source has priority");
 leave the option empty to set the value manually instead.
 
+### How data is updated
+
+- **Polling**: all readable registers are read every *scan interval* (default 30 s, 5 to 3600 s).
+  Adjacent registers are read in one request.
+- **Writes**: changing a control writes the register right away and then refreshes all values, so
+  the new state shows up without waiting for the next poll.
+- **Bus inputs**: a configured source entity is written on every change and at least every
+  ~9 minutes. Manual bus numbers are rewritten every ~9 minutes as well.
+- **Discovery**: the register probe runs once at the first setup and its result is stored in the
+  config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
+  after a firmware update or after adding sensors to the unit.
+
 ## Automations
 
 The integration is a clean **control surface**. The control *policy* (when to change mode/level)
@@ -142,6 +193,14 @@ Import via **Settings > Automations & Scenes > Blueprints > Import Blueprint** u
 `https://github.com/mkshb/hass-maico-kwl/blob/main/blueprints/automation/maico_kwl/summer_night_cooling.yaml`.
 These are starting points: copy and adapt them to your home.
 
+`demand_boost` and `window_open_reduce` save the current operating mode and ventilation level in a
+temporary snapshot scene before they intervene, and restore it afterwards. They leave the unit
+alone if it is already in manual mode at the target level, and they keep your setting if you change
+the mode or level yourself while they are active. Snapshot scenes do not survive a Home Assistant
+restart: if the unit is still in the state the automation set when Home Assistant starts and the
+reason is gone, the blueprint switches to the *Fallback* operating mode instead. All blueprints run
+in `queued` mode, so frequent triggers do not log "Already running" warnings.
+
 ## Notes & limitations
 
 - **Register addressing** is assumed to be 0-based (documented decimal code = protocol address).
@@ -157,6 +216,53 @@ These are starting points: copy and adapt them to your home.
   against the **slug**, not the displayed text.
 - **Bus feed units**: a source entity's numeric state is sent as-is (assumed to match the
   register unit: °C / % / ppm). Make sure the source reports in the device's unit.
+
+## Troubleshooting
+
+**"Failed to connect" during setup, or the integration keeps retrying**
+- Check host, port (default `502`) and Modbus address (default `10`) against the settings of the
+  unit or the gateway. Connection settings can be changed later with **Reconfigure** on the
+  integration.
+- Make sure Modbus TCP is enabled on the unit (firmware V1.1.1 or newer) and that no firewall
+  blocks the port.
+
+**All entities are unavailable**
+- The unit is not reachable at the moment (see above); entities come back on their own once it
+  answers again.
+- If the connection works but no values arrive, the unit may count registers from 1 instead of 0.
+  Adjust `REGISTER_OFFSET` in `register_defs.py` and open an issue.
+
+**Entities for features the unit does not have**
+- Some Modbus proxies answer every address instead of rejecting missing registers, so discovery
+  cannot filter them. These entities usually show 0; disable the ones you don't need.
+
+**A bus input has no effect**
+- The matching source on the unit must be set to **"Bus"**, e.g. the *Room temperature source*
+  select for the room temperature.
+
+**New registers or features are missing after a firmware update**
+- Press the *Rediscover registers* button on the device page.
+
+**Collecting information for a bug report**
+- Download the diagnostics: **Settings > Devices & Services > Maico KWL > ⋮ > Download
+  diagnostics**. They contain every discovered register with its value and raw words; the host
+  is removed.
+- Enable debug logging on the same page (**⋮ > Enable debug logging**), reproduce the problem, then
+  disable it again to download the log.
+
+## Removal
+
+1. **Settings > Devices & Services > Maico KWL > ⋮ > Delete**. This removes the device and all of
+   its entities.
+2. Delete automations created from the blueprints, and the blueprints themselves under
+   **Settings > Automations & Scenes > Blueprints** if you no longer need them.
+3. Remove the integration files: in HACS open "Maico KWL" and choose **Remove**, or delete
+   `custom_components/maico_kwl` for a manual installation.
+4. Restart Home Assistant.
+
+Settings written to the unit (operating mode, ventilation level, airflow rates, etc.) stay on the
+unit. Bus inputs are no longer refreshed; if the unit should use its own sensors again, set the
+matching source (e.g. *Room temperature source*) away from "Bus" before removing the integration.
 
 ## Data source
 

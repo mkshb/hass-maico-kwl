@@ -1,22 +1,29 @@
 """Autonomous discovery of the registers a Maico KWL actually implements.
 
 The documented register map (docs/modbus.csv) covers the whole product family,
-but a given unit only implements a subset. At setup we probe each register and
+but a given unit only implements a subset. At setup we probe the registers and
 keep only the ones the device answers to, then derive a capability profile from
 that subset (there is no dedicated model/type register on the device).
+
+Probing is done in blocks of adjacent registers, since each request costs a
+round trip (about 100 ms through a typical Modbus TCP proxy). Only the
+registers of a block the device rejects are probed one by one.
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
+from .const import MaicoProfile
+from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import REGISTERS
+from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
+async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
     """Probe the device and return (present register keys, capability profile).
 
     Raises MaicoConnectionError if the device becomes unreachable while probing,
@@ -24,26 +31,15 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
     """
     present: set[str] = set()
 
-    # First pass: read-probe every register that can be read.
-    for reg in REGISTERS:
-        if reg.probe_via is not None:
-            continue  # resolved in the second pass
-        try:
-            if await hub.probe(reg.address, reg.word_count):
-                present.add(reg.key)
-        except MaicoConnectionError:
-            raise
-        except MaicoModbusError as err:
-            # The device answered with an unexpected exception code; treat the
-            # single register as absent rather than aborting.
-            _LOGGER.debug("Probe failed for %s (%s): %s", reg.key, reg.address, err)
+    # First pass: probe every register that can be read, block by block.
+    readable = [reg for reg in REGISTERS if reg.probe_via is None]
+    for _start, _count, defs in build_blocks(readable):
+        present |= await _probe_group(hub, defs)
 
     # Second pass: write-only registers inherit presence from a sibling.
-    for reg in REGISTERS:
-        if reg.probe_via is not None and reg.probe_via in present:
-            present.add(reg.key)
+    present = _resolve_probe_via(present)
 
-    profile = _derive_profile(present)
+    profile = derive_profile(present)
     _LOGGER.info(
         "Maico discovery: %d/%d registers present, profile=%s",
         len(present),
@@ -53,15 +49,80 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], dict]:
     return present, profile
 
 
-def _derive_profile(present: set[str]) -> dict:
+def cache_data(present: set[str]) -> dict[str, list[str]]:
+    """Discovery result to store in the config entry.
+
+    "probed" records which registers this version knew, so a later version
+    that adds registers discovers again instead of never finding them.
+    """
+    return {
+        "probed": sorted(reg.key for reg in REGISTERS if reg.probe_via is None),
+        "present": sorted(present),
+    }
+
+
+def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
+    """Present registers from a stored discovery, or None to discover again."""
+    if not cache:
+        return None
+    probed = set(cache.get("probed", []))
+    if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
+        return None  # a register was added since the last discovery
+    present = {
+        key
+        for key in cache.get("present", [])
+        if key in REGISTERS_BY_KEY and REGISTERS_BY_KEY[key].probe_via is None
+    }
+    return _resolve_probe_via(present) or None
+
+
+async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]:
+    """Return the keys of the adjacent registers in defs the device answers to.
+
+    Reads the whole group at once. If the device rejects it, each register is
+    probed on its own: absent registers usually come as whole banks (EnOcean,
+    ZP1), where halving the block would need more requests than this.
+    """
+    if len(defs) > 1:
+        start = defs[0].address
+        count = defs[-1].address + defs[-1].word_count - start
+        if await _probe(hub, start, count):
+            return {reg.key for reg in defs}
+    return {
+        reg.key for reg in defs if await _probe(hub, reg.address, reg.word_count)
+    }
+
+
+async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
+    try:
+        return await hub.probe(address, count)
+    except MaicoConnectionError:
+        raise
+    except MaicoModbusError as err:
+        # An unexpected exception code: handle it like a rejected read.
+        _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
+        return False
+
+
+def _resolve_probe_via(present: set[str]) -> set[str]:
+    """Add the write-only registers whose readable sibling is present."""
+    return present | {
+        reg.key
+        for reg in REGISTERS
+        if reg.probe_via is not None and reg.probe_via in present
+    }
+
+
+def derive_profile(present: set[str]) -> MaicoProfile:
     """Infer a capability profile from the set of present registers."""
     features: list[str] = []
 
     if any(k.startswith("enocean_") for k in present):
         features.append("EnOcean")
-    if any(k.startswith("co2_sensor") for k in present) or "enocean_co2_id0" in present:
+    # Wired sensor inputs or any of the eight EnOcean IDs.
+    if any(k.startswith(("co2_sensor", "enocean_co2_")) for k in present):
         features.append("CO2")
-    if any(k.startswith("voc_sensor") for k in present):
+    if any(k.startswith(("voc_sensor", "enocean_voc_")) for k in present):
         features.append("VOC")
     if "summer_bypass_open" in present:
         features.append("Summer bypass")

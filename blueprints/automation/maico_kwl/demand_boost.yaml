@@ -1,10 +1,15 @@
 blueprint:
-  name: Maico KWL – Demand boost from any sensor
+  name: "Maico KWL: Demand boost from any sensor"
   description: >
     Boosts the Maico KWL to intensive ventilation when a Home Assistant sensor
     (e.g. CO2 or humidity from any room) rises above a threshold, and returns to
     a normal mode when it falls below the lower threshold (hysteresis). Lets you
     do demand-controlled ventilation with freely chosen HA sensors.
+
+    Before boosting, the current operating mode and ventilation level are saved
+    in a snapshot scene and restored afterwards. If you change the mode or level
+    yourself during a boost, your setting is kept. If the unit is already in
+    manual mode at the boost level, the automation does nothing.
   domain: automation
   author: hass-maico-kwl
   input:
@@ -60,8 +65,10 @@ blueprint:
             - "nominal"
             - "intensive"
     revert_mode:
-      name: Revert mode
-      description: Operating mode to return to when the value drops.
+      name: Fallback revert mode
+      description: >
+        Operating mode to return to when the snapshot is lost, e.g. after a
+        Home Assistant restart during a boost.
       default: auto_sensor
       selector:
         select:
@@ -70,7 +77,8 @@ blueprint:
             - "auto_time"
             - "manual"
 
-mode: single
+mode: queued
+max_exceeded: silent
 
 variables:
   operating_mode: !input operating_mode
@@ -81,10 +89,18 @@ variables:
   boost_level: !input boost_level
   revert_mode: !input revert_mode
   value: "{{ states(sensor) | float('nan') }}"
+  snapshot_id: >
+    maico_kwl_boost_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
+  snapshot: "scene.{{ snapshot_id }}"
+  has_snapshot: "{{ snapshot in states.scene | map(attribute='entity_id') | list }}"
+  boosted: "{{ is_state(operating_mode, 'manual') and is_state(level, boost_level) }}"
 
 trigger:
   - platform: state
     entity_id: !input sensor
+  - platform: homeassistant
+    event: start
+    id: start
 
 condition:
   - condition: template
@@ -94,10 +110,18 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: >
-              {{ value >= (threshold_high | float)
-                 and not (is_state(operating_mode, 'manual') and is_state(level, boost_level)) }}
+            value_template: "{{ value >= (threshold_high | float) and not boosted }}"
         sequence:
+          - if:
+              - condition: template
+                value_template: "{{ not has_snapshot }}"
+            then:
+              - action: scene.create
+                data:
+                  scene_id: "{{ snapshot_id }}"
+                  snapshot_entities:
+                    - "{{ level }}"
+                    - "{{ operating_mode }}"
           - action: select.select_option
             target:
               entity_id: !input operating_mode
@@ -110,9 +134,24 @@ action:
               option: "{{ boost_level }}"
       - conditions:
           - condition: template
+            value_template: "{{ value <= (threshold_low | float) and has_snapshot }}"
+        sequence:
+          # Only restore while the unit is still as the automation left it.
+          - if:
+              - condition: template
+                value_template: "{{ boosted }}"
+            then:
+              - action: scene.turn_on
+                target:
+                  entity_id: "{{ snapshot }}"
+          - action: scene.delete
+            target:
+              entity_id: "{{ snapshot }}"
+      - conditions:
+          - condition: template
             value_template: >
-              {{ value <= (threshold_low | float)
-                 and is_state(operating_mode, 'manual') }}
+              {{ trigger.id == 'start' and value <= (threshold_low | float)
+                 and not has_snapshot and boosted }}
         sequence:
           - action: select.select_option
             target:

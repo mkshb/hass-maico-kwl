@@ -12,6 +12,7 @@ import logging
 
 from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.exceptions import ModbusException
+from pymodbus.pdu import ModbusPDU
 
 from .register_defs import REGISTER_OFFSET
 
@@ -75,7 +76,7 @@ class MaicoModbusHub:
         if not self._client.connected and not await self._client.connect():
             raise MaicoConnectionError(f"cannot connect to {self._host}:{self._port}")
 
-    async def _read(self, address: int, count: int):
+    async def _read(self, address: int, count: int) -> ModbusPDU:
         async with self._lock:
             await self._ensure_connected()
             try:

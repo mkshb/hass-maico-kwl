@@ -9,6 +9,26 @@
           "port": "Port",
           "slave": "Modbus-Adresse",
           "scan_interval": "Abfrageintervall (Sekunden)"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Geräts bzw. des vorgeschalteten Modbus-TCP-Gateways.",
+          "port": "Modbus-TCP-Port, meist 502.",
+          "slave": "Modbus-Adresse (Unit-ID) des Lüftungsgeräts. Maico-Geräte verwenden standardmäßig 10.",
+          "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen."
+        }
+      },
+      "reconfigure": {
+        "title": "Maico KWL neu konfigurieren",
+        "description": "Ändere, wie das Gerät erreicht wird, z. B. wenn das Gateway eine neue IP-Adresse bekommen hat. Die Verbindung wird vor dem Speichern getestet.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Modbus-Adresse"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Geräts bzw. des vorgeschalteten Modbus-TCP-Gateways.",
+          "port": "Modbus-TCP-Port, meist 502.",
+          "slave": "Modbus-Adresse (Unit-ID) des Lüftungsgeräts. Maico-Geräte verwenden standardmäßig 10."
         }
       }
     },
@@ -16,7 +36,8 @@
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen."
     },
     "abort": {
-      "already_configured": "Dieses Gerät ist bereits eingerichtet."
+      "already_configured": "Dieses Gerät ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Verbindungseinstellungen wurden aktualisiert."
     }
   },
   "options": {
@@ -29,6 +50,12 @@
           "room_temp_source_entity": "Quell-Entität Raumtemperatur",
           "humidity_source_entity": "Quell-Entität Feuchte",
           "air_quality_source_entity": "Quell-Entität Luftgüte"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen.",
+          "room_temp_source_entity": "Temperatursensor, dessen Wert als Raumtemperatur ans Gerät gesendet wird. Das Gerät nutzt ihn nur, wenn die Raumtemperatur-Quelle auf \"Bus\" steht.",
+          "humidity_source_entity": "Feuchtesensor, dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Feuchte über den Bus beziehen soll.",
+          "air_quality_source_entity": "Luftgütesensor (ppm), dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Luftgüte über den Bus beziehen soll."
         }
       }
     }
@@ -38,11 +65,29 @@
       "base_board_contact": {
         "name": "Schaltkontakt Basisplatine"
       },
+      "device_filter_dirty": {
+        "name": "Gerätefilter verschmutzt"
+      },
       "fan_exhaust_active": {
         "name": "Ventilator Abluft aktiv"
       },
       "fan_supply_active": {
         "name": "Ventilator Zuluft aktiv"
+      },
+      "filter_due_device": {
+        "name": "Filter fällig Gerät"
+      },
+      "filter_due_outdoor": {
+        "name": "Filter fällig Außen"
+      },
+      "filter_due_room": {
+        "name": "Filter fällig Raum"
+      },
+      "frost_protection_active": {
+        "name": "Frostschutz aktiv"
+      },
+      "outdoor_filter_dirty": {
+        "name": "Außenfilter verschmutzt"
       },
       "problem": {
         "name": "Störung"
@@ -52,6 +97,9 @@
       },
       "reheating_relay_active": {
         "name": "Nachheizrelais aktiv"
+      },
+      "room_filter_dirty": {
+        "name": "Raumfilter verschmutzt"
       },
       "summer_bypass_open": {
         "name": "Sommerbypass offen"
@@ -69,6 +117,12 @@
       },
       "filter_reset_room": {
         "name": "Filter zurücksetzen Raum"
+      },
+      "clock_sync": {
+        "name": "Uhrzeit mit Home Assistant synchronisieren"
+      },
+      "rediscover": {
+        "name": "Register neu erkennen"
       }
     },
     "number": {
@@ -176,8 +230,14 @@
       "air_quality_bus_sent": {
         "name": "Luftgüte Bus (gesendet)"
       },
+      "absolute_humidity_extract": {
+        "name": "Feuchte Abluft absolut"
+      },
       "airflow_exhaust": {
         "name": "Volumenstrom Abluft"
+      },
+      "airflow_imbalance": {
+        "name": "Volumenstrom Disbalance"
       },
       "airflow_supply": {
         "name": "Volumenstrom Zuluft"
@@ -211,6 +271,9 @@
           "nominal": "Nenn",
           "intensive": "Intensiv"
         }
+      },
+      "dew_point_extract": {
+        "name": "Taupunkt Abluft"
       },
       "enocean_co2_id0": {
         "name": "EnOcean CO2 ID0"
@@ -291,7 +354,15 @@
         "name": "Ventilator Drehzahl Zuluft"
       },
       "fault_code": {
-        "name": "Fehlercode"
+        "name": "Fehlercode",
+        "state_attributes": {
+          "active": {
+            "name": "Aktive Fehler"
+          }
+        }
+      },
+      "filter_next_change": {
+        "name": "Filter nächster Wechsel"
       },
       "filter_remaining_device": {
         "name": "Filter Restlaufzeit Gerät"
@@ -301,6 +372,12 @@
       },
       "filter_remaining_room": {
         "name": "Filter Restlaufzeit Raum"
+      },
+      "heat_recovery_efficiency": {
+        "name": "Wärmerückgewinnung Bereitstellungsgrad"
+      },
+      "heat_recovery_power": {
+        "name": "Wärmerückgewinnung Leistung"
       },
       "humidity_exhaust": {
         "name": "Feuchte Abluft"
@@ -318,7 +395,12 @@
         "name": "Feuchte Sensor 4"
       },
       "notice_code": {
-        "name": "Hinweiscode"
+        "name": "Hinweiscode",
+        "state_attributes": {
+          "active": {
+            "name": "Aktive Hinweise"
+          }
+        }
       },
       "op_hours_brine_pump": {
         "name": "Betriebsstunden Sole-Umwälzpumpe"
@@ -399,6 +481,9 @@
           "zone_2": "Zone 2",
           "zone_sensor": "Zonensensor"
         }
+      },
+      "clock_deviation": {
+        "name": "Uhr Abweichung"
       }
     },
     "switch": {
@@ -411,6 +496,26 @@
       "off_lock": {
         "name": "Aus-Stufe sperren"
       }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}"
+    },
+    "discovery_failed": {
+      "message": "Die Register der Maico KWL konnten nicht ermittelt werden: {error}"
+    },
+    "no_registers": {
+      "message": "Das Gerät hat auf kein bekanntes Register der Maico KWL geantwortet"
+    },
+    "device_unreachable": {
+      "message": "Die Maico KWL ist nicht erreichbar: {error}"
+    },
+    "no_data": {
+      "message": "Von der Maico KWL konnte kein Register gelesen werden"
+    },
+    "write_failed": {
+      "message": "Schreiben von {entity} an die Maico KWL fehlgeschlagen: {error}"
     }
   }
 }

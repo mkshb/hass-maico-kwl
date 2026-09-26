@@ -1,0 +1,140 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "frost_protection_active": {
+        "default": "mdi:snowflake"
+      }
+    },
+    "button": {
+      "clock_sync": {
+        "default": "mdi:clock-edit-outline"
+      },
+      "error_reset": {
+        "default": "mdi:restart-alert"
+      },
+      "filter_reset_device": {
+        "default": "mdi:restart"
+      },
+      "filter_reset_outdoor": {
+        "default": "mdi:restart"
+      },
+      "filter_reset_room": {
+        "default": "mdi:restart"
+      },
+      "rediscover": {
+        "default": "mdi:magnify-scan"
+      }
+    },
+    "number": {
+      "air_quality_bus": {
+        "default": "mdi:air-filter"
+      },
+      "filter_dp_allowed": {
+        "default": "mdi:gauge"
+      },
+      "filter_runtime_device": {
+        "default": "mdi:air-filter"
+      },
+      "filter_runtime_outdoor": {
+        "default": "mdi:air-filter"
+      },
+      "filter_runtime_room": {
+        "default": "mdi:air-filter"
+      },
+      "humidity_bus": {
+        "default": "mdi:water-percent"
+      },
+      "room_temp_bus": {
+        "default": "mdi:thermometer"
+      }
+    },
+    "select": {
+      "operating_mode": {
+        "default": "mdi:fan-auto",
+        "state": {
+          "off": "mdi:fan-off",
+          "manual": "mdi:hand-back-right",
+          "auto_time": "mdi:clock-outline",
+          "auto_sensor": "mdi:fan-auto",
+          "eco_supply_air": "mdi:leaf",
+          "eco_exhaust_air": "mdi:leaf"
+        }
+      },
+      "ventilation_level": {
+        "default": "mdi:fan",
+        "state": {
+          "off": "mdi:fan-off",
+          "humidity_protection": "mdi:water-percent",
+          "reduced": "mdi:fan-speed-1",
+          "nominal": "mdi:fan-speed-2",
+          "intensive": "mdi:fan-speed-3"
+        }
+      }
+    },
+    "sensor": {
+      "airflow_imbalance": {
+        "default": "mdi:scale-unbalanced"
+      },
+      "current_vent_level": {
+        "default": "mdi:fan",
+        "state": {
+          "off": "mdi:fan-off",
+          "humidity_protection": "mdi:water-percent",
+          "reduced": "mdi:fan-speed-1",
+          "nominal": "mdi:fan-speed-2",
+          "intensive": "mdi:fan-speed-3"
+        }
+      },
+      "dew_point_extract": {
+        "default": "mdi:water-thermometer"
+      },
+      "fan_speed_exhaust": {
+        "default": "mdi:fan"
+      },
+      "fan_speed_supply": {
+        "default": "mdi:fan"
+      },
+      "fault_code": {
+        "default": "mdi:alert-circle"
+      },
+      "filter_next_change": {
+        "default": "mdi:air-filter"
+      },
+      "filter_remaining_device": {
+        "default": "mdi:air-filter"
+      },
+      "filter_remaining_outdoor": {
+        "default": "mdi:air-filter"
+      },
+      "filter_remaining_room": {
+        "default": "mdi:air-filter"
+      },
+      "heat_recovery_efficiency": {
+        "default": "mdi:gauge"
+      },
+      "heat_recovery_power": {
+        "default": "mdi:heat-wave"
+      },
+      "notice_code": {
+        "default": "mdi:information"
+      }
+    },
+    "switch": {
+      "bde_lock": {
+        "default": "mdi:lock",
+        "state": {
+          "off": "mdi:lock-open-variant"
+        }
+      },
+      "boost_ventilation": {
+        "default": "mdi:fan-plus",
+        "state": {
+          "off": "mdi:fan"
+        }
+      },
+      "off_lock": {
+        "default": "mdi:fan-off"
+      }
+    }
+  }
+}

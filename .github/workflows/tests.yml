@@ -1,0 +1,32 @@
+name: "Tests"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pytest:
+    name: "Pytest"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@v4"
+
+      - name: "Set up Python"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: "requirements_test.txt"
+
+      - name: "Install test requirements"
+        run: pip install -r requirements_test.txt
+
+      - name: "Run tests"
+        run: pytest --cov --cov-report=term-missing --cov-fail-under=95
+
+      - name: "Type check"
+        run: mypy

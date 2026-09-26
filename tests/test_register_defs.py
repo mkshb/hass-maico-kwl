@@ -2,6 +2,7 @@
 
 import pathlib
 import sys
+from datetime import datetime
 
 # Import the module directly (not via the package) so the HA-dependent
 # custom_components/maico_kwl/__init__.py is not executed.
@@ -85,6 +86,60 @@ def test_writable_flags_match_platform():
     for r in rd.REGISTERS:
         if r.platform in {rd.NUMBER, rd.SELECT, rd.SWITCH, rd.BUTTON}:
             assert r.writable, f"{r.key} should be writable"
+
+
+def test_clamp_limits_to_native_range():
+    reg = rd.REGISTERS_BY_KEY["room_temp_bus"]  # 0 .. 40 degC
+    assert reg.clamp(50) == 40.0
+    assert reg.clamp(-3.5) == 0.0
+    assert reg.clamp(21.5) == 21.5
+    assert isinstance(reg.clamp(50), float)
+    unbounded = rd.REGISTERS_BY_KEY["temp_room"]
+    assert unbounded.clamp(-12.5) == -12.5
+
+
+def test_probe_via_only_for_write_only_registers():
+    """Registers that can't be read-probed are exactly the write-only ones."""
+    for r in rd.REGISTERS:
+        assert (r.probe_via is not None) == (not r.readable), r.key
+        if r.probe_via is not None:
+            assert rd.REGISTERS_BY_KEY[r.probe_via].readable, r.key
+
+
+def test_clock_decode_encode():
+    reg = rd.REGISTERS_BY_KEY["clock_deviation"]
+    assert reg.word_count == 6
+    words = [2026, 9, 26, 10, 30, 15]
+    assert reg.decode(words) == datetime(2026, 9, 26, 10, 30, 15)
+    assert reg.encode(datetime(2026, 9, 26, 10, 30, 15)) == words
+    assert reg.decode([0, 0, 0, 0, 0, 0]) is None  # clock not set
+
+
+def test_active_bits_of_bitfields():
+    notice = rd.REGISTERS_BY_KEY["notice_code"]
+    fault = rd.REGISTERS_BY_KEY["fault_code"]
+    # Live unit: bit 4 (bypass) plus bit 13 in the low word (404).
+    assert notice.active_bits(notice.decode([0, 0x2010])) == [
+        "bypass_active",
+        "humidity_protection_active",
+    ]
+    # High word (403) holds bits 16-31; undocumented bits keep their number.
+    assert notice.active_bits(notice.decode([0x8001, 0x8000])) == [
+        "bit_15",
+        "door_contact_triggered",
+        "bit_31",
+    ]
+    assert fault.active_bits(fault.decode([0x0040, 0x0001])) == [
+        "supply_fan",
+        "external_safety_shutdown",
+    ]
+    assert notice.active_bits(0) == []
+    assert rd.REGISTERS_BY_KEY["temp_room"].active_bits(5) == []
+
+
+def test_bit_sensors_use_documented_bits():
+    for reg_key, slug, _dev_class in rd.BIT_SENSORS:
+        assert slug in rd.REGISTERS_BY_KEY[reg_key].bits.values(), slug
 
 
 if __name__ == "__main__":

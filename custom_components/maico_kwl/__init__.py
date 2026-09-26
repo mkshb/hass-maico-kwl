@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .bus_feed import BusFeeder
 from .const import (
     BUS_FEEDS,
+    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -22,24 +21,20 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .coordinator import MaicoCoordinator
-from .discovery import async_discover
+from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
+from .discovery import (
+    async_discover,
+    cache_data,
+    derive_profile,
+    present_from_cache,
+)
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class MaicoRuntimeData:
-    """Per-entry runtime objects."""
-
-    hub: MaicoModbusHub
-    coordinator: MaicoCoordinator
-    feeder: BusFeeder
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:
     """Set up Maico KWL from a config entry."""
     host = entry.data[CONF_HOST]
     port = entry.data.get(CONF_PORT, DEFAULT_PORT)
@@ -51,7 +46,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hub = MaicoModbusHub(host, port, slave)
     try:
-        coordinator = await _async_discover_and_refresh(hass, hub, scan_interval)
+        coordinator = await _async_discover_and_refresh(
+            hass, entry, hub, scan_interval
+        )
     except BaseException:
         # Close on any failure, including cancellation. pymodbus reconnects in
         # the background, so an unclosed client would keep a connection open
@@ -68,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     feeder = BusFeeder(hass, entry, hub, feeds)
     await feeder.async_start()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = MaicoRuntimeData(
+    entry.runtime_data = MaicoRuntimeData(
         hub=hub, coordinator=coordinator, feeder=feeder
     )
 
@@ -78,37 +75,63 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_discover_and_refresh(
-    hass: HomeAssistant, hub: MaicoModbusHub, scan_interval: int
+    hass: HomeAssistant,
+    entry: MaicoConfigEntry,
+    hub: MaicoModbusHub,
+    scan_interval: int,
 ) -> MaicoCoordinator:
-    """Connect, discover the present registers and run the first poll."""
+    """Connect, find the present registers and run the first poll.
+
+    The registers come from the discovery stored in the entry; the unit is
+    only probed when there is none (first setup, after reconfigure or a
+    rediscovery request) or when this version knows registers it lacks.
+    """
     if not await hub.connect():
         raise ConfigEntryNotReady(
-            f"Cannot connect to Maico KWL at {hub.host}:{hub.port}"
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={"host": hub.host, "port": str(hub.port)},
         )
 
-    try:
-        present, profile = await async_discover(hub)
-    except MaicoModbusError as err:
-        raise ConfigEntryNotReady(f"Discovery failed: {err}") from err
+    present = present_from_cache(entry.data.get(CONF_DISCOVERY))
+    if present is not None:
+        profile = derive_profile(present)
+    else:
+        try:
+            present, profile = await async_discover(hub)
+        except MaicoModbusError as err:
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN,
+                translation_key="discovery_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
 
-    if not present:
-        raise ConfigEntryNotReady("No Maico registers discovered on the device")
+        if not present:
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN, translation_key="no_registers"
+            )
+        # Stored before the update listener is added, so no reload follows.
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_DISCOVERY: cache_data(present)}
+        )
 
     coordinator = MaicoCoordinator(hass, hub, present, profile, scan_interval)
     await coordinator.async_config_entry_first_refresh()
     return coordinator
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        runtime: MaicoRuntimeData = hass.data[DOMAIN].pop(entry.entry_id)
+        runtime = entry.runtime_data
         runtime.feeder.async_stop()
         await runtime.hub.close()
     return unload_ok
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_update_listener(
+    hass: HomeAssistant, entry: MaicoConfigEntry
+) -> None:
     """Reload the entry when options (e.g. scan interval) change."""
     await hass.config_entries.async_reload(entry.entry_id)

@@ -1,6 +1,6 @@
 import type { HomeAssistant } from "./types";
 
-const STRINGS = {
+export const STRINGS = {
   en: {
     card_name: "Maico KWL",
     card_description: "Airflow, temperatures and controls of a Maico ventilation unit.",

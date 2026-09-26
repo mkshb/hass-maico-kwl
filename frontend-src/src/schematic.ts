@@ -374,7 +374,8 @@ export const schematicStyles = css`
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .rotor.spinning {
+    .rotor.spinning,
+    .sheen {
       animation: none;
     }
     .sheen-layer {

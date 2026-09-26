@@ -62,6 +62,18 @@ blueprint:
             - "auto_sensor"
             - "auto_time"
             - "manual"
+    restore_level:
+      name: Fallback restore level
+      description: >
+        Ventilation level to return to with the fallback restore mode "manual".
+        In the auto modes the unit picks the level itself.
+      default: nominal
+      selector:
+        select:
+          options:
+            - "reduced"
+            - "nominal"
+            - "intensive"
 
 mode: queued
 max_exceeded: silent
@@ -72,6 +84,7 @@ variables:
   windows: !input windows
   open_level: !input open_level
   restore_mode: !input restore_mode
+  restore_level: !input restore_level
   any_open: "{{ expand(windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
   snapshot_id: >
     maico_kwl_window_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
@@ -87,8 +100,9 @@ trigger:
 
 action:
   # The snapshot is lost on a restart. If the unit is still reduced, stand in
-  # with a snapshot that only holds the fallback restore mode, so the normal
-  # restore below still ends the reduction once all contacts are closed.
+  # with a snapshot of the fallback restore mode (and, for "manual", its level),
+  # so the normal restore below still ends the reduction once all contacts are
+  # closed.
   - if:
       - condition: template
         value_template: >
@@ -98,7 +112,9 @@ action:
       - action: scene.create
         data:
           scene_id: "{{ snapshot_id }}"
-          entities: "{{ {operating_mode: restore_mode} }}"
+          entities: >
+            {{ {operating_mode: restore_mode, level: restore_level}
+               if restore_mode == 'manual' else {operating_mode: restore_mode} }}
   - choose:
       # A snapshot existing means the automation is active; if the unit is no
       # longer reduced, the user changed it and it is left alone.

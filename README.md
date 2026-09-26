@@ -308,7 +308,7 @@ alone if it is already in manual mode at the target level, and they keep your se
 the mode or level yourself while they are active. Snapshot scenes do not survive a Home Assistant
 restart: if the unit is still in the state the automation set when Home Assistant starts, the
 blueprint assumes it made that change and switches to the *Fallback* operating mode once the reason
-is gone. All blueprints run
+is gone; with the fallback mode "manual" it also sets the *Fallback* level. All blueprints run
 in `queued` mode, so frequent triggers do not log "Already running" warnings.
 
 ## Notes & limitations

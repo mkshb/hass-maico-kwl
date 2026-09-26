@@ -128,6 +128,30 @@ async def test_boost_ends_after_a_restart(hass: HomeAssistant, boost: dict) -> N
     assert _unit(hass, boost)[0] == "auto_time"  # fallback revert mode
 
 
+async def test_boost_ends_after_a_restart_in_manual(hass: HomeAssistant, unit: dict) -> None:
+    """With the fallback mode manual, the fallback level ends the boost too."""
+    await _set(hass, SENSOR, "600")
+    await _automation(
+        hass,
+        "demand_boost.yaml",
+        {
+            "operating_mode": unit["mode"],
+            "level": unit["level"],
+            "sensor": SENSOR,
+            "revert_mode": "manual",
+            "revert_level": "reduced",
+        },
+    )
+    await _set(hass, SENSOR, "1200")
+    await hass.services.async_call(
+        "scene", "delete", {"entity_id": "scene.maico_kwl_boost_maico_test"}, blocking=True
+    )
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await _settle(hass)
+    await _set(hass, SENSOR, "700")
+    assert _unit(hass, unit) == ("manual", "reduced")
+
+
 @pytest.fixture
 async def window(hass: HomeAssistant, unit: dict) -> dict:
     await _set(hass, WINDOW, "off")
@@ -168,3 +192,30 @@ async def test_window_restores_after_a_restart(hass: HomeAssistant, window: dict
     assert _unit(hass, window) == ("manual", "reduced")  # window still open
     await _set(hass, WINDOW, "off")
     assert _unit(hass, window)[0] == "auto_time"
+
+
+async def test_window_restores_after_a_restart_in_manual(
+    hass: HomeAssistant, unit: dict
+) -> None:
+    """With the fallback mode manual, the unit does not stay at the open level."""
+    await _set(hass, WINDOW, "off")
+    await _automation(
+        hass,
+        "window_open_reduce.yaml",
+        {
+            "operating_mode": unit["mode"],
+            "level": unit["level"],
+            "windows": [WINDOW],
+            "open_level": "off",
+            "restore_mode": "manual",
+        },
+    )
+    await _set(hass, WINDOW, "on")
+    assert _unit(hass, unit) == ("manual", "off")
+    await hass.services.async_call(
+        "scene", "delete", {"entity_id": "scene.maico_kwl_window_maico_test"}, blocking=True
+    )
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await _settle(hass)
+    await _set(hass, WINDOW, "off")
+    assert _unit(hass, unit) == ("manual", "nominal")  # the default fallback level

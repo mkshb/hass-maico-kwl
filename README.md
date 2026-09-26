@@ -3,7 +3,6 @@
 [![GitHub Release][releases-shield]][releases]
 [![Validate][validate-shield]][validate]
 [![hacs][hacsbadge]][hacs]
-[![Project Stage][stage-shield]][commits]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 [![Project Maintenance][maintenance-shield]][user_profile]
@@ -16,22 +15,22 @@ The integration is **largely self-configuring**: on setup it probes the device, 
 Modbus registers are actually implemented and creates entities only for those. A capability
 profile of the unit is derived from the registers it finds.
 
-> [!WARNING]
-> **Very young project (alpha).** This integration is at the very beginning. It has so
-> far only been tested against a single unit (through a Modbus-TCP proxy). Expect bugs, missing
-> fields and **breaking changes** between versions: entity IDs and stored state values may still
-> change. Use at your own risk. This is an unofficial community project and is **not affiliated
-> with Maico Elektroapparate-Fabrik GmbH**. Feedback and device logs are very welcome.
+> [!NOTE]
+> This is an unofficial community project and is **not affiliated with Maico
+> Elektroapparate-Fabrik GmbH**. It is in daily use and covered by automated tests, but so far it
+> has only been tested with a single unit. Reports from other units are very welcome, see
+> [Contributing](#contributing).
 
 ## Features
 
-- **Autonomous discovery** of the available registers at setup. Entities are created only for
-  registers the device responds to.
+- **Autonomous discovery** of the available registers at the first setup. Entities are created
+  only for registers the device responds to. The result is stored, so restarts are fast; a button
+  scans the unit again when needed.
 - **Capability-based model detection**: since the Maico registers contain no unique model
   identifier, a profile is derived from the registers and features that are present (e.g.
   "Maico KWL (EnOcean, CO2, ZP1)").
 - **Full UI setup** (config flow): host, port, Modbus address and scan interval. The interval can
-  be changed later via the options.
+  be changed later via the options, the connection settings via *Reconfigure*.
 - **Read and write**: live sensors plus controllable entities (operating mode, ventilation level,
   setpoint temperature, airflow rates, filter intervals and much more).
 - **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
@@ -39,7 +38,11 @@ profile of the unit is derived from the registers it finds.
   on every change and refreshed cyclically (~9 min) to satisfy the device's write-cycle
   requirement. No automation needed.
 - **Correct decoding** per the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
-  High-/Low-word pairs, enum states, bitfield fault codes.
+  High-/Low-word pairs, enum states.
+- **Readable fault and notice codes**: the set bits are listed by name, and dirty filters and frost
+  protection get their own binary sensors.
+- **Calculated values** the unit does not report: heat recovery power and efficiency, airflow
+  imbalance, absolute humidity and dew point, filter change reminders.
 - **Efficient polling**: contiguous registers are read in blocks. If the unit rejects a block, its
   registers are read one by one. If the unit is not reachable, the update fails right away and is
   retried at the next interval.
@@ -48,6 +51,8 @@ profile of the unit is derived from the registers it finds.
   entities. Failed write actions show an error message in the UI.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
+- **Diagnostics** download with every discovered register, its value and raw words.
+- **Automation blueprints** for demand boost, open windows and summer night cooling.
 - **Local**: purely local Modbus communication, no cloud (`iot_class: local_polling`).
 
 ### Entity types
@@ -95,8 +100,9 @@ change reminders.
 
 ## Requirements
 
-- Home Assistant **2025.10** or newer (developed/tested with 2026.4). Older releases ship a
-  pymodbus version that is too old for this integration.
+- Home Assistant **2025.10** or newer (developed/tested with 2026.9). Older releases ship a
+  pymodbus version that is too old for this integration. The integration's icon and logo are shown
+  from Home Assistant 2026.3.
 - The Maico unit must be reachable via **Modbus TCP**, directly or through a gateway / Modbus
   proxy.
 - `pymodbus` (3.11.2 or newer) is provided by Home Assistant; no separate installation is required.
@@ -140,6 +146,9 @@ change reminders.
    - **Scan interval**: default `30` seconds (changeable later via the options)
 3. The integration tests the connection, probes the registers and creates the entities.
 
+To change host, port or Modbus address later, use **Reconfigure** on the integration. The entities
+and their history are kept.
+
 ### Options (cyclic bus feed)
 
 Use **Configure** on the integration to:
@@ -177,7 +186,10 @@ ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
 
 **Triggers (read):** temperatures (room, supply, extract, exhaust, air intake), *Current ventilation
-level*, fan speeds / airflow, *Summer bypass*, the *Problem* binary sensor.
+level*, fan speeds / airflow, *Summer bypass*, the *Problem* binary sensor, the *Filter due* sensors,
+the *Fault code* / *Notice code* sensors and their `active` attribute, and the
+[calculated values](#calculated-values), e.g. *Absolute humidity extract air* compared with an
+outdoor sensor.
 
 ### Example blueprints
 
@@ -272,9 +284,16 @@ holding registers (FC 03), word order High-Word/Low-Word, byte order High-Byte/L
 
 ## Contributing
 
-This project is in an early stage and grows from real-world device data. Issues, register
-corrections and logs (especially from other Maico models) are highly appreciated. Please open an
-issue or pull request at [github.com/mkshb/hass-maico-kwl][repo].
+This project grows from real-world device data. Issues, register corrections and reports
+(especially from other Maico models) are highly appreciated. Please open an issue or pull request
+at [github.com/mkshb/hass-maico-kwl][repo].
+
+For a bug report or a new model, attach the diagnostics (**Settings > Devices & Services >
+Maico KWL > ⋮ > Download diagnostics**). They list every register the unit answers, with its value
+and raw words, and make most questions answerable without access to the unit.
+
+Development: `pytest` runs the test suite against a simulated unit, `mypy` checks the types (both
+also run in GitHub Actions).
 
 ## License / disclaimer
 
@@ -290,7 +309,6 @@ write operations in particular change real device settings.
 [commits-shield]: https://img.shields.io/github/commit-activity/y/mkshb/hass-maico-kwl.svg?style=for-the-badge
 [commits]: https://github.com/mkshb/hass-maico-kwl/commits/main
 [license-shield]: https://img.shields.io/github/license/mkshb/hass-maico-kwl.svg?style=for-the-badge
-[stage-shield]: https://img.shields.io/badge/project%20stage-alpha-orange.svg?style=for-the-badge
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40mkshb-blue.svg?style=for-the-badge

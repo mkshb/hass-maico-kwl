@@ -16,7 +16,13 @@ from .entity import (
     MaicoEntity,
     async_add_maico_entities,
 )
-from .register_defs import BINARY_SENSOR, BIT_SENSORS, REGISTERS_BY_KEY, RegisterDef
+from .register_defs import (
+    BINARY_SENSOR,
+    BIT_SENSOR_REQUIRES,
+    BIT_SENSORS,
+    REGISTERS_BY_KEY,
+    RegisterDef,
+)
 
 # Read-only: data comes from the coordinator, no per-entity limit needed.
 PARALLEL_UPDATES = 0
@@ -41,6 +47,7 @@ async def async_setup_entry(
         MaicoBitSensor(coordinator, entry, REGISTERS_BY_KEY[reg_key], slug, dev_class)
         for reg_key, slug, dev_class in BIT_SENSORS
         if reg_key in coordinator.present
+        and BIT_SENSOR_REQUIRES.get(slug, reg_key) in coordinator.present
     )
     entities.extend(
         MaicoFilterDueSensor(coordinator, entry, key, source)

@@ -5,6 +5,10 @@ but a given unit only implements a subset. At setup we probe the registers and
 keep only the ones the device answers to, then derive a capability profile from
 that subset (there is no dedicated model/type register on the device).
 
+Accessories (register_defs.ACCESSORIES) answer on every unit, so the probe
+cannot tell whether they are fitted. Their values are read once to detect
+that, and the user can correct the result in the options.
+
 Probing is done in blocks of adjacent registers, since each request costs a
 round trip (about 100 ms through a typical Modbus TCP proxy). Only the
 registers of a block the device rejects are probed one by one.
@@ -16,16 +20,26 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from .const import CONF_DISCOVERY, MaicoProfile
+from .const import CONF_ACCESSORIES, CONF_DISCOVERY, MaicoProfile
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
+from .register_defs import (
+    ACCESSORIES,
+    REGISTERS,
+    REGISTERS_BY_KEY,
+    RegisterDef,
+    Values,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
+# Version of the stored discovery. A stored result of an older version is
+# discovered again: 2 adds the detected accessories.
+DISCOVERY_VERSION = 2
 
-async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
-    """Probe the device and return (present register keys, capability profile).
+
+async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
+    """Probe the device and return (present register keys, fitted accessories).
 
     Raises MaicoConnectionError if the device becomes unreachable while probing,
     so setup is retried instead of continuing with an incomplete register set.
@@ -40,25 +54,31 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], MaicoProfile]:
     # Second pass: write-only registers inherit presence from a sibling.
     present = _resolve_probe_via(present)
 
-    profile = derive_profile(present)
+    # Third pass: which of the accessories that answer are fitted.
+    accessories = await _detect_accessories(hub, present)
+
     _LOGGER.info(
-        "Maico discovery: %d/%d registers present, profile=%s",
+        "Maico discovery: %d/%d registers present, accessories fitted: %s, "
+        "not fitted: %s",
         len(present),
         len(REGISTERS),
-        profile["model"],
+        ", ".join(sorted(accessories)) or "-",
+        ", ".join(sorted(offered_accessories(present) - accessories)) or "-",
     )
-    return present, profile
+    return present, accessories
 
 
-def cache_data(present: set[str]) -> dict[str, list[str]]:
+def cache_data(present: set[str], accessories: set[str]) -> dict[str, Any]:
     """Discovery result to store in the config entry.
 
     "probed" records which registers this version knew, so a later version
     that adds registers discovers again instead of never finding them.
     """
     return {
+        "version": DISCOVERY_VERSION,
         "probed": sorted(reg.key for reg in REGISTERS if reg.probe_via is None),
         "present": sorted(present),
+        "accessories": sorted(accessories),
     }
 
 
@@ -69,7 +89,7 @@ def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
 
 def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
     """Present registers from a stored discovery, or None to discover again."""
-    if not cache:
+    if not cache or cache.get("version", 1) < DISCOVERY_VERSION:
         return None
     probed = set(cache.get("probed", []))
     if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
@@ -80,6 +100,29 @@ def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
         if key in REGISTERS_BY_KEY and REGISTERS_BY_KEY[key].probe_via is None
     }
     return _resolve_probe_via(present) or None
+
+
+def offered_accessories(present: set[str]) -> set[str]:
+    """Accessories the unit answers to, so the user can choose them."""
+    return {acc.key for acc in ACCESSORIES if present.intersection(acc.keys)}
+
+
+def active_accessories(
+    cache: Mapping[str, Any], options: Mapping[str, Any]
+) -> set[str]:
+    """The accessories in use: the user's choice, else the detected ones."""
+    chosen = options.get(CONF_ACCESSORIES)
+    if chosen is not None:
+        return set(chosen)
+    return set(cache.get("accessories", []))
+
+
+def registers_in_use(present: set[str], accessories: set[str]) -> set[str]:
+    """The present registers without those of accessories not in use."""
+    unused = {
+        key for acc in ACCESSORIES if acc.key not in accessories for key in acc.keys
+    }
+    return present - unused
 
 
 async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]:
@@ -108,6 +151,39 @@ async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
         # An unexpected exception code: handle it like a rejected read.
         _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
         return False
+
+
+async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str]:
+    """Keys of the accessories that answer and are fitted.
+
+    An accessory whose values cannot be read or do not tell counts as fitted.
+    """
+    offered = [acc for acc in ACCESSORIES if acc.key in offered_accessories(present)]
+    sources = {
+        key for acc in offered if acc.detect for key in acc.sources if key in present
+    }
+    values = await _read_values(hub, [REGISTERS_BY_KEY[key] for key in sources])
+    return {
+        acc.key
+        for acc in offered
+        if acc.detect is None or acc.detect(values) is not False
+    }
+
+
+async def _read_values(hub: MaicoModbusHub, defs: list[RegisterDef]) -> Values:
+    values: Values = {}
+    for start, count, block in build_blocks(defs):
+        try:
+            regs = await hub.read_block(start, count)
+        except MaicoConnectionError:
+            raise
+        except MaicoModbusError as err:
+            _LOGGER.debug("Accessory check read %s+%s failed: %s", start, count, err)
+            continue
+        for reg in block:
+            offset = reg.address - start
+            values[reg.key] = reg.decode(regs[offset : offset + reg.word_count])
+    return values
 
 
 def _resolve_probe_via(present: set[str]) -> set[str]:

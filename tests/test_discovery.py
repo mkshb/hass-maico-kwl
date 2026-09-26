@@ -5,9 +5,20 @@ from __future__ import annotations
 import pytest
 
 from custom_components.maico_kwl.coordinator import build_blocks
-from custom_components.maico_kwl.discovery import async_discover, derive_profile
+from custom_components.maico_kwl.const import CONF_ACCESSORIES
+from custom_components.maico_kwl.discovery import (
+    active_accessories,
+    async_discover,
+    derive_profile,
+    offered_accessories,
+    registers_in_use,
+)
 from custom_components.maico_kwl.modbus_hub import MaicoConnectionError, MaicoModbusHub
-from custom_components.maico_kwl.register_defs import REGISTERS
+from custom_components.maico_kwl.register_defs import (
+    ACCESSORIES,
+    REGISTERS,
+    REGISTERS_BY_KEY,
+)
 
 from .conftest import HOST, PORT, SLAVE, FakeDevice, FakeExceptionResponse
 
@@ -23,13 +34,17 @@ async def test_discovery_skips_absent_registers(
     hub: MaicoModbusHub, device: FakeDevice
 ) -> None:
     """Registers answered with Illegal Data Address are not present."""
-    present, profile = await async_discover(hub)
+    present, accessories = await async_discover(hub)
 
     assert "temp_room" in present
     assert "op_hours_total" in present
     assert "enocean_co2_id0" not in present
     assert "co2_sensor_1" not in present
     assert "brine_pump_state" not in present
+    # Accessories whose registers the unit rejects all are not offered, the
+    # external room sensor is not used (source "internal"), ZP1 keeps 702.
+    assert accessories == {"outdoor_filter", "room_filter", "ptc_heater", "zp1"}
+    profile = derive_profile(present)
     assert profile["present_count"] == len(present)
     assert profile["total_count"] == len(REGISTERS)
 
@@ -121,7 +136,10 @@ async def test_discovery_reads_blocks(hub: MaicoModbusHub, device: FakeDevice) -
     present, _ = await async_discover(hub)
     readable = [reg for reg in REGISTERS if reg.probe_via is None]
     assert present == {reg.key for reg in REGISTERS}
-    assert device.reads == len(build_blocks(readable))
+    # Plus one read per block of the values the accessories are detected by.
+    sources = {key for acc in ACCESSORIES for key in acc.sources}
+    detect_blocks = build_blocks([REGISTERS_BY_KEY[key] for key in sources])
+    assert device.reads == len(build_blocks(readable)) + len(detect_blocks)
     assert device.reads < 20
 
 
@@ -143,3 +161,97 @@ async def test_discovery_probes_32_bit_registers_whole(
     present, _ = await async_discover(hub)
     assert "op_hours_reduced" not in present
     assert {"op_hours_humidity_protection", "op_hours_nominal"} <= present
+
+
+
+async def test_discovery_detects_filters_that_are_not_fitted(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """0 days left without a notice: the unit has no such filter."""
+    device.registers[656] = 0
+    present, accessories = await async_discover(hub)
+    assert "filter_remaining_outdoor" in present  # it answers, but ...
+    assert "outdoor_filter" not in accessories
+    assert "room_filter" in accessories
+
+    device.registers[657] = 0
+    _, accessories = await async_discover(hub)
+    assert not {"outdoor_filter", "room_filter"} & accessories
+
+
+async def test_discovery_keeps_filters_that_ran_out(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A fitted filter that ran out sets its notice bit and is kept."""
+    device.registers[656] = 0
+    device.registers[657] = 0
+    device.registers[404] = (1 << 10) | (1 << 11)  # outdoor and room filter dirty
+    _, accessories = await async_discover(hub)
+    assert {"outdoor_filter", "room_filter"} <= accessories
+
+
+async def test_discovery_detects_sensors_and_room_temp_source(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Sensors count as fitted once one of them reports a value."""
+    device.absent = set()
+    _, accessories = await async_discover(hub)
+    # All sensor readings 0, room temperature from the internal sensor.
+    assert not {"wired_sensors", "enocean", "external_room_sensor"} & accessories
+    # Not detectable from values: kept.
+    assert {"ptc_heater", "zp1"} <= accessories
+
+    device.registers[758] = 6500  # CO2 sensor 4: 650 ppm
+    device.registers[361] = 48  # EnOcean humidity ID3
+    device.registers[109] = 1  # room temperature from the external sensor
+    _, accessories = await async_discover(hub)
+    assert {"wired_sensors", "enocean", "external_room_sensor"} <= accessories
+
+
+async def test_discovery_keeps_accessories_it_cannot_check(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Without the notice code, or if a value cannot be read, they are kept."""
+    device.registers[656] = 0
+    device.absent |= {403, 404}
+    present, accessories = await async_discover(hub)
+    assert "notice_code" not in present
+    assert "outdoor_filter" in accessories
+
+    device.absent -= {403, 404}
+    original = device.clients[0].read_holding_registers
+
+    async def failure_at_656(*, address, count, device_id):
+        if address == 656:
+            return FakeExceptionResponse(4)
+        return await original(address=address, count=count, device_id=device_id)
+
+    device.clients[0].read_holding_registers = failure_at_656
+    _, accessories = await async_discover(hub)
+    assert "outdoor_filter" in accessories
+
+
+async def test_discovery_accessory_check_aborts_on_connection_loss(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A connection loss while checking the accessories aborts the discovery."""
+    readable = [reg for reg in REGISTERS if reg.probe_via is None]
+    device.fail_after_reads = len(build_blocks(readable)) + 1
+    device.absent = set()
+    with pytest.raises(MaicoConnectionError):
+        await async_discover(hub)
+
+
+def test_registers_in_use_and_active_accessories() -> None:
+    """The user's choice wins over the detected accessories."""
+    cache = {"accessories": ["room_filter", "zp1"]}
+    assert active_accessories(cache, {}) == {"room_filter", "zp1"}
+    assert active_accessories(cache, {CONF_ACCESSORIES: []}) == set()
+    assert active_accessories({}, {}) == set()
+
+    present = {"temp_room", "filter_remaining_outdoor", "filter_remaining_room"}
+    assert registers_in_use(present, {"room_filter"}) == {
+        "temp_room",
+        "filter_remaining_room",
+    }
+    assert offered_accessories(present) == {"outdoor_filter", "room_filter"}

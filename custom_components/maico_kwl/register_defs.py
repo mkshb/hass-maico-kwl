@@ -13,6 +13,7 @@ Conventions:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -520,3 +521,116 @@ BIT_SENSORS: list[tuple[str, str, str | None]] = [
     ("notice_code", "room_filter_dirty", "problem"),
     ("notice_code", "frost_protection_active", None),
 ]
+
+
+
+# --- Accessories -------------------------------------------------------------
+# Parts that are not fitted to every unit. Their registers answer on every
+# unit, so the probe keeps them; the values tell whether the part is there
+# (read once at discovery), and the user can correct that in the options.
+
+type Values = dict[str, RegisterValue | None]
+
+
+def _filter_fitted(remaining: str, notice_bit: str) -> Callable[[Values], bool | None]:
+    """A monitored filter has days left, or has run out and sets its notice bit.
+
+    Without the filter the unit keeps the days at 0, never sets the bit and
+    ignores a filter change.
+    """
+
+    def detect(values: Values) -> bool | None:
+        days = values.get(remaining)
+        notice = values.get("notice_code")
+        if not isinstance(days, (int, float)) or not isinstance(notice, (int, float)):
+            return None
+        bits = REGISTERS_BY_KEY["notice_code"].active_bits(notice)
+        return days > 0 or notice_bit in bits
+
+    return detect
+
+
+def _any_reading(keys: tuple[str, ...]) -> Callable[[Values], bool | None]:
+    """A connected sensor reports a value; 0 % or 0 ppm means none is there."""
+
+    def detect(values: Values) -> bool | None:
+        readings = [values.get(key) for key in keys]
+        if not all(isinstance(value, (int, float)) for value in readings):
+            return None
+        return any(readings)
+
+    return detect
+
+
+def _room_temp_external(values: Values) -> bool | None:
+    """The external room sensor is only read with room temperature source "external"."""
+    source = values.get("room_temp_source")
+    if not isinstance(source, (int, float)):
+        return None
+    return ROOM_TEMP_SOURCE.get(int(source)) == "external"
+
+
+@dataclass(frozen=True)
+class Accessory:
+    """A part that may not be fitted, and the registers that belong to it."""
+
+    key: str  # option value and translation key
+    keys: tuple[str, ...]
+    # Registers read at discovery to detect the part, and the check on their
+    # values: True/False, or None if it cannot tell (the part is kept then).
+    sources: tuple[str, ...] = ()
+    detect: Callable[[Values], bool | None] | None = None
+
+
+_WIRED_SENSORS = tuple(
+    f"{kind}_sensor_{i}" for kind in ("humidity", "co2", "voc") for i in range(1, 5)
+)
+_ENOCEAN = tuple(
+    f"enocean_{kind}_id{i}" for kind in ("co2", "humidity", "voc") for i in range(8)
+)
+
+ACCESSORIES: list[Accessory] = [
+    Accessory(
+        "outdoor_filter",
+        ("filter_runtime_outdoor", "filter_reset_outdoor", "filter_remaining_outdoor"),
+        ("filter_remaining_outdoor", "notice_code"),
+        _filter_fitted("filter_remaining_outdoor", "outdoor_filter_dirty"),
+    ),
+    Accessory(
+        "room_filter",
+        ("filter_runtime_room", "filter_reset_room", "filter_remaining_room"),
+        ("filter_remaining_room", "notice_code"),
+        _filter_fitted("filter_remaining_room", "room_filter_dirty"),
+    ),
+    Accessory("wired_sensors", _WIRED_SENSORS, _WIRED_SENSORS, _any_reading(_WIRED_SENSORS)),
+    Accessory("enocean", _ENOCEAN, _ENOCEAN, _any_reading(_ENOCEAN)),
+    Accessory(
+        "external_room_sensor",
+        ("temp_room_external",),
+        ("room_temp_source",),
+        _room_temp_external,
+    ),
+    Accessory("ptc_heater", ("ptc_heater_active",)),
+    # ZP1 extension module, including the air ground heat exchanger sensor.
+    Accessory(
+        "zp1",
+        (
+            "temp_outdoor_pre_egh",
+            "reheating_relay_active",
+            "brine_pump_state",
+            "three_way_damper_state",
+            "zone_damper_state",
+            "op_hours_reheating_relay",
+            "op_hours_brine_pump",
+            "op_hours_three_way_damper",
+            "op_hours_zone_damper",
+        ),
+    ),
+]
+ACCESSORIES_BY_KEY: dict[str, Accessory] = {a.key: a for a in ACCESSORIES}
+
+# Bit sensors that only exist together with another register.
+BIT_SENSOR_REQUIRES: dict[str, str] = {
+    "outdoor_filter_dirty": "filter_remaining_outdoor",
+    "room_filter_dirty": "filter_remaining_room",
+}

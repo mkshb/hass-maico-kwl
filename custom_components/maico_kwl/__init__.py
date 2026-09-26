@@ -25,10 +25,12 @@ from .const import (
 )
 from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
 from .discovery import (
+    active_accessories,
     async_discover,
     cache_data,
     derive_profile,
     present_from_cache,
+    registers_in_use,
 )
 from .issues import async_delete_issues, async_update_issues
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
@@ -104,6 +106,7 @@ async def _async_discover_and_refresh(
     The registers come from the discovery stored in the entry; the unit is
     only probed when there is none (first setup, after reconfigure or a
     rediscovery request) or when this version knows registers it lacks.
+    Registers of accessories that are not in use are left out.
     """
     if not await hub.connect():
         raise ConfigEntryNotReady(
@@ -113,11 +116,9 @@ async def _async_discover_and_refresh(
         )
 
     present = present_from_cache(entry.data.get(CONF_DISCOVERY))
-    if present is not None:
-        profile = derive_profile(present)
-    else:
+    if present is None:
         try:
-            present, profile = await async_discover(hub)
+            present, accessories = await async_discover(hub)
         except MaicoModbusError as err:
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,
@@ -131,9 +132,14 @@ async def _async_discover_and_refresh(
             )
         # Stored before the update listener is added, so no reload follows.
         hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_DISCOVERY: cache_data(present)}
+            entry,
+            data={**entry.data, CONF_DISCOVERY: cache_data(present, accessories)},
         )
 
+    present = registers_in_use(
+        present, active_accessories(entry.data[CONF_DISCOVERY], entry.options)
+    )
+    profile = derive_profile(present)
     coordinator = MaicoCoordinator(hass, hub, present, profile, scan_interval)
     await coordinator.async_config_entry_first_refresh()
     return coordinator

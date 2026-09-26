@@ -134,6 +134,7 @@ async def test_discovery_runs_again_for_new_registers(
     await setup_entry(hass, config_entry)
     cache = config_entry.data[CONF_DISCOVERY]
     old = {
+        "version": cache["version"],
         "probed": [key for key in cache["probed"] if key != "clock_deviation"],
         "present": [key for key in cache["present"] if key != "clock_deviation"],
     }
@@ -173,3 +174,29 @@ async def test_empty_stored_discovery_probes_again(
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.LOADED
     assert "temp_room" in config_entry.data[CONF_DISCOVERY]["present"]
+
+
+async def test_discovery_of_an_older_version_runs_again(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A stored discovery without the accessories is redone once."""
+    device.registers[656] = 0  # no outdoor filter fitted
+    await setup_entry(hass, config_entry)
+    cache = config_entry.data[CONF_DISCOVERY]
+    assert "filter_remaining_outdoor" in cache["present"]
+    assert "outdoor_filter" not in cache["accessories"]
+    assert "room_filter" in cache["accessories"]
+    present = config_entry.runtime_data.coordinator.present
+    assert "filter_remaining_outdoor" not in present
+    assert "filter_remaining_room" in present
+
+    old = {"probed": cache["probed"], "present": cache["present"]}
+    hass.config_entries.async_update_entry(
+        config_entry, data={**config_entry.data, CONF_DISCOVERY: old}
+    )
+    await hass.async_block_till_done()  # the data change reloads the entry
+
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert config_entry.data[CONF_DISCOVERY]["version"] == 2
+    assert "outdoor_filter" not in config_entry.data[CONF_DISCOVERY]["accessories"]
+    assert "filter_remaining_outdoor" not in config_entry.runtime_data.coordinator.present

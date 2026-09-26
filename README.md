@@ -24,8 +24,10 @@ profile of the unit is derived from the registers it finds.
 ## Features
 
 - **Autonomous discovery** of the available registers at the first setup. Entities are created
-  only for registers the device responds to. The result is stored, so restarts are fast; a button
-  scans the unit again when needed.
+  only for registers the device responds to, and only for the accessories the unit actually has
+  (filters, sensors, extension module, see [Accessories](#accessories)). You can correct the
+  detected accessories in the options. The result is stored, so restarts are fast; a button scans
+  the unit again when needed.
 - **Capability-based model detection**: since the Maico registers contain no unique model
   identifier, a profile is derived from the registers and features that are present (e.g.
   "Maico KWL (EnOcean, CO2, ZP1)").
@@ -98,9 +100,32 @@ protection active*. The *Problem* sensor is on whenever any fault bit is set.
 The Maico KWL documentation only calls these registers a bitfield. The bit meanings are taken from
 the Modbus documentation of another Maico product (Geniovent), which uses the same registers. The
 bit numbering was confirmed on a live unit (notice bit 4 follows the summer bypass), the meaning of
-the other bits was not. On the test unit the filter bits stay off even when the remaining filter
-time is 0 days, so use the *Filter due* sensors (see [Calculated values](#calculated-values)) for filter
-change reminders.
+the other bits was not. For filter change reminders, the *Filter due* sensors (see
+[Calculated values](#calculated-values)) are the simpler choice: they follow the remaining days.
+
+### Accessories
+
+Some parts are not fitted to every unit. Their registers answer on every unit anyway, so the
+register probe cannot tell whether they are there. Discovery therefore reads their values once and
+decides from those:
+
+| Accessory | Entities | Detected as fitted when |
+|---|---|---|
+| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. |
+| Wired sensors | Humidity, CO2 and VOC sensor 1 to 4 | At least one of them reports a value other than 0. |
+| EnOcean wireless sensors | CO2, humidity and VOC of the 8 EnOcean IDs | At least one of them reports a value other than 0. |
+| External room temperature sensor | *Temperature room external* | The *Room temperature source* is set to "External". |
+| PTC heater | *PTC heater active* | Not detectable, counts as fitted. |
+| ZP1 extension module | Reheating relay, brine pump, dampers, their operating hours, outdoor temperature before the air ground heat exchanger | Not detectable, counts as fitted. |
+
+The device filter is always there. Entities of accessories that are not fitted are not created,
+and *Filter next change* only covers the fitted filters. If a value does not allow a decision (e.g.
+it cannot be read), the accessory counts as fitted.
+
+The detection can be wrong, e.g. when a wireless sensor has not sent anything yet. Under
+**Configure** on the integration you can choose the fitted accessories yourself (see
+[Options](#options)). If you fit an accessory later, either select it there or press *Rediscover
+registers* once it is set up on the unit.
 
 ## Requirements
 
@@ -153,12 +178,17 @@ change reminders.
 To change host, port or Modbus address later, use **Reconfigure** on the integration. The entities
 and their history are kept.
 
-### Options (cyclic bus feed)
+### Options
 
 Use **Configure** on the integration to:
 
-- change the **scan interval**, and
+- change the **scan interval**,
+- choose the **fitted accessories** (see [Accessories](#accessories)), and
 - pick a **source entity** for each "bus" input (room temperature, humidity, air quality).
+
+The accessories are preselected with what discovery detected. Only accessories the unit answers to
+are listed. A choice that differs from the detected one is kept, also after *Rediscover
+registers*; select the detected accessories again to let discovery decide.
 
 When a source entity is selected, its value is written to the matching Modbus register on every
 change and refreshed about every 9 minutes, no automation required. The corresponding device
@@ -176,7 +206,9 @@ leave the option empty to set the value manually instead.
   ~9 minutes. Manual bus numbers are rewritten every ~9 minutes as well.
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
-  after a firmware update or after adding sensors to the unit.
+  after a firmware update or after adding sensors or filters to the unit. An update that changes
+  the discovery rules probes the unit once more on its own. Changing the options reloads the
+  integration; entities of accessories that are no longer selected are removed.
 
 ## Automations
 
@@ -238,8 +270,8 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 - **Humidity** is reported as a whole percentage on this unit (×1, not ×10 as in the docs). CO2/VOC
   remain at ×10 for now, not yet verified against real values.
 - **Discovery via proxy**: some Modbus proxies/devices answer *every* address instead of returning
-  an error for missing registers. In that case automatic filtering cannot kick in; the overview
-  still stays lean thanks to the entities disabled by default.
+  an error for missing registers. In that case the probe cannot filter anything; the accessory
+  detection and the entities disabled by default still keep the overview lean.
 - **State values are slugs**: select and enum sensors store internal slugs (e.g. `manual`,
   `reduced`, `summer`) and display the translated text. Automations/templates should compare
   against the **slug**, not the displayed text.
@@ -261,9 +293,15 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 - If the connection works but no values arrive, the unit may count registers from 1 instead of 0.
   Adjust `REGISTER_OFFSET` in `register_defs.py` and open an issue.
 
-**Entities for features the unit does not have**
-- Some Modbus proxies answer every address instead of rejecting missing registers, so discovery
-  cannot filter them. These entities usually show 0; disable the ones you don't need.
+**Entities for accessories the unit does not have, or entities of a fitted accessory are missing**
+- Choose the fitted accessories under **Configure** on the integration, see
+  [Accessories](#accessories).
+- Other entities that always show 0: some Modbus proxies answer every address instead of rejecting
+  missing registers, so discovery cannot filter them. Disable the ones you don't need.
+
+**The filter reset for the outdoor or room filter has no effect**
+- The unit does not monitor this filter. Once it is fitted and enabled on the unit, select it under
+  **Configure** or press *Rediscover registers*.
 
 **A bus input has no effect**
 - The matching source on the unit must be set to **"Bus"**, e.g. the *Room temperature source*

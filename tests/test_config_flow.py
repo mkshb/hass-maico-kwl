@@ -5,9 +5,12 @@ from __future__ import annotations
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import (
+    CONF_ACCESSORIES,
+    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
@@ -17,7 +20,7 @@ from custom_components.maico_kwl.const import (
 )
 
 from .conftest import HOST, PORT, SLAVE, FakeDevice
-from .helpers import setup_entry
+from .helpers import entity_id, setup_entry
 
 USER_INPUT = {
     CONF_HOST: HOST,
@@ -159,6 +162,70 @@ async def test_options_flow_suggests_current_source(
     )
     await hass.async_block_till_done()
     assert CONF_ROOM_TEMP_SOURCE_ENTITY not in config_entry.options
+
+
+async def test_options_flow_accessories(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The detected accessories are preselected, a different choice is kept."""
+    device.registers[656] = 0  # no outdoor filter detected
+    await setup_entry(hass, config_entry)
+    detected = config_entry.data[CONF_DISCOVERY]["accessories"]
+    assert "outdoor_filter" not in detected
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    marker = next(key for key in result["data_schema"].schema if key == CONF_ACCESSORIES)
+    assert marker.default() == detected
+    options = result["data_schema"].schema[marker].config["options"]
+    assert options[:2] == ["outdoor_filter", "room_filter"]  # in definition order
+    assert "enocean" not in options  # the unit rejects these registers
+
+    # The user knows better: an outdoor filter is fitted.
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_SCAN_INTERVAL: 30, CONF_ACCESSORIES: [*detected, "outdoor_filter"]},
+    )
+    await hass.async_block_till_done()
+    assert set(config_entry.options[CONF_ACCESSORIES]) == {*detected, "outdoor_filter"}
+    assert "filter_remaining_outdoor" in config_entry.runtime_data.coordinator.present
+    assert entity_id(hass, config_entry, "button", "filter_reset_outdoor")
+
+    # Back to the detected set: nothing stored, a rediscovery applies again.
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30, CONF_ACCESSORIES: detected}
+    )
+    await hass.async_block_till_done()
+    assert CONF_ACCESSORIES not in config_entry.options
+    present = config_entry.runtime_data.coordinator.present
+    assert "filter_remaining_outdoor" not in present
+    ent_reg = er.async_get(hass)
+    assert not ent_reg.async_get_entity_id(
+        "button", DOMAIN, f"{config_entry.entry_id}_filter_reset_outdoor"
+    )
+
+
+async def test_options_flow_without_discovery_keeps_accessories(
+    hass: HomeAssistant, config_entry
+) -> None:
+    """Without a stored discovery there is nothing to choose from."""
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry, options={CONF_ACCESSORIES: ["zp1"]}
+    )
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    assert CONF_ACCESSORIES not in result["data_schema"].schema
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30}
+    )
+    assert config_entry.options[CONF_ACCESSORIES] == ["zp1"]
+
+    hass.config_entries.async_update_entry(config_entry, options={})
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30}
+    )
+    assert CONF_ACCESSORIES not in config_entry.options
 
 
 # --- Reconfigure ----------------------------------------------------------

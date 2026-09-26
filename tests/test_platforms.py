@@ -300,6 +300,7 @@ async def test_rediscover_button(
     """Pressing the button probes the unit again, e.g. after adding EnOcean."""
     assert "enocean_co2_id0" not in loaded.runtime_data.coordinator.present
     device.absent -= set(range(350, 374))  # EnOcean module retrofitted
+    device.registers[350] = 6500  # with a CO2 sensor at ID0
 
     button = entity_id(hass, loaded, "button", "rediscover")
     await hass.services.async_call(
@@ -315,9 +316,12 @@ async def test_rediscover_button(
 
 
 async def test_rediscover_removes_entities_of_missing_registers(
-    hass: HomeAssistant, device: FakeDevice, loaded
+    hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """Entities of registers the unit no longer answers are removed."""
+    device.registers[109] = 1  # room temperature from the external sensor
+    loaded = config_entry
+    await setup_entry(hass, loaded)
     ent_reg = er.async_get(hass)
     humidity = entity_id(hass, loaded, "sensor", "humidity_exhaust")
     dew_point = entity_id(hass, loaded, "sensor", "dew_point_extract")
@@ -337,3 +341,27 @@ async def test_rediscover_removes_entities_of_missing_registers(
     assert ent_reg.async_get(dew_point) is None  # derived from it
     assert ent_reg.async_get(external) is not None
     assert ent_reg.async_get(entity_id(hass, loaded, "sensor", "temp_room"))
+
+
+async def test_filter_that_is_not_fitted_creates_no_entities(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A missing outdoor filter leaves out all of its entities."""
+    device.registers[656] = 0
+    await setup_entry(hass, config_entry)
+    ent_reg = er.async_get(hass)
+    unique_ids = {
+        entry.unique_id
+        for entry in er.async_entries_for_config_entry(ent_reg, config_entry.entry_id)
+    }
+    prefix = config_entry.entry_id
+    for key in (
+        "filter_runtime_outdoor",
+        "filter_reset_outdoor",
+        "filter_remaining_outdoor",
+        "filter_due_outdoor",
+        "outdoor_filter_dirty",
+    ):
+        assert f"{prefix}_{key}" not in unique_ids
+    for key in ("filter_reset_room", "room_filter_dirty", "filter_due_room"):
+        assert f"{prefix}_{key}" in unique_ids

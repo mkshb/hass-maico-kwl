@@ -167,9 +167,9 @@ NEW_HOST = "192.0.2.20"
 
 
 async def test_reconfigure_changes_connection(
-    hass: HomeAssistant, device: FakeDevice, config_entry
+    hass: HomeAssistant, device: FakeDevice, config_entry, caplog
 ) -> None:
-    """A new host is validated, stored and the entry reloads."""
+    """A new host is validated, stored and the entry reloads once."""
     await setup_entry(hass, config_entry)
 
     result = await config_entry.start_reconfigure_flow(hass)
@@ -190,6 +190,8 @@ async def test_reconfigure_changes_connection(
     assert config_entry.state is ConfigEntryState.LOADED
     # The new connection was discovered again, not taken from the old one.
     assert device.reads > len(config_entry.runtime_data.coordinator._blocks)
+    # Only the update listener reloads (HA reports a second reload by the flow).
+    assert "should use it for scheduling a reload" not in caplog.text
 
 
 async def test_reconfigure_keeps_custom_title_and_same_values(

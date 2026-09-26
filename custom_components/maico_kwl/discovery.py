@@ -13,9 +13,10 @@ registers of a block the device rejects are probed one by one.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
-from .const import MaicoProfile
+from .const import CONF_DISCOVERY, MaicoProfile
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS, REGISTERS_BY_KEY, RegisterDef
@@ -59,6 +60,11 @@ def cache_data(present: set[str]) -> dict[str, list[str]]:
         "probed": sorted(reg.key for reg in REGISTERS if reg.probe_via is None),
         "present": sorted(present),
     }
+
+
+def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Entry data without the stored discovery, so the next setup probes again."""
+    return {key: value for key, value in data.items() if key != CONF_DISCOVERY}
 
 
 def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:

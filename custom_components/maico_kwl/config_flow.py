@@ -18,7 +18,6 @@ from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (
     BUS_FEEDS,
-    CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -29,6 +28,7 @@ from .const import (
     DEFAULT_SLAVE,
     DOMAIN,
 )
+from .discovery import data_without_discovery
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 
 _LOGGER = logging.getLogger(__name__)
@@ -130,23 +130,22 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 title = entry.title
                 if title == f"{DEFAULT_NAME} ({entry.data[CONF_HOST]})":
                     title = f"{DEFAULT_NAME} ({host})"
-                return self.async_update_reload_and_abort(
+                # The entry's update listener reloads it; reloading here as
+                # well would set the unit up twice.
+                self.hass.config_entries.async_update_entry(
                     entry,
                     title=title,
                     # Drop the host based unique_id of entries created before 0.2.0.
                     unique_id=None,
                     # A new connection may lead to another unit: discover again.
                     data={
-                        **{
-                            key: value
-                            for key, value in entry.data.items()
-                            if key != CONF_DISCOVERY
-                        },
+                        **data_without_discovery(entry.data),
                         CONF_HOST: host,
                         CONF_PORT: port,
                         CONF_SLAVE: slave,
                     },
                 )
+                return self.async_abort(reason="reconfigure_successful")
 
         current = user_input or entry.data
         schema = vol.Schema(

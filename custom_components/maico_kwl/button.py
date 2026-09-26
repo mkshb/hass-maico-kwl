@@ -9,8 +9,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_DISCOVERY
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
+from .discovery import data_without_discovery
 from .entity import MaicoEntity, maico_device_info
 from .register_defs import BUTTON, CLOCK, REGISTERS_BY_KEY, RegisterValue
 
@@ -66,10 +66,5 @@ class MaicoRediscoverButton(CoordinatorEntity[MaicoCoordinator], ButtonEntity):
         # Dropping the stored discovery reloads the entry (update listener),
         # and the setup then probes the unit again.
         self.hass.config_entries.async_update_entry(
-            self._entry,
-            data={
-                key: value
-                for key, value in self._entry.data.items()
-                if key != CONF_DISCOVERY
-            },
+            self._entry, data=data_without_discovery(self._entry.data)
         )

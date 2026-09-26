@@ -252,7 +252,7 @@ REGISTERS: list[RegisterDef] = [
     RegisterDef("notice_code", 403, "Notice code", SENSOR, data_type="u32",
                 entity_category=DIAGNOSTIC),
     RegisterDef("error_reset", 405, "Reset errors", BUTTON, writable=True,
-                entity_category=DIAGNOSTIC,
+                readable=False, entity_category=DIAGNOSTIC,
                 probe_via="fault_code"),
     # --- Main control (550-554) ---
     RegisterDef("operating_mode", 550, "Operating mode", SELECT, writable=True,

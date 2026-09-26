@@ -97,6 +97,14 @@ def test_clamp_limits_to_native_range():
     assert unbounded.clamp(-12.5) == -12.5
 
 
+def test_probe_via_only_for_write_only_registers():
+    """Registers that can't be read-probed are exactly the write-only ones."""
+    for r in rd.REGISTERS:
+        assert (r.probe_via is not None) == (not r.readable), r.key
+        if r.probe_via is not None:
+            assert rd.REGISTERS_BY_KEY[r.probe_via].readable, r.key
+
+
 if __name__ == "__main__":
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in funcs:

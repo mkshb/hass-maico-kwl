@@ -375,7 +375,32 @@
         "name": "Fault code",
         "state_attributes": {
           "active": {
-            "name": "Active faults"
+            "name": "Active faults",
+            "state": {
+              "supply_fan": "Supply air fan",
+              "exhaust_fan": "Exhaust air fan",
+              "sensor_air_intake": "Air intake temperature sensor",
+              "sensor_supply": "Supply air temperature sensor",
+              "sensor_exhaust": "Exhaust air temperature sensor",
+              "sensor_room_bde": "Control panel room temperature sensor",
+              "sensor_room": "Room temperature sensor",
+              "sensor_outdoor_before_ehx": "Outdoor temperature sensor before the ground heat exchanger",
+              "bypass": "Bypass",
+              "zone_damper": "Zone damper",
+              "combi_sensor": "Combination sensor",
+              "frost_protection": "Frost protection",
+              "external_preheater": "External preheater",
+              "supply_exhaust_too_cold": "Supply or exhaust air too cold",
+              "sensor_room_bus": "Room temperature over the bus",
+              "communication_zp1": "Communication with ZP1",
+              "communication_zp2": "Communication with ZP2",
+              "sensor_extract": "Extract air temperature sensor",
+              "communication_bde": "Communication with the control panel",
+              "system_memory": "System memory",
+              "system_bus": "System bus",
+              "unknown_fault": "Unknown fault",
+              "external_safety_shutdown": "External safety shutdown"
+            }
           }
         }
       },
@@ -419,7 +444,39 @@
         "name": "Notice code",
         "state_attributes": {
           "active": {
-            "name": "Active notices"
+            "name": "Active notices",
+            "state": {
+              "brine_ehx_low_cooling": "Low cooling power of the brine ground heat exchanger",
+              "communication_enocean": "EnOcean communication",
+              "communication_knx": "KNX communication",
+              "communication_air_at_home": "air@home communication",
+              "bypass_active": "Bypass active",
+              "zone_ventilation_active": "Zone ventilation active",
+              "frost_protection_active": "Frost protection active",
+              "frost_protection_airflow_reduced": "Airflow reduced for frost protection",
+              "keypad_locked": "Keypad locked",
+              "device_filter_dirty": "Device filter dirty",
+              "outdoor_filter_dirty": "Outdoor filter dirty",
+              "room_filter_dirty": "Room filter dirty",
+              "airflow_calibration_active": "Airflow calibration active",
+              "humidity_protection_active": "Humidity protection active",
+              "reheating_active": "Reheating active",
+              "door_contact_triggered": "Door contact triggered",
+              "external_safety_shutdown": "External safety shutdown",
+              "forced_ventilation_active": "Forced ventilation active",
+              "communication_modbus": "Modbus communication",
+              "switch_test_active": "Switch test active",
+              "filter_pressure_init_active": "Filter and constant pressure initialisation active",
+              "pressure_setpoint_not_reached": "Constant pressure setpoint not reached",
+              "external_start_stop_active": "External start/stop active",
+              "night_cooling_active": "Night cooling active",
+              "purge_active": "Purge mode active",
+              "motion_detector_active": "Motion detector mode active",
+              "external_control_active": "External control active",
+              "airflow_balancing_active": "Airflow balancing active",
+              "holiday_program_active": "Holiday program active",
+              "sensor_mode_active": "Sensor mode active"
+            }
           }
         }
       },

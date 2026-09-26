@@ -11,7 +11,11 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 
 from custom_components.maico_kwl.const import DOMAIN
-from custom_components.maico_kwl.register_defs import ACCESSORIES
+from custom_components.maico_kwl.register_defs import (
+    ACCESSORIES,
+    FAULT_BITS,
+    NOTICE_BITS,
+)
 
 from .conftest import FakeDevice
 from .helpers import setup_entry
@@ -106,3 +110,13 @@ def test_code_only_uses_known_exception_keys() -> None:
 def test_every_accessory_is_named(name: str) -> None:
     options = _load(name)["selector"]["accessory"]["options"]
     assert options.keys() == {acc.key for acc in ACCESSORIES}
+
+
+@pytest.mark.parametrize("name", FILES)
+@pytest.mark.parametrize(
+    ("key", "bits"), [("fault_code", FAULT_BITS), ("notice_code", NOTICE_BITS)]
+)
+def test_every_code_bit_is_named(name: str, key: str, bits: dict[int, str]) -> None:
+    """Each fault and notice bit reads as text in the "active" attribute."""
+    active = _load(name)["entity"]["sensor"][key]["state_attributes"]["active"]
+    assert active["state"].keys() == set(bits.values())

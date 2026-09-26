@@ -31,6 +31,9 @@ profile of the unit is derived from the registers it finds.
 - **Capability-based model detection**: since the Maico registers contain no unique model
   identifier, a profile is derived from the registers and features that are present (e.g.
   "Maico KWL (EnOcean, CO2, ZP1)").
+- **Dashboard card included**: an airflow diagram with live temperatures, fans and heat recovery,
+  room values, level and mode controls and filter status. It comes with the integration and needs
+  no extra download or resource, see [Dashboard card](#dashboard-card).
 - **Full UI setup** (config flow): host, port, Modbus address and scan interval. The interval can
   be changed later via the options, the connection settings via *Reconfigure*.
 - **Read and write**: live sensors plus controllable entities (operating mode, ventilation level,
@@ -93,7 +96,8 @@ there, and each is only created when the unit has all the registers it needs.
 
 The *Fault code* and *Notice code* sensors show the raw 32-bit value of registers 401/402 and
 403/404. Their `active` attribute lists the bits that are set, e.g. `["bypass_active"]` for notice
-code 16. Bits without a documented meaning appear as `bit_<n>`. The most useful bits also have their
+code 16; the Home Assistant UI and the [dashboard card](#dashboard-card) show them by name, e.g.
+*Bypass active*. Bits without a documented meaning appear as `bit_<n>`. The most useful bits also have their
 own binary sensors: *Device filter dirty*, *Outdoor filter dirty*, *Room filter dirty* and *Frost
 protection active*. The *Problem* sensor is on whenever any fault bit is set.
 
@@ -210,6 +214,51 @@ leave the option empty to set the value manually instead.
   the discovery rules probes the unit once more on its own. Changing the options reloads the
   integration; entities of accessories that are no longer selected are removed.
 
+## Dashboard card
+
+The integration brings its own dashboard card. It is loaded automatically once the integration is
+set up, so there is nothing to download and no dashboard resource to add.
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/mkshb/hass-maico-kwl/main/docs/images/card-light.png" alt="Maico KWL card, light theme" width="380"></td>
+    <td><img src="https://raw.githubusercontent.com/mkshb/hass-maico-kwl/main/docs/images/card-dark.png" alt="Maico KWL card, dark theme" width="380"></td>
+  </tr>
+</table>
+
+*The screenshots are rendered by the card's automated test with example values.*
+
+**Adding the card**: edit a dashboard, choose **Add card** and search for **Maico KWL**. The card
+picks the unit on its own; with more than one unit, choose it in the card editor. In YAML:
+
+```yaml
+type: custom:maico-kwl-card
+device_id: 0123456789abcdef0123456789abcdef  # optional, the first unit if left out
+```
+
+**What it shows**
+
+- **Airflow diagram**: outdoor air to supply air on top, extract air to exhaust air below, the heat
+  exchanger with the heat recovery efficiency in between. The colour of the air follows its
+  temperature (blue when cold, grey around room temperature, orange to red when hot), so the heat
+  exchange is visible at a glance. With the summer bypass open, the outdoor air takes the arc over
+  the exchanger. Fans show their speed and airflow, a PTC heater lights up while it heats. A soft
+  sheen moves along the ducts while the fans run; nothing moves with *reduce motion* turned on.
+- **Room values**: room temperature, humidity, air quality and heat recovery power. Values that the
+  integration feeds to the unit over the bus carry a **BUS** badge and name their source entity;
+  the badge turns orange when no value has been written for 10 minutes. Air quality gets a
+  coloured dot (up to 800 ppm good, up to 1400 ppm moderate, above poor).
+- **Controls**: ventilation level, operating mode and boost. In the auto modes the unit picks the
+  level itself, so the level bar is locked there. A change shows at once and pulses until the unit
+  reports it, which can take a few seconds.
+- **Filters**: remaining days of every fitted filter and the date of the next change.
+- **Notices and faults**: a chip in the header while the unit reports any, with the messages by
+  name when tapped. The bypass notice is left out, the diagram already shows it.
+
+Parts the unit does not have (accessories, sensors) are simply left out. A unit without a summer
+bypass shows it as closed. Tapping a value opens its entity, for bus values the source entity. On narrow screens the
+level bar switches to icons.
+
 ## Automations
 
 The integration is a clean **control surface**. The control *policy* (when to change mode/level)
@@ -310,6 +359,12 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 **New registers or features are missing after a firmware update**
 - Press the *Rediscover registers* button on the device page.
 
+**The dashboard card is missing or shows "Custom element doesn't exist"**
+- Reload the page in the browser; in the companion app, reset the frontend cache in the app
+  settings. The card is loaded with the rest of the frontend, so a page that was open before the
+  integration was set up or updated does not know it yet.
+- The card needs the integration to be set up; without a configured unit it is not loaded.
+
 **Collecting information for a bug report**
 - Download the diagnostics: **Settings > Devices & Services > Maico KWL > ⋮ > Download
   diagnostics**. They contain every discovered register with its value and raw words; the host
@@ -325,7 +380,8 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
    **Settings > Automations & Scenes > Blueprints** if you no longer need them.
 3. Remove the integration files: in HACS open "Maico KWL" and choose **Remove**, or delete
    `custom_components/maico_kwl` for a manual installation.
-4. Restart Home Assistant.
+4. Restart Home Assistant. Dashboard cards of type `custom:maico-kwl-card` stop working once the
+   integration is removed; delete them from your dashboards.
 
 Settings written to the unit (operating mode, ventilation level, airflow rates, etc.) stay on the
 unit. Bus inputs are no longer refreshed; if the unit should use its own sensors again, set the
@@ -348,7 +404,10 @@ Maico KWL > ⋮ > Download diagnostics**). They list every register the unit ans
 and raw words, and make most questions answerable without access to the unit.
 
 Development: `pytest` runs the test suite against a simulated unit, `mypy` checks the types (both
-also run in GitHub Actions).
+also run in GitHub Actions). The dashboard card lives in `frontend-src` (Lit, TypeScript):
+`npm ci`, then `npm run build` writes the bundle to `custom_components/maico_kwl/frontend`, which is
+committed so HACS ships it. `npm test` renders the built card in Chromium and refreshes the
+screenshots in `docs/images`.
 
 ## License / disclaimer
 

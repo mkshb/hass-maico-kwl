@@ -1,25 +1,24 @@
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 
 import { KwlDevice, maicoDeviceIds } from "./device";
-import { KEY, type EntityKey } from "./keys";
-import { browserLocalize, localize, type StringKey } from "./localize";
+import { REPORTED, controlStyles, renderControls, type Control, type ControlsContext } from "./controls";
+import { browserLocalize, localize } from "./localize";
 import { renderSchematic, schematicStyles } from "./schematic";
 import { buildTiles, renderTiles, tileStyles } from "./tiles";
 import type { HomeAssistant, MaicoKwlCardConfig } from "./types";
 
 const CARD_TYPE = "maico-kwl-card";
 
-// Until the tiles and controls land, the card lists the rest of what it
-// resolved, grouped the way the layout will use it. Entities the unit lacks do not show up.
-const GROUPS: [StringKey, readonly EntityKey[]][] = [
-  ["group_controls", [KEY.operatingMode, KEY.ventilationLevel, KEY.currentVentLevel, KEY.boost, KEY.season]],
-  [
-    "group_filters",
-    [KEY.filterRemainingDevice, KEY.filterRemainingOutdoor, KEY.filterRemainingRoom, KEY.filterNextChange],
-  ],
-  ["group_status", [KEY.problem, KEY.faultCode, KEY.noticeCode]],
-];
+// The unit applies a change slowly and the integration reports it with its
+// next poll (30 s by default), so a change is shown at once and kept for up
+// to this long while the unit has not confirmed it yet.
+const PENDING_TIMEOUT_MS = 35_000;
+
+interface Pending {
+  value: string;
+  timer: number;
+}
 
 export class MaicoKwlCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -27,6 +26,8 @@ export class MaicoKwlCard extends LitElement {
   @state() private _config?: MaicoKwlCardConfig;
 
   private readonly _uid = `kwl${Math.random().toString(36).slice(2, 10)}`;
+
+  @state() private _pending = new Map<Control, Pending>();
 
   public setConfig(config: MaicoKwlCardConfig): void {
     this._config = config;
@@ -44,6 +45,49 @@ export class MaicoKwlCard extends LitElement {
   public static getStubConfig(hass: HomeAssistant): Omit<MaicoKwlCardConfig, "type"> {
     const [deviceId] = maicoDeviceIds(hass);
     return deviceId ? { device_id: deviceId } : {};
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    for (const control of [...this._pending.keys()]) this._clearPending(control);
+  }
+
+  protected willUpdate(changed: PropertyValues<this>): void {
+    // A pending change is done once the unit reports the value.
+    if (!changed.has("hass") || !this._pending.size || !this.hass) return;
+    const device = this._device();
+    if (!device) return;
+    for (const [control, pending] of this._pending) {
+      if (REPORTED[control](device) === pending.value) this._clearPending(control);
+    }
+  }
+
+  private _clearPending(control: Control): void {
+    const pending = this._pending.get(control);
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    this._pending.delete(control);
+    this._pending = new Map(this._pending);
+  }
+
+  private _controls(device: KwlDevice): ControlsContext {
+    return {
+      hass: this.hass!,
+      device,
+      moreInfo: (key) => this._moreInfo(device.entityId(key)),
+      shown: (control) => this._pending.get(control)?.value ?? REPORTED[control](device),
+      pending: (control) => this._pending.has(control),
+      change: (control, value, send) => {
+        this._clearPending(control);
+        if (REPORTED[control](device) === value) {
+          send();
+          return;
+        }
+        const timer = window.setTimeout(() => this._clearPending(control), PENDING_TIMEOUT_MS);
+        this._pending = new Map(this._pending).set(control, { value, timer });
+        send().catch(() => this._clearPending(control));
+      },
+    };
   }
 
   /** The configured unit, or the only/first one when none is configured. */
@@ -70,21 +114,7 @@ export class MaicoKwlCard extends LitElement {
             moreInfo: (key) => this._moreInfo(device.entityId(key)),
           })}
           ${renderTiles(this.hass, buildTiles(this.hass, device), (entityId) => this._moreInfo(entityId))}
-          ${GROUPS.map(([title, keys]) => {
-            const present = device.present(keys);
-            if (!present.length) return nothing;
-            return html`
-              <h3>${localize(this.hass, title)}</h3>
-              <table>
-                ${present.map(
-                  (key) => html`<tr>
-                    <td>${device.stateObj(key)!.attributes.friendly_name ?? key}</td>
-                    <td class="state">${device.format(key)}</td>
-                  </tr>`,
-                )}
-              </table>
-            `;
-          })}
+          ${renderControls(this._controls(device))}
         </div>
       </ha-card>
     `;
@@ -100,6 +130,7 @@ export class MaicoKwlCard extends LitElement {
   static styles = [
     schematicStyles,
     tileStyles,
+    controlStyles,
     css`
     ha-card {
       --kwl-bus-bg: #dcebf6;
@@ -121,24 +152,6 @@ export class MaicoKwlCard extends LitElement {
     }
     .content {
       padding: 0 16px 16px;
-    }
-    h3 {
-      margin: 16px 0 4px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--secondary-text-color);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    td {
-      padding: 4px 0;
-      border-bottom: 1px solid var(--divider-color);
-    }
-    td.state {
-      text-align: right;
-      color: var(--secondary-text-color);
     }
     .empty {
       padding: 16px;

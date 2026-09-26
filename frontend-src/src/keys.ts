@@ -32,6 +32,7 @@ export const KEY = {
   ventilationLevel: "ventilation_level",
   currentVentLevel: "current_vent_level",
   boost: "boost_ventilation",
+  offLock: "off_lock",
   season: "season",
   // Filters
   filterRemainingDevice: "filter_remaining_device",

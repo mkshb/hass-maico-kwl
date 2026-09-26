@@ -1,0 +1,351 @@
+import { css, html, nothing, type TemplateResult } from "lit";
+
+import type { KwlDevice } from "./device";
+import { KEY, type EntityKey } from "./keys";
+import { localize, type StringKey } from "./localize";
+import type { HomeAssistant } from "./types";
+
+const LEVELS = ["off", "humidity_protection", "reduced", "nominal", "intensive"] as const;
+
+// In these modes the unit picks the level itself, so the level bar is locked.
+const AUTO_MODES = new Set(["auto_time", "auto_sensor"]);
+
+// Days per month for the filter interval, which the unit keeps in months.
+const DAYS_PER_MONTH = 30.44;
+const FILTER_SOON_DAYS = 14;
+
+const FILTERS: [label: StringKey, remaining: EntityKey, runtime: EntityKey][] = [
+  ["filter_device", KEY.filterRemainingDevice, KEY.filterRuntimeDevice],
+  ["filter_outdoor", KEY.filterRemainingOutdoor, KEY.filterRuntimeOutdoor],
+  ["filter_room", KEY.filterRemainingRoom, KEY.filterRuntimeRoom],
+];
+
+/** Controls whose change the card shows at once, before the unit confirms it. */
+export type Control = "level" | "mode" | "boost";
+
+/** The value of a control as the unit reports it. */
+export const REPORTED: Record<Control, (device: KwlDevice) => string | undefined> = {
+  // The running level: in the auto modes the unit's own choice.
+  level: (device) => device.state(KEY.currentVentLevel) ?? device.state(KEY.ventilationLevel),
+  mode: (device) => device.state(KEY.operatingMode),
+  boost: (device) => device.state(KEY.boost),
+};
+
+export interface ControlsContext {
+  hass: HomeAssistant;
+  device: KwlDevice;
+  moreInfo: (key: EntityKey) => void;
+  /** The value to show: a pending change, else the reported one. */
+  shown: (control: Control) => string | undefined;
+  pending: (control: Control) => boolean;
+  /** Show the value at once and send it; the unit confirms it later. */
+  change: (control: Control, value: string, send: () => Promise<unknown>) => void;
+}
+
+function selectOption(ctx: ControlsContext, control: Control, key: EntityKey, option: string): void {
+  const entityId = ctx.device.entityId(key);
+  if (!entityId) return;
+  ctx.change(control, option, () =>
+    ctx.hass.callService("select", "select_option", { entity_id: entityId, option }),
+  );
+}
+
+function renderLevels(ctx: ControlsContext): TemplateResult | typeof nothing {
+  const { hass, device } = ctx;
+  const t = (key: StringKey, values?: Record<string, string>) => localize(hass, key, values);
+  const levelState = device.stateObj(KEY.ventilationLevel);
+  if (!levelState) return nothing;
+
+  const mode = ctx.shown("mode");
+  const auto = mode !== undefined && AUTO_MODES.has(mode);
+  const current = ctx.shown("level");
+  const pending = ctx.pending("level");
+  const offLocked = device.isOn(KEY.offLock) ?? false;
+  const modeState = device.stateObj(KEY.operatingMode);
+
+  return html`
+    <div class="control">
+      <div class="control-label" id="kwl-level-label">${t("ventilation_level")}</div>
+      <div class=${auto ? "segments locked" : "segments"} role="group" aria-labelledby="kwl-level-label">
+        ${LEVELS.map((level) => {
+          const active = level === current;
+          const disabled = auto || (level === "off" && offLocked);
+          return html`<button
+            type="button"
+            class=${active ? (pending ? "segment active pending" : "segment active") : "segment"}
+            aria-pressed=${active ? "true" : "false"}
+            ?disabled=${disabled}
+            @click=${() => selectOption(ctx, "level", KEY.ventilationLevel, level)}
+          >
+            ${t(`level_${level}`)}
+          </button>`;
+        })}
+      </div>
+      ${auto && modeState
+        ? html`<div class="hint">
+            ${t("level_auto_hint", { mode: hass.formatEntityState(modeState, mode) })}
+          </div>`
+        : nothing}
+    </div>
+  `;
+}
+
+function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothing {
+  const { hass, device } = ctx;
+  const t = (key: StringKey) => localize(hass, key);
+  const modeState = device.stateObj(KEY.operatingMode);
+  const boostEntity = device.has(KEY.boost) ? device.entityId(KEY.boost) : undefined;
+  if (!modeState && !boostEntity) return nothing;
+
+  const options = (modeState?.attributes.options as string[] | undefined) ?? [];
+  const mode = ctx.shown("mode");
+  const boostOn = ctx.shown("boost") === "on";
+  const boostClass = ["boost", boostOn ? "active" : "", ctx.pending("boost") ? "pending" : ""].join(" ");
+
+  return html`
+    <div class="mode-row">
+      ${modeState
+        ? html`<label class="control mode">
+            <span class="control-label">${t("operating_mode")}</span>
+            <select
+              class=${ctx.pending("mode") ? "pending" : ""}
+              .value=${mode ?? ""}
+              @change=${(ev: Event) =>
+                selectOption(ctx, "mode", KEY.operatingMode, (ev.target as HTMLSelectElement).value)}
+            >
+              ${options.map(
+                (option) => html`<option value=${option} ?selected=${option === mode}>
+                  ${hass.formatEntityState(modeState, option)}
+                </option>`,
+              )}
+            </select>
+          </label>`
+        : nothing}
+      ${boostEntity
+        ? html`<button
+            type="button"
+            class=${boostClass}
+            aria-pressed=${boostOn ? "true" : "false"}
+            @click=${() =>
+              ctx.change("boost", boostOn ? "off" : "on", () =>
+                hass.callService("switch", boostOn ? "turn_off" : "turn_on", { entity_id: boostEntity }),
+              )}
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M2 6 H11 A2.5 2.5 0 1 0 8.5 3.5"></path>
+              <path d="M2 10 H14 A2.5 2.5 0 1 1 11.5 12.5"></path>
+              <path d="M2 14 H7"></path>
+            </svg>
+            ${t("boost")}
+          </button>`
+        : nothing}
+    </div>
+  `;
+}
+
+function renderFilters(ctx: ControlsContext): TemplateResult | typeof nothing {
+  const { hass, device } = ctx;
+  const t = (key: StringKey, values?: Record<string, string | number>) => localize(hass, key, values);
+  const filters = FILTERS.filter(([, remaining]) => device.number(remaining) !== undefined);
+  if (!filters.length) return nothing;
+  const nextChange = device.format(KEY.filterNextChange);
+
+  return html`
+    <div class="filters">
+      ${filters.map(([label, remainingKey, runtimeKey]) => {
+        const days = Math.max(0, Math.round(device.number(remainingKey)!));
+        const months = device.number(runtimeKey);
+        const share = months ? Math.min(1, days / (months * DAYS_PER_MONTH)) : 1;
+        const level = days === 0 ? "due" : days <= FILTER_SOON_DAYS ? "soon" : "ok";
+        return html`
+          <button type="button" class="filter" @click=${() => ctx.moreInfo(remainingKey)}>
+            <span class="filter-head">
+              <span class="control-label">${t(label)}</span>
+              <span class=${`filter-days ${level}`}>
+                ${level === "due" ? t("filter_due") : t("filter_days", { days })}
+              </span>
+            </span>
+            <span class="bar"><span class=${`bar-fill ${level}`} style=${`width: ${share * 100}%`}></span></span>
+          </button>
+        `;
+      })}
+      ${nextChange ? html`<div class="hint">${t("filter_next_change", { date: nextChange })}</div>` : nothing}
+    </div>
+  `;
+}
+
+export function renderControls(ctx: ControlsContext): TemplateResult {
+  return html`${renderLevels(ctx)}${renderModeAndBoost(ctx)}${renderFilters(ctx)}`;
+}
+
+export const controlStyles = css`
+  .pending {
+    animation: kwl-pending 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes kwl-pending {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.55;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pending {
+      animation: none;
+      opacity: 0.7;
+    }
+  }
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .control-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .segments {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--secondary-background-color, #f5f5f5);
+  }
+  .segment {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 44px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .segment.active {
+    background: var(--primary-color);
+    color: var(--text-primary-color, #fff);
+  }
+  .segment:disabled {
+    cursor: default;
+  }
+  .segments.locked .segment:not(.active),
+  .segment:disabled:not(.active) {
+    color: var(--secondary-text-color);
+    opacity: 0.75;
+  }
+  .segments.locked .segment.active {
+    opacity: 0.7;
+  }
+  .segment:focus-visible,
+  .boost:focus-visible,
+  .filter:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+  .mode-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .mode {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  select {
+    height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--secondary-background-color, #f5f5f5);
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 14px;
+  }
+  .boost {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--secondary-background-color, #f5f5f5);
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .boost.active {
+    background: var(--primary-color);
+    color: var(--text-primary-color, #fff);
+  }
+  .boost svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+    stroke-linecap: round;
+  }
+  .filters {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--primary-text-color);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .filter-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .filter-days.soon,
+  .filter-days.due {
+    color: var(--kwl-warn-fg);
+    font-weight: 500;
+  }
+  .bar {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--secondary-background-color, #f5f5f5);
+    overflow: hidden;
+  }
+  .bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--primary-color);
+  }
+  .bar-fill.soon,
+  .bar-fill.due {
+    background: var(--kwl-warn-fg);
+  }
+`;

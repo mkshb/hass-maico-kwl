@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -16,16 +15,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import BUS_FEEDS
+from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL
 from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import NUMBER, REGISTERS_BY_KEY, RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
-
-# Write-only "bus" inputs must be refreshed periodically (device note: write
-# cycle >= 10 min). Re-write just under that so the value stays valid.
-REWRITE_INTERVAL = timedelta(minutes=9)
 
 # Send actions to the unit one at a time.
 PARALLEL_UPDATES = 1
@@ -106,7 +101,9 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
             self._attr_native_value = last.native_value
             await self._async_rewrite(None)  # refresh after a restart
         self.async_on_remove(
-            async_track_time_interval(self.hass, self._async_rewrite, REWRITE_INTERVAL)
+            async_track_time_interval(
+                self.hass, self._async_rewrite, BUS_REWRITE_INTERVAL
+            )
         )
 
     async def async_set_native_value(self, value: float) -> None:

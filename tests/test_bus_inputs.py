@@ -328,3 +328,38 @@ async def test_bus_number_logs_rewrite_outage_once_and_recovery(
         async_fire_time_changed(hass, now + REWRITE * 4)
         await hass.async_block_till_done()
     assert "Rewrite of room_temp_bus succeeds again" in caplog.text
+
+
+async def test_feed_skips_unchanged_values(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Changes that encode to the same raw value are not written again."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+    device.writes.clear()
+
+    hass.states.async_set("sensor.room", "21.52")  # still 215 on the wire
+    await hass.async_block_till_done()
+    assert device.writes == []
+
+    # The periodic refresh always writes.
+    async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
+    await hass.async_block_till_done()
+    assert device.writes == [(707, [215])]
+
+
+async def test_feed_retries_value_after_failed_write(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A value that could not be written is not treated as sent."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+
+    device.write_exception = 4
+    hass.states.async_set("sensor.room", "22.0")
+    await hass.async_block_till_done()
+
+    device.write_exception = None
+    hass.states.async_set("sensor.room", "22.01")  # same raw value 220
+    await hass.async_block_till_done()
+    assert device.writes[-1] == (707, [220])

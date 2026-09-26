@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 DOMAIN = "maico_kwl"
 
 CONF_HOST = "host"
@@ -21,6 +23,10 @@ BUS_FEEDS: list[tuple[str, str, str | None]] = [
     ("humidity_bus", CONF_HUMIDITY_SOURCE_ENTITY, "humidity"),
     ("air_quality_bus", CONF_AIR_QUALITY_SOURCE_ENTITY, None),
 ]
+
+# Bus input values expire on the unit unless written at least every 10
+# minutes. Rewrite just under that so the value stays valid.
+BUS_REWRITE_INTERVAL = timedelta(minutes=9)
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 10

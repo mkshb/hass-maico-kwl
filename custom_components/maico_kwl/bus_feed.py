@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, State, callback
@@ -18,12 +17,12 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 
+from .const import BUS_REWRITE_INTERVAL
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import RegisterDef
 
 _LOGGER = logging.getLogger(__name__)
 
-REWRITE_INTERVAL = timedelta(minutes=9)
 _INVALID = {None, "", "unknown", "unavailable"}
 
 
@@ -45,12 +44,14 @@ class BusFeeder:
         self._tasks: set[asyncio.Task] = set()
         # Registers whose last write failed, so a lasting outage is logged once.
         self._failing: set[str] = set()
+        # Last raw words written per register, to skip unchanged values.
+        self._written: dict[str, list[int]] = {}
 
     async def async_start(self) -> None:
         if not self._feeds:
             return
         for reg, entity_id in self._feeds:
-            await self._async_write(reg, self.hass.states.get(entity_id))
+            await self._async_write(reg, self.hass.states.get(entity_id), force=True)
         entity_ids = [entity_id for _reg, entity_id in self._feeds]
         self._unsubs.append(
             async_track_state_change_event(
@@ -59,7 +60,7 @@ class BusFeeder:
         )
         self._unsubs.append(
             async_track_time_interval(
-                self.hass, self._handle_interval, REWRITE_INTERVAL
+                self.hass, self._handle_interval, BUS_REWRITE_INTERVAL
             )
         )
 
@@ -74,10 +75,12 @@ class BusFeeder:
         self._tasks.clear()
 
     @callback
-    def _schedule_write(self, reg: RegisterDef, state: State | None) -> None:
+    def _schedule_write(
+        self, reg: RegisterDef, state: State | None, force: bool = False
+    ) -> None:
         task = self._entry.async_create_background_task(
             self.hass,
-            self._async_write(reg, state),
+            self._async_write(reg, state, force),
             f"maico_kwl bus feed {reg.key}",
         )
         self._tasks.add(task)
@@ -93,10 +96,13 @@ class BusFeeder:
 
     @callback
     def _handle_interval(self, _now) -> None:
+        # Always write here: the unit needs the value refreshed periodically.
         for reg, entity_id in self._feeds:
-            self._schedule_write(reg, self.hass.states.get(entity_id))
+            self._schedule_write(reg, self.hass.states.get(entity_id), force=True)
 
-    async def _async_write(self, reg: RegisterDef, state: State | None) -> None:
+    async def _async_write(
+        self, reg: RegisterDef, state: State | None, force: bool = False
+    ) -> None:
         if state is None or state.state in _INVALID:
             return
         try:
@@ -110,13 +116,17 @@ class BusFeeder:
             value = max(value, reg.native_min)
         if reg.native_max is not None:
             value = min(value, reg.native_max)
+        raw = reg.encode(value)
+        if not force and self._written.get(reg.key) == raw:
+            return  # e.g. a source reporting 21.52 after 21.5
         try:
-            await self._hub.write(reg.address, reg.encode(value))
+            await self._hub.write(reg.address, raw)
         except MaicoModbusError as err:
             if reg.key not in self._failing:
                 self._failing.add(reg.key)
                 _LOGGER.info("Bus feed %s write failed: %s", reg.key, err)
             return
+        self._written[reg.key] = raw
         if reg.key in self._failing:
             self._failing.discard(reg.key)
             _LOGGER.info("Bus feed %s writes succeed again", reg.key)

@@ -27,6 +27,23 @@ test("card picker entry, stub config and size", async () => {
   await view.close();
 });
 
+test("the card suggests itself for an entity of a Maico unit", async () => {
+  const view = await openCard();
+  const suggestions = await view.page.evaluate(() => {
+    const hass = window.kwl.hass;
+    const entry = window.customCards.find((c) => c.type === "maico-kwl-card");
+    return {
+      maico: entry.getEntitySuggestion(hass, "sensor.maico_temp_room"),
+      foreign: entry.getEntitySuggestion(hass, "sensor.living_room_temperature"),
+      unknown: entry.getEntitySuggestion(hass, "light.nowhere"),
+    };
+  });
+  assert.deepEqual(suggestions.maico, { config: { type: "custom:maico-kwl-card", device_id: "unit" } });
+  assert.equal(suggestions.foreign, null);
+  assert.equal(suggestions.unknown, null);
+  await view.close();
+});
+
 test("an invalid config is refused with a message and changes nothing", async () => {
   const view = await openCard();
   const results = await view.page.evaluate(() => {

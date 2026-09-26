@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 
-import { KwlDevice, maicoDeviceIds } from "./device";
+import { DOMAIN, KwlDevice, maicoDeviceIds } from "./device";
 import { KEY } from "./keys";
 import { REPORTED, controlStyles, renderControls, type Control, type ControlsContext } from "./controls";
 import { renderHeader, headerStyles } from "./header";
@@ -29,6 +29,12 @@ const ENERGY_REFRESH_MS = 5 * 60_000;
 // not unrelated updates from HA.
 const CLOCK_MS = 60_000;
 const SCHEMATIC_MAX_PX = 460;
+
+/** A card HA offers when the user picks an entity in the card picker. */
+interface EntitySuggestion {
+  config: MaicoKwlCardConfig;
+  label?: string;
+}
 
 interface Pending {
   value: string;
@@ -109,6 +115,16 @@ export class MaicoKwlCard extends LitElement {
   public static async getConfigElement(): Promise<HTMLElement> {
     const { EDITOR_TYPE } = await import("./editor");
     return document.createElement(EDITOR_TYPE);
+  }
+
+  /**
+   * Offered in the card picker (HA 2026.6 and newer) when the user picks an
+   * entity of a Maico unit: the card for that unit.
+   */
+  public static getEntitySuggestion(hass: HomeAssistant, entityId: string): EntitySuggestion | null {
+    const entry = hass.entities[entityId];
+    if (entry?.platform !== DOMAIN || !entry.device_id) return null;
+    return { config: { type: `custom:${CARD_TYPE}`, device_id: entry.device_id } };
   }
 
   public static getStubConfig(hass: HomeAssistant): Omit<MaicoKwlCardConfig, "type"> {
@@ -353,6 +369,7 @@ declare global {
       description: string;
       preview?: boolean;
       documentationURL?: string;
+      getEntitySuggestion?: (hass: HomeAssistant, entityId: string) => EntitySuggestion | null;
     }[];
   }
 }
@@ -366,5 +383,6 @@ if (!customElements.get(CARD_TYPE)) {
     description: browserLocalize("card_description"),
     preview: true,
     documentationURL: DOCUMENTATION_URL,
+    getEntitySuggestion: (hass, entityId) => MaicoKwlCard.getEntitySuggestion(hass, entityId),
   });
 }

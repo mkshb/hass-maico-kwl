@@ -404,13 +404,8 @@ For a bug report or a new model, attach the diagnostics (**Settings > Devices & 
 Maico KWL > ⋮ > Download diagnostics**). They list every register the unit answers, with its value
 and raw words, and make most questions answerable without access to the unit.
 
-Development: `pytest` runs the test suite against a simulated unit, `mypy` checks the types (both
-also run in GitHub Actions). The dashboard card lives in `frontend-src` (Lit, TypeScript):
-`npm ci`, then `npm run build` writes the bundle to `custom_components/maico_kwl/frontend`, which is
-committed so HACS ships it. `npm test` runs the unit tests and renders the built card in
-Chromium, which refreshes the screenshots in `docs/images`; `npm run test:webkit` runs the browser
-tests in WebKit (Safari and the iOS app). The browser tests need Roboto installed
-(`fonts-roboto`).
+How to set up a development environment, add a register, work on the dashboard card and open a
+pull request is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License / disclaimer
 

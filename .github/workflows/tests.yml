@@ -32,8 +32,14 @@ jobs:
         run: mypy
 
   card:
-    name: "Card"
+    name: "Card (${{ matrix.browser }})"
     runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false
+      matrix:
+        # chromium: Chrome, Edge and the Android app (WebView).
+        # webkit: Safari and the iOS app (WKWebView).
+        browser: ["chromium", "webkit"]
     defaults:
       run:
         working-directory: "frontend-src"
@@ -62,18 +68,29 @@ jobs:
           git add --intent-to-add ../custom_components/maico_kwl/frontend
           git diff --exit-code -- ../custom_components/maico_kwl/frontend
 
-      - name: "Install Chromium"
-        run: npx playwright install --with-deps chromium
+      - name: "Unit tests"
+        run: npm run test:unit
 
-      - name: "Render the card"
-        run: npm test
+      - name: "Install the browser and Roboto"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-roboto
+          npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: "Card in the browser"
+        env:
+          KWL_BROWSER: "${{ matrix.browser }}"
+        run: npm run test:browser
 
       # The README shows the committed screenshots; these are for a look at
-      # how the card renders on this run. Fonts differ between machines, so
-      # they are not compared pixel by pixel.
+      # how the card renders on this run. Text rendering differs between
+      # machines, so they are not compared pixel by pixel.
       - name: "Upload screenshots"
         if: always()
         uses: "actions/upload-artifact@v4"
         with:
-          name: "card-screenshots"
-          path: "docs/images/card-*.png"
+          name: "card-${{ matrix.browser }}"
+          path: |
+            docs/images/card-*.png
+            frontend-src/test/out/*.png
+          if-no-files-found: ignore

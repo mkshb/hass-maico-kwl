@@ -406,8 +406,10 @@ and raw words, and make most questions answerable without access to the unit.
 Development: `pytest` runs the test suite against a simulated unit, `mypy` checks the types (both
 also run in GitHub Actions). The dashboard card lives in `frontend-src` (Lit, TypeScript):
 `npm ci`, then `npm run build` writes the bundle to `custom_components/maico_kwl/frontend`, which is
-committed so HACS ships it. `npm test` renders the built card in Chromium and refreshes the
-screenshots in `docs/images`.
+committed so HACS ships it. `npm test` runs the unit tests and renders the built card in
+Chromium, which refreshes the screenshots in `docs/images`; `npm run test:webkit` runs the browser
+tests in WebKit (Safari and the iOS app). The browser tests need Roboto installed
+(`fonts-roboto`).
 
 ## License / disclaimer
 

@@ -4,7 +4,11 @@
 
 const MINUTE = 60_000;
 
-export function unitStates(now = Date.now()) {
+// The browser clock is frozen here, so ages ("2 min ago") never drift.
+// Explicit offset: a naive time would be read in the host's time zone.
+export const FIXED_TIME = Date.parse("2026-01-15T10:00:00+01:00");
+
+export function unitStates(now = FIXED_TIME) {
   const written = new Date(now - 2 * MINUTE).toISOString();
   return {
     temp_air_intake: { state: "2.0", unit: "°C", precision: 1 },

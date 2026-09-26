@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
-import { SOURCES, THEMES, unitStates } from "./fixture.mjs";
+import { ENERGY_TODAY_KWH, SOURCES, THEMES, unitStates } from "./fixture.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const FRONTEND = join(ROOT, "custom_components", "maico_kwl", "frontend");
@@ -93,6 +93,8 @@ const PAGE = `<!doctype html>
     },
     formatEntityAttributeValue: (stateObj, attribute, value) => String(value),
     callService: async () => {},
+    callWS: async (message) =>
+      message.type === "recorder/statistic_during_period" ? { change: window.FIXTURE.energyToday } : {},
   };
 
   customElements.define("home-assistant", class extends HTMLElement {});
@@ -141,10 +143,21 @@ for (const theme of ["light", "dark"]) {
     });
     await page.addInitScript(
       (fixture) => (window.FIXTURE = fixture),
-      { theme: THEMES[theme], dark: theme === "dark", states: unitStates(), sources: SOURCES, labels: LABELS },
+      {
+        theme: THEMES[theme],
+        dark: theme === "dark",
+        states: unitStates(),
+        sources: SOURCES,
+        labels: LABELS,
+        energyToday: ENERGY_TODAY_KWH,
+      },
     );
     await page.goto(`${ORIGIN}/`);
     await page.waitForFunction(() => window.READY === true);
+    // Today's energy arrives from the statistics after the first render.
+    await page.waitForFunction(() =>
+      document.querySelector("maico-kwl-card").shadowRoot.textContent.includes("today"),
+    );
 
     const card = page.locator("maico-kwl-card");
     assert.equal(await card.locator(".schematic").count(), 1, "schematic");
@@ -152,7 +165,10 @@ for (const theme of ["light", "dark"]) {
     assert.equal(await card.locator(".segment").count(), 5, "level segments");
     assert.equal(await card.locator(".filter").count(), 1, "filters");
     assert.match(await card.locator(".schematic").textContent(), /2\.0 °C/);
-    assert.match(await card.locator(".tiles").textContent(), /from Living room temperature/);
+    const tiles = await card.locator(".tiles").textContent();
+    assert.match(tiles, /from Living room temperature/);
+    assert.match(tiles, /8\.1 g\/m³/);
+    assert.match(tiles, /12\.4 kWh today/);
     assert.deepEqual(errors, []);
 
     // Let the fans and the air sheen settle into a steady frame.

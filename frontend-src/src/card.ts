@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 
 import { KwlDevice, maicoDeviceIds } from "./device";
+import { KEY } from "./keys";
 import { REPORTED, controlStyles, renderControls, type Control, type ControlsContext } from "./controls";
 import { renderHeader, headerStyles } from "./header";
 import { browserLocalize, localize } from "./localize";
@@ -19,6 +20,8 @@ const PENDING_TIMEOUT_MS = 35_000;
 // Below this card width the level bar shows icons instead of words.
 const NARROW_PX = 400;
 const SCHEMATIC_WIDTH = 420;
+// How often today's recovered energy is read from the statistics.
+const ENERGY_REFRESH_MS = 5 * 60_000;
 const SCHEMATIC_MAX_PX = 460;
 
 interface Pending {
@@ -41,6 +44,11 @@ export class MaicoKwlCard extends LitElement {
   @state() private _width = 0;
 
   private _resizeObserver?: ResizeObserver;
+
+  /** Heat recovered today in kWh, from the recorder statistics. */
+  @state() private _energyToday?: number;
+
+  private _energyFetchedAt = 0;
 
   public setConfig(config: MaicoKwlCardConfig): void {
     this._config = config;
@@ -81,6 +89,33 @@ export class MaicoKwlCard extends LitElement {
     if (!device) return;
     for (const [control, pending] of this._pending) {
       if (REPORTED[control](device) === pending.value) this._clearPending(control);
+    }
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    if (changed.has("hass") && Date.now() - this._energyFetchedAt > ENERGY_REFRESH_MS) {
+      this._fetchEnergyToday();
+    }
+  }
+
+  /** The energy sensor counts up for ever; today's share is its change since midnight. */
+  private async _fetchEnergyToday(): Promise<void> {
+    const device = this.hass && this._device();
+    const entityId = device?.entityId(KEY.heatRecoveryEnergy);
+    if (!entityId) return;
+    this._energyFetchedAt = Date.now();
+    try {
+      const result = await this.hass!.callWS<{ change?: number | null }>({
+        type: "recorder/statistic_during_period",
+        statistic_id: entityId,
+        calendar: { period: "day" },
+        types: ["change"],
+      });
+      this._energyToday = typeof result.change === "number" ? Math.max(0, result.change) : undefined;
+    } catch {
+      // No statistics yet (e.g. a new entity): leave the line out.
+      this._energyToday = undefined;
     }
   }
 
@@ -145,7 +180,9 @@ export class MaicoKwlCard extends LitElement {
             scale: this._width ? SCHEMATIC_WIDTH / Math.min(SCHEMATIC_MAX_PX, this._width - 32) : 1,
             moreInfo: (key) => this._moreInfo(device.entityId(key)),
           })}
-          ${renderTiles(this.hass, buildTiles(this.hass, device), (entityId) => this._moreInfo(entityId))}
+          ${renderTiles(this.hass, buildTiles(this.hass, device, this._energyToday), (entityId) =>
+            this._moreInfo(entityId),
+          )}
           ${renderControls(this._controls(device))}
         </div>
       </ha-card>

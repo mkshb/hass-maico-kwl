@@ -20,6 +20,7 @@ export function unitStates(now = Date.now()) {
     summer_bypass_open: { state: "off" },
     heat_recovery_efficiency: { state: "81.3", unit: "%", precision: 0 },
     heat_recovery_power: { state: "903", unit: "W", precision: 0 },
+    heat_recovery_energy: { state: "412.6", unit: "kWh", precision: 2 },
     room_temp_source: { state: "bus", options: ["comfort_bde", "external", "internal", "bus"] },
     temp_room: { state: "21.6", unit: "°C", precision: 1 },
     room_temp_bus_sent: {
@@ -27,6 +28,8 @@ export function unitStates(now = Date.now()) {
       attributes: { source_entity: "sensor.living_room_temperature", last_written: written },
     },
     humidity_exhaust: { state: "41", unit: "%", precision: 0 },
+    absolute_humidity_extract: { state: "8.1", unit: "g/m³", precision: 1 },
+    season: { state: "winter", options: ["winter", "summer"] },
     humidity_bus_sent: {
       state: "44", unit: "%", precision: 0,
       attributes: { source_entity: "sensor.bathroom_humidity", last_written: written },
@@ -86,3 +89,6 @@ export const THEMES = {
     "--divider-color": "rgba(225, 225, 225, 0.12)",
   },
 };
+
+// Heat recovered today, as the recorder statistics report it.
+export const ENERGY_TODAY_KWH = 12.4;

@@ -1,4 +1,4 @@
-import { css, html, nothing, type TemplateResult } from "lit";
+import { css, html, nothing, svg, type TemplateResult } from "lit";
 
 import type { KwlDevice } from "./device";
 import { CO2_SENSOR_KEYS, HUMIDITY_SENSOR_KEYS, KEY, VOC_SENSOR_KEYS, type EntityKey } from "./keys";
@@ -19,7 +19,11 @@ export interface Tile {
   /** Entity to open on tap: the source entity for bus values. */
   moreInfo: string | undefined;
   value: string;
+  /** A second, smaller value next to the main one. */
+  extra?: { value: string; title: string };
   sub?: string;
+  /** Icon in front of the sub line. */
+  subIcon?: string;
   bus?: { stale: boolean };
   air?: "good" | "moderate" | "poor";
 }
@@ -94,9 +98,12 @@ export function roomTile(hass: HomeAssistant, device: KwlDevice, t: T, now: numb
 }
 
 export function humidityTile(hass: HomeAssistant, device: KwlDevice, t: T, now: number): Tile | undefined {
-  return busTile(hass, device, t, "tile_humidity", KEY.humidityBusSent, now)
+  const tile = busTile(hass, device, t, "tile_humidity", KEY.humidityBusSent, now)
     ?? highestSensor(hass, device, "tile_humidity", HUMIDITY_SENSOR_KEYS)
     ?? plainTile(device, "tile_humidity", KEY.humidityExhaust, t("sub_extract_air"));
+  const absolute = device.format(KEY.absoluteHumidityExtract);
+  if (tile && absolute) tile.extra = { value: absolute, title: t("absolute_humidity_extract") };
+  return tile;
 }
 
 export function airQualityTile(hass: HomeAssistant, device: KwlDevice, t: T, now: number): Tile | undefined {
@@ -111,17 +118,28 @@ export function airQualityTile(hass: HomeAssistant, device: KwlDevice, t: T, now
   return tile;
 }
 
-export function heatRecoveryTile(device: KwlDevice): Tile | undefined {
-  return plainTile(device, "tile_heat_recovery", KEY.heatRecoveryPower);
+export function heatRecoveryTile(hass: HomeAssistant, device: KwlDevice, t: T, energyToday?: number): Tile | undefined {
+  const tile = plainTile(device, "tile_heat_recovery", KEY.heatRecoveryPower);
+  if (tile && energyToday !== undefined) {
+    const language = hass.locale?.language ?? hass.language ?? "en";
+    const value = new Intl.NumberFormat(language, { maximumFractionDigits: energyToday < 10 ? 2 : 1 }).format(energyToday);
+    tile.sub = t("energy_today", { value: `${value} kWh` });
+  }
+  return tile;
 }
 
-export function buildTiles(hass: HomeAssistant, device: KwlDevice, now = Date.now()): Tile[] {
+export function buildTiles(
+  hass: HomeAssistant,
+  device: KwlDevice,
+  energyToday?: number,
+  now = Date.now(),
+): Tile[] {
   const t: T = (key, values) => localize(hass, key, values);
   return [
     roomTile(hass, device, t, now),
     humidityTile(hass, device, t, now),
     airQualityTile(hass, device, t, now),
-    heatRecoveryTile(device),
+    heatRecoveryTile(hass, device, t, energyToday),
   ].filter((tile): tile is Tile => tile !== undefined);
 }
 
@@ -148,9 +166,18 @@ export function renderTiles(
                 ? html`<span class=${`dot air-${tile.air}`} title=${t(`air_${tile.air}`)}></span>`
                 : nothing}
               ${tile.value}
+              ${tile.extra
+                ? html`<span class="tile-extra" title=${tile.extra.title}>${tile.extra.value}</span>`
+                : nothing}
             </span>
             ${tile.sub
-              ? html`<span class=${tile.bus?.stale ? "tile-sub stale" : "tile-sub"}>${tile.sub}</span>`
+              ? html`<span class=${tile.bus?.stale ? "tile-sub stale" : "tile-sub"}>
+                  ${tile.subIcon
+                    ? html`<svg class="sub-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        ${svg`<path d=${tile.subIcon}></path>`}
+                      </svg>`
+                    : nothing}${tile.sub}
+                </span>`
               : nothing}
           </button>
         `,
@@ -209,6 +236,19 @@ export const tileStyles = css`
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow-wrap: anywhere;
+  }
+  .tile-extra {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+  }
+  .sub-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    fill: currentColor;
+    vertical-align: -2px;
   }
   .badge {
     padding: 1px 6px;

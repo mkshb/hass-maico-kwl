@@ -19,12 +19,14 @@ export const KEY = {
   ptcHeaterActive: "ptc_heater_active",
   heatRecoveryEfficiency: "heat_recovery_efficiency",
   heatRecoveryPower: "heat_recovery_power",
+  heatRecoveryEnergy: "heat_recovery_energy",
   // Room values
   roomTempSource: "room_temp_source",
   tempRoom: "temp_room",
   tempRoomExternal: "temp_room_external",
   roomTempBusSent: "room_temp_bus_sent",
   humidityExhaust: "humidity_exhaust",
+  absoluteHumidityExtract: "absolute_humidity_extract",
   humidityBusSent: "humidity_bus_sent",
   airQualityBusSent: "air_quality_bus_sent",
   // Controls

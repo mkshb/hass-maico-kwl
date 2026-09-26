@@ -6,10 +6,11 @@ import pytest
 from datetime import timedelta
 
 from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import mock_restore_cache_with_extra_data
 
 from custom_components.maico_kwl import derived
 
@@ -150,3 +151,72 @@ async def test_derived_sensor_needs_all_sources(
     await setup_entry(hass, config_entry)
     with pytest.raises(AssertionError):
         entity_id(hass, config_entry, "sensor", "heat_recovery_power")
+
+
+# --- Recovered heat energy -------------------------------------------------
+
+
+def _energy(hass: HomeAssistant, entry) -> float:
+    return float(
+        hass.states.get(entity_id(hass, entry, "sensor", "heat_recovery_energy")).state
+    )
+
+
+async def test_heat_recovery_energy(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """1173 W for 30 min, then 0 W for 30 min, then cooling for 30 min."""
+    await setup_entry(hass, config_entry)
+    eid = entity_id(hass, config_entry, "sensor", "heat_recovery_energy")
+    state = hass.states.get(eid)
+    assert state.state == "0.0"
+    assert state.attributes["state_class"] == "total_increasing"
+    assert state.attributes["unit_of_measurement"] == "kWh"
+
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 12 / 1000, abs=0.001)
+
+    device.registers[704] = device.registers[703]  # supply = intake: 0 W
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)  # ramp 1173 W -> 0 W: half of it
+    assert _energy(hass, config_entry) == pytest.approx(1.5 * 1173 / 12 / 1000, abs=0.001)
+
+    device.registers[704] = 0xFFC4  # -6.0 degC: cooling, counts as 0 W
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(1.5 * 1173 / 12 / 1000, abs=0.001)
+
+
+async def test_heat_recovery_energy_skips_gaps(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    await setup_entry(hass, config_entry)
+    device.absent.add(704)
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)  # unavailable: no reading
+    device.absent.discard(704)
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0  # nothing across the gap
+
+    freezer.tick(timedelta(minutes=30))  # longer than the maximum gap
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0
+
+
+async def test_heat_recovery_energy_restored(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    config_entry.add_to_hass(hass)
+    mock_restore_cache_with_extra_data(
+        hass,
+        [
+            (
+                State("sensor.maico_kwl_192_0_2_10_heat_recovery_energy", "12.5"),
+                {"native_value": 12.5, "native_unit_of_measurement": "kWh"},
+            )
+        ],
+    )
+    await setup_entry(hass, config_entry)
+    assert _energy(hass, config_entry) == 12.5

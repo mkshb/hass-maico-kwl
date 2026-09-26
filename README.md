@@ -51,6 +51,8 @@ profile of the unit is derived from the registers it finds.
   entities. Failed write actions show an error message in the UI.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
+- **Repair issues** under *Settings > System > Repairs* while the unit reports a fault, a filter is
+  due or its clock is off by more than 5 minutes. They disappear on their own once the problem is gone.
 - **Diagnostics** download with every discovered register, its value and raw words.
 - **Automation blueprints** for demand boost, open windows and summer night cooling.
 - **Local**: purely local Modbus communication, no cloud (`iot_class: local_polling`).
@@ -61,6 +63,7 @@ profile of the unit is derived from the registers it finds.
 |------------------|----------|
 | `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors, deviation of the unit clock from Home Assistant |
 | `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits) |
+| `fan`            | *Ventilation*: operating mode and ventilation level as one fan (levels as speeds, operating modes as presets), for voice assistants, HomeKit and fan cards |
 | `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
@@ -77,7 +80,8 @@ there, and each is only created when the unit has all the registers it needs.
 
 | Sensor | Calculation |
 |--------|-------------|
-| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. Feed it into an *Integral* helper to get the recovered energy in kWh. |
+| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. The *Heat recovery energy* sensor below adds it up. |
+| *Heat recovery energy* (kWh) | The recovered heat added up over time, as a total that only increases (cooling does not count). It survives restarts and skips periods without readings, and it keeps long-term statistics for daily, monthly and yearly values. |
 | *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; a slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
 | *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (diagnostic). A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
 | *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature and humidity (Magnus formula). The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
@@ -181,9 +185,21 @@ is best done with Home Assistant automations, which can react to anything (prese
 schedule, outdoor temperature, electricity price, sensors from other rooms). That is more flexible
 than the unit's built-in *Auto-Sensor* mode, which only uses the sensors configured on the device.
 
-**Control (use as actions):** `select` *Operating mode* and *Ventilation level*, `switch` *Boost
+**Control (use as actions):** `fan` *Ventilation* (`fan.set_percentage`, `fan.set_preset_mode`, `fan.turn_off`), `select` *Operating mode* and *Ventilation level*, `switch` *Boost
 ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration*, `select` *Season*.
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
+
+**Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button
+in the bathroom. With `duration` (minutes), Home Assistant ends the boost when the time is up;
+without it, the unit ends it on its own terms. A new call replaces a running timer.
+
+```yaml
+action: maico_kwl.boost
+target:
+  entity_id: fan.maico_kwl_ventilation
+data:
+  duration: 20
+```
 
 **Triggers (read):** temperatures (room, supply, extract, exhaust, air intake), *Current ventilation
 level*, fan speeds / airflow, *Summer bypass*, the *Problem* binary sensor, the *Filter due* sensors,

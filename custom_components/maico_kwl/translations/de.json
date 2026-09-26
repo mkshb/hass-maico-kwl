@@ -125,6 +125,22 @@
         "name": "Register neu erkennen"
       }
     },
+    "fan": {
+      "ventilation": {
+        "name": "Lüftung",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manuell",
+              "auto_time": "Auto Zeit",
+              "auto_sensor": "Auto Sensor",
+              "eco_supply_air": "Eco Zuluft",
+              "eco_exhaust_air": "Eco Abluft"
+            }
+          }
+        }
+      }
+    },
     "number": {
       "airflow_intensive": {
         "name": "Volumenstrom Intensiv"
@@ -376,6 +392,9 @@
       "heat_recovery_efficiency": {
         "name": "Wärmerückgewinnung Bereitstellungsgrad"
       },
+      "heat_recovery_energy": {
+        "name": "Wärmerückgewinnung Energie"
+      },
       "heat_recovery_power": {
         "name": "Wärmerückgewinnung Leistung"
       },
@@ -516,6 +535,43 @@
     },
     "write_failed": {
       "message": "Schreiben von {entity} an die Maico KWL fehlgeschlagen: {error}"
+    },
+    "boost_unavailable": {
+      "message": "Das Gerät unterstützt keine Stoßlüftung"
+    }
+  },
+  "issues": {
+    "fault_active": {
+      "title": "{name} meldet eine Störung",
+      "description": "Das Lüftungsgerät meldet eine aktive Störung: {faults}.\n\nPrüfe das Gerät und sein Bedienteil. Ist die Ursache behoben, lässt sich die Störung mit dem Button *Fehler zurücksetzen* quittieren. Dieser Hinweis verschwindet, sobald das Gerät die Störung nicht mehr meldet."
+    },
+    "filter_due_device": {
+      "title": "Gerätefilter von {name} ist fällig",
+      "description": "Die Restlaufzeit des Gerätefilters ist abgelaufen.\n\nTausche oder reinige den Filter und drücke dann den Button *Filter zurücksetzen Gerät*. Dieser Hinweis verschwindet, sobald das Gerät die Filterzeit wieder zählt."
+    },
+    "filter_due_outdoor": {
+      "title": "Außenfilter von {name} ist fällig",
+      "description": "Die Restlaufzeit des Außenfilters ist abgelaufen.\n\nTausche oder reinige den Filter und drücke dann den Button *Filter zurücksetzen Außen*. Dieser Hinweis verschwindet, sobald das Gerät die Filterzeit wieder zählt."
+    },
+    "filter_due_room": {
+      "title": "Raumfilter von {name} ist fällig",
+      "description": "Die Restlaufzeit des Raumfilters ist abgelaufen.\n\nTausche oder reinige den Filter und drücke dann den Button *Filter zurücksetzen Raum*. Dieser Hinweis verschwindet, sobald das Gerät die Filterzeit wieder zählt."
+    },
+    "clock_drift": {
+      "title": "Uhr von {name} geht falsch",
+      "description": "Die Uhr des Lüftungsgeräts weicht um etwa {minutes} Minuten ab, seine Zeitprogramme laufen dadurch zur falschen Zeit.\n\nDrücke den Button *Uhrzeit mit Home Assistant synchronisieren*, um sie zu stellen."
+    }
+  },
+  "services": {
+    "boost": {
+      "name": "Stoßlüftung",
+      "description": "Startet die Stoßlüftung des Geräts, optional für eine bestimmte Zeit.",
+      "fields": {
+        "duration": {
+          "name": "Dauer",
+          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet. Ohne Dauer beendet das Gerät sie selbst."
+        }
+      }
     }
   }
 }

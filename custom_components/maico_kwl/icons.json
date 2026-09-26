@@ -112,6 +112,9 @@
       "heat_recovery_efficiency": {
         "default": "mdi:gauge"
       },
+      "heat_recovery_energy": {
+        "default": "mdi:heat-wave"
+      },
       "heat_recovery_power": {
         "default": "mdi:heat-wave"
       },
@@ -135,6 +138,11 @@
       "off_lock": {
         "default": "mdi:fan-off"
       }
+    }
+  },
+  "services": {
+    "boost": {
+      "service": "mdi:fan-plus"
     }
   }
 }

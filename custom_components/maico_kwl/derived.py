@@ -88,10 +88,12 @@ class DerivedDef:
     entity_category: str | None = None
 
 
+HEAT_RECOVERY_SOURCES = ("airflow_supply", "temp_air_intake", "temp_supply_air")
+
 DERIVED_SENSORS: list[DerivedDef] = [
     DerivedDef(
         "heat_recovery_power",
-        ("airflow_supply", "temp_air_intake", "temp_supply_air"),
+        HEAT_RECOVERY_SOURCES,
         heat_recovery_power,
         unit="W",
         device_class="power",

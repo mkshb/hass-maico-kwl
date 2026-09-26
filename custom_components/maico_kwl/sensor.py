@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
@@ -18,7 +19,13 @@ from homeassistant.util import dt as dt_util
 from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
-from .derived import DERIVED_SENSORS, FILTER_DUE, DerivedDef
+from .derived import (
+    DERIVED_SENSORS,
+    FILTER_DUE,
+    HEAT_RECOVERY_SOURCES,
+    DerivedDef,
+    heat_recovery_power,
+)
 from .entity import (
     MaicoDerivedEntity,
     MaicoEntity,
@@ -33,6 +40,10 @@ PARALLEL_UPDATES = 0
 # to Home Assistant's clock flips by 1 s between polls. Smaller changes than
 # this are not shown, so the state does not change on every poll.
 CLOCK_TOLERANCE = 2  # seconds
+
+# Longer gaps between two readings (e.g. the unit was unreachable) are not
+# integrated, since the power in between is unknown.
+MAX_ENERGY_GAP = timedelta(minutes=10)
 
 
 async def async_setup_entry(
@@ -63,6 +74,8 @@ async def async_setup_entry(
         for derived in DERIVED_SENSORS
         if all(key in coordinator.present for key in derived.sources)
     )
+    if all(key in coordinator.present for key in HEAT_RECOVERY_SOURCES):
+        entities.append(MaicoHeatRecoveryEnergySensor(coordinator, entry))
     filters = tuple(
         source for _key, source in FILTER_DUE if source in coordinator.present
     )
@@ -213,3 +226,57 @@ class MaicoNextFilterChangeSensor(MaicoDerivedEntity, SensorEntity):
         if numbers is None:
             return None
         return dt_util.now().date() + timedelta(days=max(0, int(min(numbers))))
+
+
+class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
+    """Heat recovered by the exchanger over time, in kWh.
+
+    Integrates the heat recovery power between two polls (trapezoidal rule).
+    Only recovered heat counts: negative power (the exchanger cooling the
+    supply air) adds nothing, so the total only ever increases.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "kWh"
+    _attr_suggested_display_precision = 2
+
+    def __init__(
+        self, coordinator: MaicoCoordinator, entry: MaicoConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, entry, "heat_recovery_energy", HEAT_RECOVERY_SOURCES
+        )
+        self._energy = 0.0  # kWh
+        self._last: tuple[datetime, float] | None = None  # time, power in W
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_sensor_data()
+        if last is not None and isinstance(last.native_value, (int, float)):
+            self._energy = float(last.native_value)
+        self._add_reading()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._add_reading()
+        super()._handle_coordinator_update()
+
+    def _add_reading(self) -> None:
+        numbers = self._numbers
+        if numbers is None:
+            self._last = None  # a gap: start over with the next reading
+            return
+        now = dt_util.utcnow()
+        power = max(0.0, heat_recovery_power(*numbers))
+        if self._last is not None:
+            last_time, last_power = self._last
+            elapsed = now - last_time
+            if elapsed <= MAX_ENERGY_GAP:
+                hours = elapsed.total_seconds() / 3600
+                self._energy += (last_power + power) / 2 * hours / 1000
+        self._last = (now, power)
+
+    @property
+    def native_value(self) -> float:
+        return round(self._energy, 3)

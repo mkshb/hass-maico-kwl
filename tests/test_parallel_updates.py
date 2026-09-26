@@ -16,6 +16,7 @@ import pytest
         ("select", 1),
         ("switch", 1),
         ("button", 1),
+        ("fan", 1),
     ],
 )
 def test_parallel_updates(platform: str, expected: int) -> None:

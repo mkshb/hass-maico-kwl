@@ -439,5 +439,25 @@
         "name": "Disable off level"
       }
     }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Cannot connect to the Maico KWL at {host}:{port}"
+    },
+    "discovery_failed": {
+      "message": "Discovering the registers of the Maico KWL failed: {error}"
+    },
+    "no_registers": {
+      "message": "The unit did not answer any known Maico KWL register"
+    },
+    "device_unreachable": {
+      "message": "The Maico KWL is not reachable: {error}"
+    },
+    "no_data": {
+      "message": "No register could be read from the Maico KWL"
+    },
+    "write_failed": {
+      "message": "Writing {entity} to the Maico KWL failed: {error}"
+    }
   }
 }

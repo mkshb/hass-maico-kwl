@@ -82,7 +82,11 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
             return await self._read_all()
         except MaicoConnectionError as err:
             # Retrying register by register would only multiply the timeouts.
-            raise UpdateFailed(f"Device not reachable: {err}") from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="device_unreachable",
+                translation_placeholders={"error": str(err)},
+            ) from err
 
     async def _read_all(self) -> dict[str, float]:
         data: dict[str, float] = {}
@@ -100,7 +104,7 @@ class MaicoCoordinator(DataUpdateCoordinator[dict[str, float]]):
                 offset = reg.address - start
                 data[reg.key] = reg.decode(regs[offset:offset + reg.word_count])
         if not data:
-            raise UpdateFailed("No registers could be read from the device")
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="no_data")
         return data
 
     async def _read_singly(

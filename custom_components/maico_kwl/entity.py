@@ -67,5 +67,10 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
             )
         except MaicoModbusError as err:
             raise HomeAssistantError(
-                f"Writing {self._reg.key} to the Maico KWL failed: {err}"
+                translation_domain=DOMAIN,
+                translation_key="write_failed",
+                translation_placeholders={
+                    "entity": self.entity_id,
+                    "error": str(err),
+                },
             ) from err

@@ -39,6 +39,7 @@ async def test_setup_retry_when_unreachable(
     device.online = False
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
+    assert config_entry.reason == "Cannot connect to the Maico KWL at 192.0.2.10:502"
     assert device.open_connections == 0
 
 
@@ -49,6 +50,7 @@ async def test_setup_retry_when_connection_drops_during_discovery(
     device.fail_after_reads = 10
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
+    assert config_entry.reason.startswith("Discovering the registers")
     # Discovery stopped at the first failed probe.
     assert device.reads == 10
     assert device.open_connections == 0
@@ -71,6 +73,7 @@ async def test_setup_retry_when_nothing_discovered(
     device.absent = set(range(0, 1000))
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
+    assert config_entry.reason == "The unit did not answer any known Maico KWL register"
     assert device.open_connections == 0
 
 

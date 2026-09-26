@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -68,3 +69,33 @@ async def test_form_fields_are_translated(
         fields = {str(key) for key in result["data_schema"].schema}
         assert fields == set(steps[step_id]["data"]), step_id
         assert fields == set(steps[step_id]["data_description"]), step_id
+
+
+def _placeholders(message: str) -> set[str]:
+    return set(re.findall(r"{(\w+)}", message))
+
+
+def test_exception_messages_complete() -> None:
+    """Every exception has a message with the same placeholders in all files."""
+    reference = _load("strings.json")["exceptions"]
+    for name in FILES:
+        exceptions = _load(name)["exceptions"]
+        assert exceptions.keys() == reference.keys(), name
+        for key, entry in exceptions.items():
+            # HA strips a trailing period when it shows the message.
+            assert not entry["message"].endswith("."), (name, key)
+            assert _placeholders(entry["message"]) == _placeholders(
+                reference[key]["message"]
+            ), (name, key)
+
+
+def test_code_only_uses_known_exception_keys() -> None:
+    """Every translation_key raised in the code has a message."""
+    known = set(_load("strings.json")["exceptions"])
+    used: set[str] = set()
+    for path in COMPONENT.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for block in re.findall(r"raise \w+\((.*?)\)", text, re.S):
+            used |= set(re.findall(r'translation_key="(\w+)"', block))
+    assert used
+    assert used <= known

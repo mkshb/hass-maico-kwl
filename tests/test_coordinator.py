@@ -86,6 +86,7 @@ async def test_connection_loss_fails_update_without_single_reads(
     await hass.async_block_till_done()
 
     assert not coordinator.last_update_success
+    assert str(coordinator.last_exception).startswith("The Maico KWL is not reachable")
     assert device.reads == reads_before  # no per-register retries
     assert hass.states.get(temp_room).state == STATE_UNAVAILABLE
 
@@ -106,6 +107,9 @@ async def test_update_fails_when_nothing_readable(
     device.absent = set(range(0, 1000))
     await coordinator.async_refresh()
     assert not coordinator.last_update_success
+    assert str(coordinator.last_exception) == (
+        "No register could be read from the Maico KWL"
+    )
 
 
 async def test_connection_loss_during_single_reads(

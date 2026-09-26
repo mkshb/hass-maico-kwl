@@ -172,10 +172,12 @@ async def test_failed_write_raises_home_assistant_error(
     else:
         device.online = False
     boost = entity_id(hass, loaded, "switch", "boost_ventilation")
-    with pytest.raises(HomeAssistantError, match="boost_ventilation"):
+    with pytest.raises(HomeAssistantError) as err:
         await hass.services.async_call(
             "switch", "turn_on", {ATTR_ENTITY_ID: boost}, blocking=True
         )
+    assert err.value.translation_key == "write_failed"
+    assert str(err.value).startswith(f"Writing {boost} to the Maico KWL failed: ")
 
 
 async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:

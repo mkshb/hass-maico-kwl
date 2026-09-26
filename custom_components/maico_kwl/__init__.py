@@ -17,6 +17,7 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
+    DOMAIN,
     PLATFORMS,
 )
 from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
@@ -71,16 +72,24 @@ async def _async_discover_and_refresh(
     """Connect, discover the present registers and run the first poll."""
     if not await hub.connect():
         raise ConfigEntryNotReady(
-            f"Cannot connect to Maico KWL at {hub.host}:{hub.port}"
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={"host": hub.host, "port": str(hub.port)},
         )
 
     try:
         present, profile = await async_discover(hub)
     except MaicoModbusError as err:
-        raise ConfigEntryNotReady(f"Discovery failed: {err}") from err
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="discovery_failed",
+            translation_placeholders={"error": str(err)},
+        ) from err
 
     if not present:
-        raise ConfigEntryNotReady("No Maico registers discovered on the device")
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN, translation_key="no_registers"
+        )
 
     coordinator = MaicoCoordinator(hass, hub, present, profile, scan_interval)
     await coordinator.async_config_entry_first_refresh()

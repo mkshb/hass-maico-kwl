@@ -439,5 +439,25 @@
         "name": "Aus-Stufe sperren"
       }
     }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}"
+    },
+    "discovery_failed": {
+      "message": "Die Register der Maico KWL konnten nicht ermittelt werden: {error}"
+    },
+    "no_registers": {
+      "message": "Das Gerät hat auf kein bekanntes Register der Maico KWL geantwortet"
+    },
+    "device_unreachable": {
+      "message": "Die Maico KWL ist nicht erreichbar: {error}"
+    },
+    "no_data": {
+      "message": "Von der Maico KWL konnte kein Register gelesen werden"
+    },
+    "write_failed": {
+      "message": "Schreiben von {entity} an die Maico KWL fehlgeschlagen: {error}"
+    }
   }
 }

@@ -69,7 +69,12 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     if "frontend" not in hass.config.components:
         return
     loader = FRONTEND_DIR / CARD_LOADER
-    digest = await hass.async_add_executor_job(_content_hash, loader)
+    try:
+        digest = await hass.async_add_executor_job(_content_hash, loader)
+    except OSError as err:
+        # The card is optional: a partial install must not stop the unit.
+        _LOGGER.warning("Dashboard card not available, %s is missing: %s", loader, err)
+        return
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),

@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
@@ -33,6 +35,22 @@ async def test_card_is_served_and_loaded(hass: HomeAssistant) -> None:
     add_js.assert_called_once_with(
         hass, f"/maico_kwl/frontend/maico-kwl-card.js?v={LOADER_HASH}"
     )
+
+
+async def test_missing_card_does_not_stop_the_integration(
+    hass: HomeAssistant, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Without the built card (a partial install) the integration still sets up."""
+    hass.config.components.add("frontend")
+    hass.http = MagicMock(async_register_static_paths=AsyncMock())
+    with (
+        patch("custom_components.maico_kwl.FRONTEND_DIR", tmp_path),
+        patch("custom_components.maico_kwl.add_extra_js_url") as add_js,
+    ):
+        assert await async_setup_component(hass, DOMAIN, {})
+    add_js.assert_not_called()
+    hass.http.async_register_static_paths.assert_not_called()
+    assert "Dashboard card not available" in caplog.text
 
 
 def test_static_path_config_from_the_http_package() -> None:

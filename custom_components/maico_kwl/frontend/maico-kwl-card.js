@@ -1,1 +1,1 @@
-customElements.whenDefined("home-assistant").then(()=>import("./card-DsXxbTGB.js").then(function(e){return e.c}));
+customElements.whenDefined("home-assistant").then(()=>import("./card-Bn9eiJid.js").then(function(e){return e.c}));

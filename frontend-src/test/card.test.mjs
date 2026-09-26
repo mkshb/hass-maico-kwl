@@ -169,6 +169,7 @@ for (const theme of ["light", "dark"]) {
     assert.match(tiles, /from Living room temperature/);
     assert.match(tiles, /8\.1 g\/m³/);
     assert.match(tiles, /12\.4 kWh today/);
+    assert.match(await card.locator(".mode-row").textContent(), /Winter/);
     assert.deepEqual(errors, []);
 
     // Let the fans and the air sheen settle into a steady frame.

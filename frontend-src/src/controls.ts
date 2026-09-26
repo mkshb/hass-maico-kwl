@@ -1,4 +1,12 @@
-import { mdiFanOff, mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3, mdiWaterPercent } from "@mdi/js";
+import {
+  mdiFanOff,
+  mdiFanSpeed1,
+  mdiFanSpeed2,
+  mdiFanSpeed3,
+  mdiSnowflake,
+  mdiWaterPercent,
+  mdiWhiteBalanceSunny,
+} from "@mdi/js";
 import { css, html, nothing, svg, type TemplateResult } from "lit";
 
 import type { KwlDevice } from "./device";
@@ -125,12 +133,15 @@ function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothi
   const t = (key: StringKey) => localize(hass, key);
   const modeState = device.stateObj(KEY.operatingMode);
   const boostEntity = device.has(KEY.boost) ? device.entityId(KEY.boost) : undefined;
-  if (!modeState && !boostEntity) return nothing;
+  const seasonState = device.stateObj(KEY.season);
+  if (!modeState && !boostEntity && !seasonState) return nothing;
 
   const options = (modeState?.attributes.options as string[] | undefined) ?? [];
   const mode = ctx.shown("mode");
   const boostOn = ctx.shown("boost") === "on";
-  const boostClass = ["boost", boostOn ? "active" : "", ctx.pending("boost") ? "pending" : ""].join(" ");
+  const boostClass = ["button", boostOn ? "active" : "", ctx.pending("boost") ? "pending" : ""].join(" ");
+  // On a narrow card the buttons keep only their icons.
+  const label = (text: string) => (ctx.narrow ? nothing : html`<span>${text}</span>`);
 
   return html`
     <div class="mode-row">
@@ -156,17 +167,33 @@ function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothi
             type="button"
             class=${boostClass}
             aria-pressed=${boostOn ? "true" : "false"}
+            aria-label=${t("boost")}
+            title=${t("boost")}
             @click=${() =>
               ctx.change("boost", boostOn ? "off" : "on", () =>
                 hass.callService("switch", boostOn ? "turn_off" : "turn_on", { entity_id: boostEntity }),
               )}
           >
-            <svg viewBox="0 0 18 18" aria-hidden="true">
+            <svg viewBox="0 0 18 18" aria-hidden="true" class="stroke-icon">
               <path d="M2 6 H11 A2.5 2.5 0 1 0 8.5 3.5"></path>
               <path d="M2 10 H14 A2.5 2.5 0 1 1 11.5 12.5"></path>
               <path d="M2 14 H7"></path>
             </svg>
-            ${t("boost")}
+            ${label(t("boost"))}
+          </button>`
+        : nothing}
+      ${seasonState && (seasonState.state === "summer" || seasonState.state === "winter")
+        ? html`<button
+            type="button"
+            class="button"
+            aria-label=${hass.formatEntityState(seasonState)}
+            title=${hass.formatEntityState(seasonState)}
+            @click=${() => ctx.moreInfo(KEY.season)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="fill-icon">
+              ${svg`<path d=${seasonState.state === "summer" ? mdiWhiteBalanceSunny : mdiSnowflake}></path>`}
+            </svg>
+            ${label(hass.formatEntityState(seasonState))}
           </button>`
         : nothing}
     </div>
@@ -298,7 +325,7 @@ export const controlStyles = css`
     opacity: 0.7;
   }
   .segment:focus-visible,
-  .boost:focus-visible,
+  .button:focus-visible,
   .filter:focus-visible,
   select:focus-visible {
     outline: 2px solid var(--primary-color);
@@ -323,8 +350,11 @@ export const controlStyles = css`
     font: inherit;
     font-size: 14px;
   }
-  .boost {
+  .button {
     display: flex;
+    flex-shrink: 0;
+    justify-content: center;
+    min-width: 44px;
     align-items: center;
     gap: 8px;
     height: 44px;
@@ -338,17 +368,22 @@ export const controlStyles = css`
     font-weight: 500;
     cursor: pointer;
   }
-  .boost.active {
+  .button.active {
     background: var(--primary-color);
     color: var(--text-primary-color, #fff);
   }
-  .boost svg {
+  .button svg {
     width: 18px;
     height: 18px;
+  }
+  .stroke-icon {
     fill: none;
     stroke: currentColor;
     stroke-width: 2px;
     stroke-linecap: round;
+  }
+  .fill-icon {
+    fill: currentColor;
   }
   .filters {
     display: flex;

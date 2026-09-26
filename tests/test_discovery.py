@@ -53,15 +53,32 @@ async def test_discovery_unexpected_exception_code(
     """Any other exception response marks just that register as absent."""
     original = device.clients[0].read_holding_registers
 
-    async def busy_at_700(*, address, count, device_id):
+    async def failure_at_700(*, address, count, device_id):
         if address == 700:
-            return FakeExceptionResponse(6)  # slave device busy
+            return FakeExceptionResponse(4)  # slave device failure
         return await original(address=address, count=count, device_id=device_id)
 
-    device.clients[0].read_holding_registers = busy_at_700
+    device.clients[0].read_holding_registers = failure_at_700
     present, _ = await async_discover(hub)
     assert "temp_room" not in present
     assert "temp_supply_air" in present
+
+
+@pytest.mark.parametrize("code", [5, 6, 10, 11])
+async def test_discovery_aborts_when_unit_or_gateway_is_busy(
+    hub: MaicoModbusHub, device: FakeDevice, code: int
+) -> None:
+    """A busy unit or gateway says nothing about the register: retry later."""
+    original = device.clients[0].read_holding_registers
+
+    async def busy_at_650(*, address, count, device_id):
+        if address == 650:
+            return FakeExceptionResponse(code)
+        return await original(address=address, count=count, device_id=device_id)
+
+    device.clients[0].read_holding_registers = busy_at_650
+    with pytest.raises(MaicoConnectionError):
+        await async_discover(hub)
 
 
 async def test_discovery_aborts_on_connection_loss(

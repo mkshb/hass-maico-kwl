@@ -21,6 +21,10 @@ _LOGGER = logging.getLogger(__name__)
 # Modbus protocol exception codes that mean "the device understood the request
 # but this register is not available" -> treat as absent during discovery.
 _ABSENT_CODES = {1, 2, 3}  # illegal function / illegal data address / illegal value
+# Codes that say "try again later" (acknowledge, device busy, gateway path
+# unavailable, gateway target did not respond): nothing is known about the
+# register, so discovery must not store it as absent.
+_TRANSIENT_CODES = {5, 6, 10, 11}
 
 
 class MaicoModbusError(Exception):
@@ -100,13 +104,17 @@ class MaicoModbusHub:
 
         A device that answers with a protocol exception (e.g. Illegal Data
         Address) proves the connection works but the register is absent -> False.
-        A transport/connection failure raises MaicoConnectionError so discovery
-        can abort instead of marking every register as absent.
+        A transport/connection failure, or a busy unit or gateway, raises
+        MaicoConnectionError so discovery can abort instead of marking every
+        register as absent.
         """
         result = await self._read(address, count)
         if result.isError():
-            if getattr(result, "exception_code", None) in _ABSENT_CODES:
+            code = getattr(result, "exception_code", None)
+            if code in _ABSENT_CODES:
                 return False
+            if code in _TRANSIENT_CODES:
+                raise MaicoConnectionError(f"probe at {address} returned {result}")
             raise MaicoModbusError(f"probe at {address} returned {result}")
         return True
 

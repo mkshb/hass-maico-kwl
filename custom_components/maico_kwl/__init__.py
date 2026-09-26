@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import entity_registry as er
 
 from .bus_feed import BusFeeder
 from .const import (
@@ -70,6 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _async_remove_orphaned_entities(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 
@@ -128,6 +130,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bo
         runtime.feeder.async_stop()
         await runtime.hub.close()
     return unload_ok
+
+
+@callback
+def _async_remove_orphaned_entities(
+    hass: HomeAssistant, entry: MaicoConfigEntry
+) -> None:
+    """Remove entities this setup no longer creates.
+
+    E.g. registers a rediscovery did not find again, or the "sent" sensor of a
+    bus input whose source entity was removed. They would stay unavailable.
+    """
+    ent_reg = er.async_get(hass)
+    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if reg_entry.unique_id not in entry.runtime_data.unique_ids:
+            ent_reg.async_remove(reg_entry.entity_id)
 
 
 async def _async_update_listener(

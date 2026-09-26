@@ -2,18 +2,34 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
-from .coordinator import MaicoCoordinator
+from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef, RegisterValue
+
+
+def async_add_maico_entities(
+    entry: MaicoConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+    entities: Iterable[Entity],
+) -> None:
+    """Add entities and remember their unique ids for the orphan cleanup."""
+    entities = list(entities)
+    entry.runtime_data.unique_ids.update(
+        entity.unique_id for entity in entities if entity.unique_id
+    )
+    async_add_entities(entities)
 
 
 def maico_device_info(

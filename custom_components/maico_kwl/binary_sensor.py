@@ -11,7 +11,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .derived import FILTER_DUE
-from .entity import MaicoDerivedEntity, MaicoEntity
+from .entity import (
+    MaicoDerivedEntity,
+    MaicoEntity,
+    async_add_maico_entities,
+)
 from .register_defs import BINARY_SENSOR, BIT_SENSORS, REGISTERS_BY_KEY, RegisterDef
 
 # Read-only: data comes from the coordinator, no per-entity limit needed.
@@ -43,7 +47,7 @@ async def async_setup_entry(
         for key, source in FILTER_DUE
         if source in coordinator.present
     )
-    async_add_entities(entities)
+    async_add_maico_entities(entry, async_add_entities, entities)
 
 
 class MaicoBinarySensor(MaicoEntity, BinarySensorEntity):

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import MaicoConfigEntry
-from .entity import MaicoEntity
+from .entity import MaicoEntity, async_add_maico_entities
 from .register_defs import SWITCH, REGISTERS_BY_KEY
 
 # Send actions to the unit one at a time.
@@ -22,10 +22,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
-    async_add_entities(
-        MaicoSwitch(coordinator, entry, REGISTERS_BY_KEY[key])
-        for key in coordinator.present
-        if REGISTERS_BY_KEY[key].platform == SWITCH
+    async_add_maico_entities(
+        entry,
+        async_add_entities,
+        (
+            MaicoSwitch(coordinator, entry, REGISTERS_BY_KEY[key])
+            for key in coordinator.present
+            if REGISTERS_BY_KEY[key].platform == SWITCH
+        ),
     )
 
 

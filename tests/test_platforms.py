@@ -312,3 +312,28 @@ async def test_rediscover_button(
     assert "enocean_co2_id0" in loaded.data[CONF_DISCOVERY]["present"]
     registry_entry = er.async_get(hass).async_get(button)
     assert registry_entry.entity_category is EntityCategory.DIAGNOSTIC
+
+
+async def test_rediscover_removes_entities_of_missing_registers(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """Entities of registers the unit no longer answers are removed."""
+    ent_reg = er.async_get(hass)
+    humidity = entity_id(hass, loaded, "sensor", "humidity_exhaust")
+    dew_point = entity_id(hass, loaded, "sensor", "dew_point_extract")
+    # Disabled by default: in the registry without a state, and still wanted.
+    external = entity_id(hass, loaded, "sensor", "temp_room_external")
+    assert hass.states.get(external) is None
+
+    device.absent.add(750)  # humidity sensor removed from the unit
+    button = entity_id(hass, loaded, "button", "rediscover")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    assert loaded.state is ConfigEntryState.LOADED
+    assert ent_reg.async_get(humidity) is None
+    assert ent_reg.async_get(dew_point) is None  # derived from it
+    assert ent_reg.async_get(external) is not None
+    assert ent_reg.async_get(entity_id(hass, loaded, "sensor", "temp_room"))

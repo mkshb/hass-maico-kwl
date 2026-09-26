@@ -462,3 +462,22 @@ async def test_manual_number_removed_and_restored_with_source(
     eid = ent_reg.async_get_entity_id("number", DOMAIN, unique_id)
     assert eid is not None
     assert hass.states.get(eid).state == STATE_UNKNOWN
+
+
+async def test_sent_sensor_removed_with_source(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Clearing a source removes its "sent" sensor instead of orphaning it."""
+    await _setup_with_feeds(hass, config_entry)
+    ent_reg = er.async_get(hass)
+    unique_id = f"{config_entry.entry_id}_humidity_bus_sent"
+    assert ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+
+    hass.config_entries.async_update_entry(
+        config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}
+    )
+    await hass.async_block_till_done()
+    assert ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id) is None
+    assert ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{config_entry.entry_id}_room_temp_bus_sent"
+    )

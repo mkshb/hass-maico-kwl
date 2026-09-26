@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -129,3 +129,5 @@ class MaicoRuntimeData:
     hub: MaicoModbusHub
     coordinator: MaicoCoordinator
     feeder: BusFeeder
+    # Unique ids of the entities the platforms created in this setup.
+    unique_ids: set[str] = field(default_factory=set)

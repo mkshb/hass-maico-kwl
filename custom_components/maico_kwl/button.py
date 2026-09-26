@@ -11,7 +11,7 @@ from homeassistant.util import dt as dt_util
 
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .discovery import data_without_discovery
-from .entity import MaicoEntity, maico_device_info
+from .entity import MaicoEntity, async_add_maico_entities, maico_device_info
 from .register_defs import BUTTON, CLOCK, REGISTERS_BY_KEY, RegisterValue
 
 # Send actions to the unit one at a time.
@@ -30,7 +30,7 @@ async def async_setup_entry(
         if REGISTERS_BY_KEY[key].platform == BUTTON
     ]
     entities.append(MaicoRediscoverButton(coordinator, entry))
-    async_add_entities(entities)
+    async_add_maico_entities(entry, async_add_entities, entities)
 
 
 class MaicoButton(MaicoEntity, ButtonEntity):

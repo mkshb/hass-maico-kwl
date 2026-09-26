@@ -19,7 +19,11 @@ from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .derived import DERIVED_SENSORS, FILTER_DUE, DerivedDef
-from .entity import MaicoDerivedEntity, MaicoEntity
+from .entity import (
+    MaicoDerivedEntity,
+    MaicoEntity,
+    async_add_maico_entities,
+)
 from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
 
 # Read-only: data comes from the coordinator, no per-entity limit needed.
@@ -64,7 +68,7 @@ async def async_setup_entry(
     )
     if filters:
         entities.append(MaicoNextFilterChangeSensor(coordinator, entry, filters))
-    async_add_entities(entities)
+    async_add_maico_entities(entry, async_add_entities, entities)
 
 
 class MaicoSensor(MaicoEntity, SensorEntity):

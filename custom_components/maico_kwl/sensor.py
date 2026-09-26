@@ -25,6 +25,11 @@ from .register_defs import SENSOR, REGISTERS_BY_KEY, RegisterDef
 # Read-only: data comes from the coordinator, no per-entity limit needed.
 PARALLEL_UPDATES = 0
 
+# The unit reports whole seconds and a read takes a moment, so the difference
+# to Home Assistant's clock flips by 1 s between polls. Smaller changes than
+# this are not shown, so the state does not change on every poll.
+CLOCK_TOLERANCE = 2  # seconds
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -77,6 +82,7 @@ class MaicoSensor(MaicoEntity, SensorEntity):
             self._attr_state_class = SensorStateClass(reg.state_class)
         if reg.options is not None:
             self._attr_options = list(reg.options.values())
+        self._clock_deviation: int | None = None
 
     @property
     def native_value(self) -> StateType | datetime:
@@ -86,7 +92,13 @@ class MaicoSensor(MaicoEntity, SensorEntity):
         if isinstance(value, datetime):
             # The unit's clock runs in local time; positive means it is ahead.
             unit_time = value.replace(tzinfo=dt_util.get_default_time_zone())
-            return round((unit_time - dt_util.now()).total_seconds())
+            deviation = round((unit_time - dt_util.now()).total_seconds())
+            if (
+                self._clock_deviation is None
+                or abs(deviation - self._clock_deviation) >= CLOCK_TOLERANCE
+            ):
+                self._clock_deviation = deviation
+            return self._clock_deviation
         if self._reg.options is not None:
             return self._reg.label_for(int(value))
         return value

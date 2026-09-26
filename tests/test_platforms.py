@@ -264,6 +264,11 @@ async def test_clock_deviation_sensor(
     assert state.attributes["unit_of_measurement"] == "s"
     assert state.attributes["state_class"] == "measurement"
 
+    # Read 0.6 s later: 14 s, within the tolerance, so the state stays.
+    freezer.move_to(local.replace(microsecond=600000))
+    await _refresh(hass, loaded)
+    assert _state(hass, loaded, "sensor", "clock_deviation") == "15"
+
     freezer.move_to(local.replace(minute=32))
     await _refresh(hass, loaded)
     assert _state(hass, loaded, "sensor", "clock_deviation") == "-105"

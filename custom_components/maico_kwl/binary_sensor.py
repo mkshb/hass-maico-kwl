@@ -18,6 +18,9 @@ from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import BINARY_SENSOR, REGISTERS_BY_KEY, RegisterDef
 
+# Read-only: data comes from the coordinator, no per-entity limit needed.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

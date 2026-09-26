@@ -10,6 +10,9 @@ from .coordinator import MaicoConfigEntry
 from .entity import MaicoEntity
 from .register_defs import BUTTON, REGISTERS_BY_KEY
 
+# Send actions to the unit one at a time.
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

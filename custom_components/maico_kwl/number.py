@@ -27,6 +27,9 @@ _LOGGER = logging.getLogger(__name__)
 # cycle >= 10 min). Re-write just under that so the value stays valid.
 REWRITE_INTERVAL = timedelta(minutes=9)
 
+# Send actions to the unit one at a time.
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

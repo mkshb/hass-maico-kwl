@@ -532,6 +532,9 @@
     },
     "write_failed": {
       "message": "Schreiben von {entity} an die Maico KWL fehlgeschlagen: {error}"
+    },
+    "boost_unavailable": {
+      "message": "Das Gerät unterstützt keine Stoßlüftung"
     }
   },
   "issues": {
@@ -554,6 +557,18 @@
     "clock_drift": {
       "title": "Uhr von {name} geht falsch",
       "description": "Die Uhr des Lüftungsgeräts weicht um etwa {minutes} Minuten ab, seine Zeitprogramme laufen dadurch zur falschen Zeit.\n\nDrücke den Button *Uhrzeit mit Home Assistant synchronisieren*, um sie zu stellen."
+    }
+  },
+  "services": {
+    "boost": {
+      "name": "Stoßlüftung",
+      "description": "Startet die Stoßlüftung des Geräts, optional für eine bestimmte Zeit.",
+      "fields": {
+        "duration": {
+          "name": "Dauer",
+          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet. Ohne Dauer beendet das Gerät sie selbst."
+        }
+      }
     }
   }
 }

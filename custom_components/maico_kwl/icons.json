@@ -136,5 +136,10 @@
         "default": "mdi:fan-off"
       }
     }
+  },
+  "services": {
+    "boost": {
+      "service": "mdi:fan-plus"
+    }
   }
 }

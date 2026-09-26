@@ -1,0 +1,13 @@
+boost:
+  target:
+    entity:
+      integration: maico_kwl
+      domain: fan
+  fields:
+    duration:
+      selector:
+        number:
+          min: 1
+          max: 720
+          unit_of_measurement: min
+          mode: box

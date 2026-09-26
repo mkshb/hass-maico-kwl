@@ -7,16 +7,21 @@ the unit usable with voice assistants, HomeKit and the standard fan cards.
 
 from __future__ import annotations
 
+import logging
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.util.percentage import (
     ordered_list_item_to_percentage,
     percentage_to_ordered_list_item,
 )
 
+from .const import DOMAIN
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import (
     MaicoDerivedEntity,
@@ -25,11 +30,14 @@ from .entity import (
 )
 from .register_defs import OPERATING_MODE, REGISTERS_BY_KEY, VENT_LEVEL
 
+_LOGGER = logging.getLogger(__name__)
+
 # Send actions to the unit one at a time.
 PARALLEL_UPDATES = 1
 
 MODE = "operating_mode"
 LEVEL = "ventilation_level"
+BOOST = "boost_ventilation"
 CURRENT_LEVEL = "current_vent_level"
 
 # Speeds from low to high; "off" is the fan being off, not a speed.
@@ -67,6 +75,47 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
         # Mode to return to when turned on without a preset.
         mode = self._slug(MODE)
         self._last_mode = mode if mode in PRESETS else "manual"
+        self._end_boost: CALLBACK_TYPE | None = None
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._cancel_boost_timer()
+        await super().async_will_remove_from_hass()
+
+    def _cancel_boost_timer(self) -> None:
+        if self._end_boost is not None:
+            self._end_boost()
+            self._end_boost = None
+
+    async def async_boost(self, duration: int | None = None) -> None:
+        """Start the boost ventilation (551), optionally for a number of minutes.
+
+        Without a duration the unit ends the boost on its own terms. With one,
+        Home Assistant switches it off again when the time is up; a new call
+        replaces the running timer.
+        """
+        if BOOST not in self.coordinator.present:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="boost_unavailable"
+            )
+        reg = REGISTERS_BY_KEY[BOOST]
+        self._cancel_boost_timer()
+        await async_write_register(self.coordinator, reg, 1, self.entity_id)
+        if duration is not None:
+            self._end_boost = async_call_later(
+                self.hass, duration * 60, self._async_boost_time_up
+            )
+        await self.coordinator.async_request_refresh()
+
+    async def _async_boost_time_up(self, _now: datetime) -> None:
+        self._end_boost = None
+        try:
+            await async_write_register(
+                self.coordinator, REGISTERS_BY_KEY[BOOST], 0, self.entity_id
+            )
+        except HomeAssistantError as err:
+            _LOGGER.warning("Ending the boost failed: %s", err)
+            return
+        await self.coordinator.async_request_refresh()
 
     def _slug(self, key: str) -> str | None:
         value = self.coordinator.data.get(key)

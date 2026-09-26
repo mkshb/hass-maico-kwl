@@ -188,6 +188,18 @@ than the unit's built-in *Auto-Sensor* mode, which only uses the sensors configu
 ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration*, `select` *Season*.
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
 
+**Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button
+in the bathroom. With `duration` (minutes), Home Assistant ends the boost when the time is up;
+without it, the unit ends it on its own terms. A new call replaces a running timer.
+
+```yaml
+action: maico_kwl.boost
+target:
+  entity_id: fan.maico_kwl_ventilation
+data:
+  duration: 20
+```
+
 **Triggers (read):** temperatures (room, supply, extract, exhaust, air intake), *Current ventilation
 level*, fan speeds / airflow, *Summer bypass*, the *Problem* binary sensor, the *Filter due* sensors,
 the *Fault code* / *Notice code* sensors and their `active` attribute, and the

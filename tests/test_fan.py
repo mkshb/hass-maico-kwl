@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
+import voluptuous as vol
 from homeassistant.components.fan import (
     ATTR_PERCENTAGE,
     ATTR_PRESET_MODE,
@@ -10,7 +13,11 @@ from homeassistant.components.fan import (
 )
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+from custom_components.maico_kwl.const import DOMAIN
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -98,3 +105,82 @@ async def test_fan_needs_mode_and_level(
     await setup_entry(hass, config_entry)
     with pytest.raises(AssertionError):
         entity_id(hass, config_entry, "fan", "ventilation")
+
+
+# --- Boost action ----------------------------------------------------------
+
+
+async def _boost(hass: HomeAssistant, eid: str, **data) -> None:
+    await hass.services.async_call(
+        DOMAIN, "boost", {ATTR_ENTITY_ID: eid, **data}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+
+async def _after(hass: HomeAssistant, minutes: float) -> None:
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=minutes))
+    await hass.async_block_till_done()
+
+
+async def test_boost_for_a_duration(
+    hass: HomeAssistant, device: FakeDevice, fan: str
+) -> None:
+    await _boost(hass, fan, duration=15)
+    assert device.writes[-1] == (551, [1])
+    await _after(hass, 14)
+    assert device.writes[-1] == (551, [1])
+    await _after(hass, 16)
+    assert device.writes[-1] == (551, [0])
+
+
+async def test_boost_new_call_replaces_timer(
+    hass: HomeAssistant, device: FakeDevice, fan: str, freezer
+) -> None:
+    await _boost(hass, fan, duration=10)
+    freezer.tick(timedelta(minutes=5))
+    await _boost(hass, fan, duration=30)
+    await _after(hass, 20)  # the first timer would have ended by now
+    assert device.writes[-1] == (551, [1])
+    await _after(hass, 31)
+    assert device.writes[-1] == (551, [0])
+    assert device.writes.count((551, [0])) == 1
+
+
+async def test_boost_without_duration(
+    hass: HomeAssistant, device: FakeDevice, fan: str
+) -> None:
+    """Without a duration the unit decides when the boost ends."""
+    await _boost(hass, fan)
+    await _after(hass, 24 * 60)
+    assert device.writes == [(551, [1])]
+
+
+async def test_boost_timer_cancelled_on_unload(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    await _boost(hass, fan, duration=5)
+    await hass.config_entries.async_unload(config_entry.entry_id)
+    await _after(hass, 10)
+    assert device.writes == [(551, [1])]
+
+
+async def test_boost_end_failure_is_logged(
+    hass: HomeAssistant, device: FakeDevice, fan: str, caplog
+) -> None:
+    await _boost(hass, fan, duration=5)
+    device.write_exception = 4
+    await _after(hass, 6)
+    assert "Ending the boost failed" in caplog.text
+
+
+async def test_boost_validation(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    device.absent.add(551)
+    await setup_entry(hass, config_entry)
+    eid = entity_id(hass, config_entry, "fan", "ventilation")
+    with pytest.raises(ServiceValidationError) as err:
+        await _boost(hass, eid)
+    assert err.value.translation_key == "boost_unavailable"
+    with pytest.raises(vol.Invalid):
+        await _boost(hass, eid, duration=0)

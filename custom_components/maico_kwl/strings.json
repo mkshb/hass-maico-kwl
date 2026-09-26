@@ -532,6 +532,9 @@
     },
     "write_failed": {
       "message": "Writing {entity} to the Maico KWL failed: {error}"
+    },
+    "boost_unavailable": {
+      "message": "The unit does not support boost ventilation"
     }
   },
   "issues": {
@@ -554,6 +557,18 @@
     "clock_drift": {
       "title": "Clock of {name} is off",
       "description": "The clock of the ventilation unit is off by about {minutes} minutes, so its time programs run at the wrong time.\n\nPress the *Sync clock with Home Assistant* button to set it to the time of Home Assistant."
+    }
+  },
+  "services": {
+    "boost": {
+      "name": "Boost",
+      "description": "Starts the boost ventilation of the unit, optionally for a given time.",
+      "fields": {
+        "duration": {
+          "name": "Duration",
+          "description": "Minutes after which Home Assistant ends the boost. Without a duration the unit ends it on its own terms."
+        }
+      }
     }
   }
 }

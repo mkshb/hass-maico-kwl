@@ -21,6 +21,7 @@ test("card picker entry, stub config and size", async () => {
   assert.equal(api.entry.name, "Maico KWL");
   assert.equal(api.entry.preview, true);
   assert.ok(api.entry.description);
+  assert.equal(api.entry.documentationURL, "https://github.com/mkshb/hass-maico-kwl#dashboard-card");
   assert.deepEqual(api.stub, { device_id: "unit" });
   assert.ok(api.size > 0);
   await view.close();

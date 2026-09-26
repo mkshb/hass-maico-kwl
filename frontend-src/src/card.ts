@@ -11,6 +11,7 @@ import { buildTiles, renderTiles, tileStyles } from "./tiles";
 import type { HomeAssistant, MaicoKwlCardConfig } from "./types";
 
 const CARD_TYPE = "maico-kwl-card";
+const DOCUMENTATION_URL = "https://github.com/mkshb/hass-maico-kwl#dashboard-card";
 
 // The unit applies a change slowly and the integration reports it with its
 // next poll (30 s by default), so a change is shown at once and kept for up
@@ -346,7 +347,13 @@ export class MaicoKwlCard extends LitElement {
 
 declare global {
   interface Window {
-    customCards?: { type: string; name: string; description: string; preview?: boolean }[];
+    customCards?: {
+      type: string;
+      name: string;
+      description: string;
+      preview?: boolean;
+      documentationURL?: string;
+    }[];
   }
 }
 
@@ -358,5 +365,6 @@ if (!customElements.get(CARD_TYPE)) {
     name: browserLocalize("card_name"),
     description: browserLocalize("card_description"),
     preview: true,
+    documentationURL: DOCUMENTATION_URL,
   });
 }

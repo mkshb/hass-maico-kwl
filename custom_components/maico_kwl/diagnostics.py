@@ -7,6 +7,7 @@ returned for them.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -36,9 +37,13 @@ async def async_get_config_entry_diagnostics(
         if reg.platform == BUTTON or not reg.readable:
             info["polled"] = False  # commands and write-only bus inputs
         elif reg.key in data:
-            info["value"] = data[reg.key]
-            # Raw words make scaling questions answerable from a report.
-            info["raw"] = reg.encode(data[reg.key])
+            value = data[reg.key]
+            info["value"] = (
+                value.isoformat() if isinstance(value, datetime) else value
+            )
+            if value is not None:
+                # Raw words make scaling questions answerable from a report.
+                info["raw"] = reg.encode(value)
         registers[reg.key] = info
 
     bus_inputs: dict[str, Any] = {}

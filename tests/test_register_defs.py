@@ -2,6 +2,7 @@
 
 import pathlib
 import sys
+from datetime import datetime
 
 # Import the module directly (not via the package) so the HA-dependent
 # custom_components/maico_kwl/__init__.py is not executed.
@@ -103,6 +104,15 @@ def test_probe_via_only_for_write_only_registers():
         assert (r.probe_via is not None) == (not r.readable), r.key
         if r.probe_via is not None:
             assert rd.REGISTERS_BY_KEY[r.probe_via].readable, r.key
+
+
+def test_clock_decode_encode():
+    reg = rd.REGISTERS_BY_KEY["device_clock"]
+    assert reg.word_count == 6
+    words = [2026, 9, 26, 10, 30, 15]
+    assert reg.decode(words) == datetime(2026, 9, 26, 10, 30, 15)
+    assert reg.encode(datetime(2026, 9, 26, 10, 30, 15)) == words
+    assert reg.decode([0, 0, 0, 0, 0, 0]) is None  # clock not set
 
 
 if __name__ == "__main__":

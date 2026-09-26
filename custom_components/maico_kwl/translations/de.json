@@ -96,6 +96,9 @@
       },
       "filter_reset_room": {
         "name": "Filter zurücksetzen Raum"
+      },
+      "clock_sync": {
+        "name": "Uhrzeit mit Home Assistant synchronisieren"
       }
     },
     "number": {
@@ -426,6 +429,9 @@
           "zone_2": "Zone 2",
           "zone_sensor": "Zonensensor"
         }
+      },
+      "device_clock": {
+        "name": "Geräteuhrzeit"
       }
     },
     "switch": {

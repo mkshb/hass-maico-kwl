@@ -96,6 +96,9 @@
       },
       "filter_reset_room": {
         "name": "Reset room filter"
+      },
+      "clock_sync": {
+        "name": "Sync clock with Home Assistant"
       }
     },
     "number": {
@@ -426,6 +429,9 @@
           "zone_2": "Zone 2",
           "zone_sensor": "Zone sensor"
         }
+      },
+      "device_clock": {
+        "name": "Unit clock"
       }
     },
     "switch": {

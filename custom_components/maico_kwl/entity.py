@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -55,7 +57,7 @@ class MaicoEntity(CoordinatorEntity[MaicoCoordinator]):
         """The decoded value for this register, or None if absent this cycle."""
         return self.coordinator.data.get(self._reg.key)
 
-    async def _async_write(self, value: float) -> None:
+    async def _async_write(self, value: float | datetime) -> None:
         """Write a real-world value to this entity's register.
 
         Raises HomeAssistantError so the UI shows a clear message instead of

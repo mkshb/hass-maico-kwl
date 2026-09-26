@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -9,6 +11,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .bus_feed import BusFeeder
 from .const import BUS_FEEDS
@@ -66,6 +69,9 @@ class MaicoSensor(MaicoEntity, SensorEntity):
             return None
         if self._reg.options is not None:
             return self._reg.label_for(int(value))
+        if isinstance(value, datetime):
+            # The unit's clock runs in local time; timestamps need a time zone.
+            return value.replace(tzinfo=dt_util.get_default_time_zone())
         return value
 
 

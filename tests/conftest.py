@@ -28,6 +28,12 @@ SLAVE = 10
 
 # Register values of a typical unit (raw words as the device returns them).
 DEFAULT_REGISTERS: dict[int, int] = {
+    100: 2026,  # unit clock: 2026-09-26 10:30:15
+    101: 9,
+    102: 26,
+    103: 10,
+    104: 30,
+    105: 15,
     106: 0,  # off level allowed
     107: 0,  # control panel not locked
     108: 0,  # german

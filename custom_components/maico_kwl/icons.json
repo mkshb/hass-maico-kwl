@@ -1,6 +1,9 @@
 {
   "entity": {
     "button": {
+      "clock_sync": {
+        "default": "mdi:clock-edit-outline"
+      },
       "error_reset": {
         "default": "mdi:restart-alert"
       },

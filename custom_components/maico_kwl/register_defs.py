@@ -14,6 +14,7 @@ Conventions:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 REGISTER_OFFSET = 0
 
@@ -24,6 +25,9 @@ NUMBER = "number"
 SELECT = "select"
 SWITCH = "switch"
 BUTTON = "button"
+
+# Date and time as six registers (year, month, day, hour, minute, second).
+CLOCK = "clock"
 
 # Entity categories (match HA's EntityCategory values).
 CONFIG = "config"
@@ -73,7 +77,7 @@ class RegisterDef:
     address: int
     name: str
     platform: str
-    data_type: str = "u16"  # u16 | s16 | u32 | s32
+    data_type: str = "u16"  # u16 | s16 | u32 | s32 | clock
     scale: float = 1.0  # value = raw * scale
     unit: str | None = None
     device_class: str | None = None
@@ -99,10 +103,18 @@ class RegisterDef:
 
     @property
     def word_count(self) -> int:
+        if self.data_type == CLOCK:
+            return 6
         return 2 if self.data_type.endswith("32") else 1
 
-    def decode(self, regs: list[int]) -> float | int:
+    def decode(self, regs: list[int]) -> float | int | datetime | None:
         """Combine raw registers into the real-world value."""
+        if self.data_type == CLOCK:
+            # Year, month, day, hour, minute, second in local time of the unit.
+            try:
+                return datetime(*regs[:6])
+            except (TypeError, ValueError):
+                return None  # clock not set or invalid
         raw = 0
         for reg in regs[: self.word_count]:
             raw = (raw << 16) | (reg & 0xFFFF)
@@ -113,8 +125,13 @@ class RegisterDef:
             return raw
         return round(raw * self.scale, 3)
 
-    def encode(self, value: float) -> list[int]:
+    def encode(self, value: float | datetime) -> list[int]:
         """Turn a real-world value into the raw register words (High-Word first)."""
+        if isinstance(value, datetime):
+            return [
+                value.year, value.month, value.day,
+                value.hour, value.minute, value.second,
+            ]
         raw = int(round(value / self.scale))
         total_bits = 16 * self.word_count
         if raw < 0:
@@ -191,6 +208,12 @@ VOC = "volatile_organic_compounds_parts"
 
 REGISTERS: list[RegisterDef] = [
     # --- Base settings (100-109) ---
+    RegisterDef("device_clock", 100, "Unit clock", SENSOR, data_type=CLOCK,
+                device_class="timestamp", entity_category=DIAGNOSTIC),
+    # Writes the current Home Assistant time to 100-105 in one FC 16 request.
+    RegisterDef("clock_sync", 100, "Sync clock", BUTTON, data_type=CLOCK,
+                writable=True, readable=False, entity_category=CONFIG,
+                probe_via="device_clock"),
     RegisterDef("off_lock", 106, "Disable off level", SWITCH, writable=True,
                 entity_category=CONFIG),
     RegisterDef("bde_lock", 107, "Lock control panel", SWITCH, writable=True,

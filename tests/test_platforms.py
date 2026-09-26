@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 from homeassistant.const import (
     ATTR_ENTITY_ID,
@@ -14,6 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.util import dt as dt_util
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -191,3 +194,32 @@ async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:
     assert problem.original_device_class == "problem"
     assert problem.original_icon is None
     assert problem.translation_key == "problem"
+
+
+async def test_unit_clock_sensor(hass: HomeAssistant, device: FakeDevice, loaded) -> None:
+    """The unit's local clock is shown as a timestamp in HA's time zone."""
+    state = _state(hass, loaded, "sensor", "device_clock")
+    expected = datetime(
+        2026, 9, 26, 10, 30, 15, tzinfo=dt_util.get_default_time_zone()
+    )
+    assert dt_util.parse_datetime(state) == expected
+
+    device.registers[101] = 0  # month 0: clock not set
+    await _refresh(hass, loaded)
+    assert _state(hass, loaded, "sensor", "device_clock") == STATE_UNKNOWN
+
+
+async def test_clock_sync_button(
+    hass: HomeAssistant, device: FakeDevice, loaded, freezer
+) -> None:
+    """Pressing the button writes HA's local time to 100-105 in one request."""
+    freezer.move_to("2026-09-26T12:00:05+00:00")
+    local = dt_util.now()
+    button = entity_id(hass, loaded, "button", "clock_sync")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    assert device.writes[-1] == (
+        100,
+        [local.year, local.month, local.day, local.hour, local.minute, local.second],
+    )

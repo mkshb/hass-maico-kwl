@@ -218,14 +218,14 @@ function renderModeAndBoost(ctx: ControlsContext): TemplateResult | typeof nothi
 function renderFilters(ctx: ControlsContext): TemplateResult | typeof nothing {
   const { hass, device } = ctx;
   const t = (key: StringKey, values?: Record<string, string | number>) => localize(hass, key, values);
-  const filters = FILTERS.filter(([, remaining]) => device.number(remaining) !== undefined);
+  const filters = FILTERS.filter(([, remaining]) => device.numberIn(remaining, "d") !== undefined);
   if (!filters.length) return nothing;
   const nextChange = formatDay(hass, device.state(KEY.filterNextChange)) ?? device.format(KEY.filterNextChange);
 
   return html`
     <div class="filters">
       ${filters.map(([label, remainingKey, runtimeKey]) => {
-        const days = Math.max(0, Math.round(device.number(remainingKey)!));
+        const days = Math.max(0, Math.round(device.numberIn(remainingKey, "d")!));
         const months = device.number(runtimeKey);
         const share = months ? Math.min(1, days / (months * DAYS_PER_MONTH)) : 1;
         const level = days === 0 ? "due" : days <= FILTER_SOON_DAYS ? "soon" : "ok";

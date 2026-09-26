@@ -57,10 +57,10 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
   const dark = hass.themes?.darkMode ?? false;
   const t = (key: Parameters<typeof localize>[1]) => localize(hass, key);
 
-  const outdoor = device.number(KEY.tempOutdoor);
-  const supply = device.number(KEY.tempSupply);
-  const extract = device.number(KEY.tempExtract);
-  const exhaust = device.number(KEY.tempExhaust);
+  const outdoor = device.numberIn(KEY.tempOutdoor, "°C");
+  const supply = device.numberIn(KEY.tempSupply, "°C");
+  const extract = device.numberIn(KEY.tempExtract, "°C");
+  const exhaust = device.numberIn(KEY.tempExhaust, "°C");
 
   const hasBypass = device.has(KEY.bypassOpen);
   const bypassOpen = device.isOn(KEY.bypassOpen) ?? false;
@@ -97,14 +97,15 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
   const temperature = (
     key: EntityKey,
     name: string,
-    value: number | undefined,
     color: string,
     side: "left" | "right",
     nameY: number,
     valueY: number,
   ) => {
-    if (value === undefined) return nothing;
-    const formatted = device.format(key)!;
+    // The text comes from HA in the user's unit; only the colour needs the
+    // value in °C, and falls back to neutral grey without it.
+    const formatted = device.format(key);
+    if (formatted === undefined) return nothing;
     const left = side === "left";
     return clickable(
       key,
@@ -196,11 +197,11 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
         </linearGradient>
         <mask id=${`${uid}-sheen-right`} maskUnits="userSpaceOnUse" x="0" y="-14" width="420" height="214">
           <rect class="sheen" x="-140" y="-14" width="140" height="214" fill=${`url(#${uid}-sheen)`}
-            style=${`animation-duration: ${sheen(device.number(KEY.airflowSupply))}`}></rect>
+            style=${`animation-duration: ${sheen(device.numberIn(KEY.airflowSupply, "m³/h"))}`}></rect>
         </mask>
         <mask id=${`${uid}-sheen-left`} maskUnits="userSpaceOnUse" x="0" y="-14" width="420" height="214">
           <rect class="sheen reverse" x="-140" y="-14" width="140" height="214" fill=${`url(#${uid}-sheen)`}
-            style=${`animation-duration: ${sheen(device.number(KEY.airflowExhaust))}`}></rect>
+            style=${`animation-duration: ${sheen(device.numberIn(KEY.airflowExhaust, "m³/h"))}`}></rect>
         </mask>
       </defs>
 
@@ -262,10 +263,10 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
       ${fan(SUPPLY_FAN_X, TOP, supplyRunning, KEY.fanSpeedSupply, KEY.airflowSupply, TOP + 17 + size.fan + size.small * 1.2)}
       ${fan(EXHAUST_FAN_X, BOTTOM, exhaustRunning, KEY.fanSpeedExhaust, KEY.airflowExhaust, BOTTOM - 22)}
 
-      ${temperature(KEY.tempOutdoor, t("outdoor_air"), outdoor, outdoorColor, "left", 18, 42)}
-      ${temperature(KEY.tempSupply, t("supply_air"), supply, supplyColor, "right", 18, 42)}
-      ${temperature(KEY.tempExtract, t("extract_air"), extract, extractColor, "right", bottomNameY, 176)}
-      ${temperature(KEY.tempExhaust, t("exhaust_air"), exhaust, exhaustColor, "left", bottomNameY, 176)}
+      ${temperature(KEY.tempOutdoor, t("outdoor_air"), outdoorColor, "left", 18, 42)}
+      ${temperature(KEY.tempSupply, t("supply_air"), supplyColor, "right", 18, 42)}
+      ${temperature(KEY.tempExtract, t("extract_air"), extractColor, "right", bottomNameY, 176)}
+      ${temperature(KEY.tempExhaust, t("exhaust_air"), exhaustColor, "left", bottomNameY, 176)}
     </svg>
   `;
 }

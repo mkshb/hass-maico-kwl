@@ -98,3 +98,21 @@ test("taken off and put back, the card measures and resets its changes", async (
   assert.deepEqual(view.errors, []);
   await view.close();
 });
+
+test("air colours follow the temperature, not the unit it is shown in", async () => {
+  const dot = (card) => card.evaluate((el) =>
+    getComputedStyle(el.shadowRoot.querySelector('.schematic [aria-label^="Outdoor air"] circle')).fill);
+  let view = await openCard();
+  const celsius = await dot(view.card);
+  await view.close();
+  view = await openCard({ states: { temp_air_intake: { state: "35.6", unit: "°F", precision: 1 } } });
+  assert.match(await view.card.locator(".schematic").textContent(), /35\.6 °F/);
+  assert.equal(await dot(view.card), celsius);
+  await view.close();
+});
+
+test("filter days in another duration unit", async () => {
+  const view = await openCard({ states: { filter_remaining_device: { state: "5088", unit: "h", precision: 0 } } });
+  assert.match(await view.card.locator(".filter").textContent(), /212 days/);
+  await view.close();
+});

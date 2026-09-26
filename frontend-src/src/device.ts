@@ -5,6 +5,34 @@ export const DOMAIN = "maico_kwl";
 
 const MISSING_STATES = new Set(["unavailable", "unknown"]);
 
+/**
+ * The units a user can switch these sensors to in HA (temperature, duration,
+ * volume flow rate), as factors or functions to the unit the card calculates
+ * in. The integration reports °C, days and m³/h.
+ */
+const TO_BASE: Record<string, Record<string, (value: number) => number>> = {
+  "°C": { "°C": (v) => v, "°F": (v) => ((v - 32) * 5) / 9, K: (v) => v - 273.15 },
+  d: {
+    d: (v) => v,
+    w: (v) => v * 7,
+    h: (v) => v / 24,
+    min: (v) => v / 1440,
+    s: (v) => v / 86400,
+    ms: (v) => v / 86_400_000,
+  },
+  "m³/h": {
+    "m³/h": (v) => v,
+    "m³/min": (v) => v * 60,
+    "m³/s": (v) => v * 3600,
+    "L/h": (v) => v / 1000,
+    "L/min": (v) => (v * 60) / 1000,
+    "L/s": (v) => (v * 3600) / 1000,
+    "mL/s": (v) => (v * 3600) / 1_000_000,
+    "ft³/min": (v) => v * 1.699011,
+    "gal/min": (v) => v * 0.227125,
+  },
+};
+
 /** Ids of all devices that have entities of this integration. */
 export function maicoDeviceIds(hass: HomeAssistant): string[] {
   const ids = new Set<string>();
@@ -62,6 +90,20 @@ export class KwlDevice {
   number(key: EntityKey): number | undefined {
     const value = Number(this.state(key));
     return this.state(key) === undefined || Number.isNaN(value) ? undefined : value;
+  }
+
+  /**
+   * The value in the card's unit (°C, d or m³/h), whatever unit the user
+   * set for the entity. Undefined for a unit the card does not know, rather
+   * than a wrong number.
+   */
+  numberIn(key: EntityKey, unit: "°C" | "d" | "m³/h"): number | undefined {
+    const value = this.number(key);
+    if (value === undefined) return undefined;
+    const from = this.attribute<string>(key, "unit_of_measurement");
+    if (from === undefined) return value;
+    const convert = TO_BASE[unit][from];
+    return convert ? convert(value) : undefined;
   }
 
   isOn(key: EntityKey): boolean | undefined {

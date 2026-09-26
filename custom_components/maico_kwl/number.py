@@ -96,6 +96,8 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
         super().__init__(coordinator, entry, reg)
         _apply_number_attrs(self, reg)
         self._attr_native_value = None
+        # Set while periodic rewrites fail, so a lasting outage is logged once.
+        self._rewrite_failing = False
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -120,4 +122,10 @@ class MaicoBusInputNumber(MaicoEntity, RestoreNumber):
             await self._async_write(self._attr_native_value)
         except HomeAssistantError as err:
             # Retried on the next interval; must not break entity setup.
-            _LOGGER.warning("Rewrite of %s failed: %s", self._reg.key, err)
+            if not self._rewrite_failing:
+                self._rewrite_failing = True
+                _LOGGER.info("Rewrite of %s failed: %s", self._reg.key, err)
+            return
+        if self._rewrite_failing:
+            self._rewrite_failing = False
+            _LOGGER.info("Rewrite of %s succeeds again", self._reg.key)

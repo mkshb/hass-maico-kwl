@@ -130,7 +130,7 @@ async def test_feed_write_failure_is_logged(
     await _setup_with_feeds(hass, config_entry)
 
     device.write_exception = 4
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.INFO):
         hass.states.async_set("sensor.room", "22.5")
         await hass.async_block_till_done()
     assert "Bus feed room_temp_bus write failed" in caplog.text
@@ -271,10 +271,60 @@ async def test_bus_number_restore_survives_failed_write(
     config_entry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A rejected write after a restart only logs a warning."""
+    """A rejected write after a restart is only logged."""
     eid = _restore(hass, config_entry, 19.5)
     device.write_exception = 4
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.INFO):
         await setup_entry(hass, config_entry)
     assert hass.states.get(eid).state == "19.5"
     assert "Rewrite of room_temp_bus failed" in caplog.text
+
+
+async def test_feed_logs_outage_once_and_recovery(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A lasting outage is logged once, and once more when writes work again."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+
+    device.write_exception = 4
+    with caplog.at_level(logging.INFO):
+        for value in ("22.0", "22.5", "23.0"):
+            hass.states.async_set("sensor.room", value)
+            await hass.async_block_till_done()
+        assert caplog.text.count("Bus feed room_temp_bus write failed") == 1
+
+        device.write_exception = None
+        hass.states.async_set("sensor.room", "23.5")
+        await hass.async_block_till_done()
+    assert "Bus feed room_temp_bus writes succeed again" in caplog.text
+    assert device.writes[-1] == (707, [235])
+
+
+async def test_bus_number_logs_rewrite_outage_once_and_recovery(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    await setup_entry(hass, config_entry)
+    number = entity_id(hass, config_entry, "number", "room_temp_bus")
+    await hass.services.async_call(
+        "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0}, blocking=True
+    )
+
+    device.write_exception = 4
+    now = dt_util.utcnow()
+    with caplog.at_level(logging.INFO):
+        for step in (1, 2, 3):
+            async_fire_time_changed(hass, now + REWRITE * step)
+            await hass.async_block_till_done()
+        assert caplog.text.count("Rewrite of room_temp_bus failed") == 1
+
+        device.write_exception = None
+        async_fire_time_changed(hass, now + REWRITE * 4)
+        await hass.async_block_till_done()
+    assert "Rewrite of room_temp_bus succeeds again" in caplog.text

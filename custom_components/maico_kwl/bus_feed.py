@@ -43,6 +43,8 @@ class BusFeeder:
         self._feeds = feeds
         self._unsubs: list = []
         self._tasks: set[asyncio.Task] = set()
+        # Registers whose last write failed, so a lasting outage is logged once.
+        self._failing: set[str] = set()
 
     async def async_start(self) -> None:
         if not self._feeds:
@@ -111,4 +113,10 @@ class BusFeeder:
         try:
             await self._hub.write(reg.address, reg.encode(value))
         except MaicoModbusError as err:
-            _LOGGER.warning("Bus feed %s write failed: %s", reg.key, err)
+            if reg.key not in self._failing:
+                self._failing.add(reg.key)
+                _LOGGER.info("Bus feed %s write failed: %s", reg.key, err)
+            return
+        if reg.key in self._failing:
+            self._failing.discard(reg.key)
+            _LOGGER.info("Bus feed %s writes succeed again", reg.key)

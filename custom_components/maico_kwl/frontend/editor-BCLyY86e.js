@@ -1,4 +1,4 @@
-import{_ as e,n as t,r as i,i as a,D as s,A as o,l as d,b as c}from"./card-BLhBLcip.js";const r="maico-kwl-card-editor";class MaicoKwlCardEditor extends a{constructor(){super(...arguments),this._schema=[{name:"device_id",selector:{device:{filter:{integration:s}}}}]}setConfig(e){this._config=e}render(){return this.hass&&this._config?c`
+import{_ as e,n as t,r as i,i as a,D as s,A as o,l as d,b as c}from"./card-BKvOuLst.js";const r="maico-kwl-card-editor";class MaicoKwlCardEditor extends a{constructor(){super(...arguments),this._schema=[{name:"device_id",selector:{device:{filter:{integration:s}}}}]}setConfig(e){this._config=e}render(){return this.hass&&this._config?c`
       <ha-form
         .hass=${this.hass}
         .data=${this._config}

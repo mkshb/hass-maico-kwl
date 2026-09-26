@@ -19,6 +19,8 @@ const BYPASS_PATH = `M${BYPASS_FROM} ${TOP} C 128 ${TOP}, 128 22, 162 22 L 258 2
 const SUPPLY_FAN_X = 340;
 const EXHAUST_FAN_X = 80;
 const PTC_X = 58;
+// Width of the tap area around a temperature and its name.
+const TEMPERATURE_HIT_WIDTH = 120;
 
 // Air sheen: one soft sweep per this many seconds at this volume flow.
 const SHEEN_SECONDS = 4.5;
@@ -107,6 +109,8 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
     return clickable(
       key,
       svg`
+        <rect class="hit-box" x=${left ? 16 : 404 - TEMPERATURE_HIT_WIDTH} y=${Math.min(nameY, valueY) - size.value}
+          width=${TEMPERATURE_HIT_WIDTH} height=${Math.abs(nameY - valueY) + size.value + 6}></rect>
         <text class="name" x=${left ? 20 : 400} y=${nameY} text-anchor=${left ? "start" : "end"}
           style=${`font-size: ${size.small}px`}>${name}</text>
         <circle cx=${left ? 20 + dotRadius : 400 - dotRadius} cy=${valueY - size.value * 0.35} r=${dotRadius}
@@ -128,6 +132,9 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
     lastLineY: number,
   ) => {
     const lineGap = size.small * 1.2;
+    // The block spans the rotor and the two text lines above or below it.
+    const hitTop = Math.min(y - 15, lastLineY - lineGap - size.fan);
+    const hitBottom = Math.max(y + 15, lastLineY + 4);
     const rpm = device.number(speedKey);
     const turn = rpm && rpm > 0 ? `${(4000 / rpm).toFixed(2)}s` : "2s";
     const speed = running ? device.format(speedKey) : t("fan_off");
@@ -135,6 +142,7 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
     return clickable(
       speedKey,
       svg`
+        <rect class="hit-box" x=${x - 46} y=${hitTop} width="92" height=${hitBottom - hitTop}></rect>
         <circle class="fan-housing" cx=${x} cy=${y} r="13"></circle>
         <g class=${running ? "rotor spinning" : "rotor"} style=${`animation-duration: ${turn}`}>
           <circle cx=${x} cy=${y} r="13" fill="none" stroke="none"></circle>
@@ -204,6 +212,7 @@ export function renderSchematic(ctx: SchematicContext): TemplateResult {
         ? clickable(
             KEY.bypassOpen,
             svg`
+              <path class="hit-area" d=${BYPASS_PATH}></path>
               <path class=${bypassOpen ? "tube" : "bypass-closed"} d=${BYPASS_PATH}
                 style=${bypassOpen ? `stroke: ${outdoorColor}` : ""}></path>
               <text class=${bypassOpen ? "bypass-label open" : "bypass-label"} x="210" y="6" text-anchor="middle"
@@ -355,6 +364,17 @@ export const schematicStyles = css`
   .clickable {
     cursor: pointer;
     outline: none;
+  }
+  /* Invisible tap areas: a whole fan or temperature block takes a tap, not
+     only its drawn parts, and a finger-wide stroke along the bypass line. */
+  .hit-box {
+    fill: transparent;
+  }
+  .hit-area {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 24px;
+    pointer-events: stroke;
   }
   .clickable:focus-visible {
     outline: 2px solid var(--primary-color);

@@ -490,6 +490,17 @@ function t(t,e,s,o){var r,a=arguments.length,l=a<3?e:null===o?o=Object.getOwnPro
     cursor: pointer;
     outline: none;
   }
+  /* Invisible tap areas: a whole fan or temperature block takes a tap, not
+     only its drawn parts, and a finger-wide stroke along the bypass line. */
+  .hit-box {
+    fill: transparent;
+  }
+  .hit-area {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 24px;
+    pointer-events: stroke;
+  }
   .clickable:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
@@ -610,30 +621,33 @@ function t(t,e,s,o){var r,a=arguments.length,l=a<3?e:null===o?o=Object.getOwnPro
   .air-poor {
     background: var(--kwl-poor);
   }
-`,Be="maico-kwl-card";class MaicoKwlCard extends i{constructor(){super(...arguments),this._uid=`kwl${Math.random().toString(36).slice(2,10)}`,this._pending=new Map,this._messagesExpanded=!1,this._width=0,this._energyFetchedAt=0}setConfig(t){this._config=t}getCardSize(){return 6}static async getConfigElement(){const{EDITOR_TYPE:t}=await(import("./editor-CSE3cVqW.js"));return document.createElement(t)}static getStubConfig(t){const[e]=$t(t);return e?{device_id:e}:{}}connectedCallback(){super.connectedCallback(),this._resizeObserver??=new ResizeObserver(([t])=>{const e=Math.round(t.contentRect.width);e!==this._width&&requestAnimationFrame(()=>this._width=e)}),this._resizeObserver.observe(this)}disconnectedCallback(){super.disconnectedCallback(),this._resizeObserver?.disconnect();for(const t of[...this._pending.keys()])this._clearPending(t)}willUpdate(t){if(!t.has("hass")||!this._pending.size||!this.hass)return;const e=this._device();if(e)for(const[t,s]of this._pending)fe[t](e)===s.value&&this._clearPending(t)}firstUpdated(){const t=Math.round(this.getBoundingClientRect().width);t&&(this._width=t)}updated(t){super.updated(t),t.has("hass")&&Date.now()-this._energyFetchedAt>3e5&&this._fetchEnergyToday()}async _fetchEnergyToday(){const t=this.hass&&this._device(),e=t?.entityId(Ut);if(e){this._energyFetchedAt=Date.now();try{const t=await this.hass.callWS({type:"recorder/statistic_during_period",statistic_id:e,calendar:{period:"day"},types:["change"]});this._energyToday="number"==typeof t.change?Math.max(0,t.change):void 0}catch{this._energyToday=void 0}}}_clearPending(t){const e=this._pending.get(t);e&&(window.clearTimeout(e.timer),this._pending.delete(t),this._pending=new Map(this._pending))}_controls(t){return{hass:this.hass,device:t,narrow:this._width>0&&this._width<400,moreInfo:e=>this._moreInfo(t.entityId(e)),shown:e=>this._pending.get(e)?.value??fe[e](t),pending:t=>this._pending.has(t),change:(e,s,o)=>{if(this._clearPending(e),fe[e](t)===s)return void o();const r=window.setTimeout(()=>this._clearPending(e),35e3);this._pending=new Map(this._pending).set(e,{value:s,timer:r}),o().catch(()=>this._clearPending(e))}}}_device(){const t=this._config?.device_id??$t(this.hass)[0];if(t&&this.hass.devices[t])return new KwlDevice(this.hass,t)}render(){if(!this.hass||!this._config)return ot;const t=this._device();if(!t){const t=this._config.device_id?"device_missing":"no_device";return et`<ha-card><p class="empty">${le(this.hass,t)}</p></ha-card>`}return et`
+`,Be="maico-kwl-card";class MaicoKwlCard extends i{constructor(){super(...arguments),this._uid=`kwl${Math.random().toString(36).slice(2,10)}`,this._pending=new Map,this._messagesExpanded=!1,this._width=0,this._energyFetchedAt=0}setConfig(t){this._config=t}getCardSize(){return 6}static async getConfigElement(){const{EDITOR_TYPE:t}=await(import("./editor-BCLyY86e.js"));return document.createElement(t)}static getStubConfig(t){const[e]=$t(t);return e?{device_id:e}:{}}connectedCallback(){super.connectedCallback(),this._resizeObserver??=new ResizeObserver(([t])=>{const e=Math.round(t.contentRect.width);e!==this._width&&requestAnimationFrame(()=>this._width=e)}),this._resizeObserver.observe(this)}disconnectedCallback(){super.disconnectedCallback(),this._resizeObserver?.disconnect();for(const t of[...this._pending.keys()])this._clearPending(t)}willUpdate(t){if(!t.has("hass")||!this._pending.size||!this.hass)return;const e=this._device();if(e)for(const[t,s]of this._pending)fe[t](e)===s.value&&this._clearPending(t)}firstUpdated(){const t=Math.round(this.getBoundingClientRect().width);t&&(this._width=t)}updated(t){super.updated(t),t.has("hass")&&Date.now()-this._energyFetchedAt>3e5&&this._fetchEnergyToday()}async _fetchEnergyToday(){const t=this.hass&&this._device(),e=t?.entityId(Ut);if(e){this._energyFetchedAt=Date.now();try{const t=await this.hass.callWS({type:"recorder/statistic_during_period",statistic_id:e,calendar:{period:"day"},types:["change"]});this._energyToday="number"==typeof t.change?Math.max(0,t.change):void 0}catch{this._energyToday=void 0}}}_clearPending(t){const e=this._pending.get(t);e&&(window.clearTimeout(e.timer),this._pending.delete(t),this._pending=new Map(this._pending))}_controls(t){return{hass:this.hass,device:t,narrow:this._width>0&&this._width<400,moreInfo:e=>this._moreInfo(t.entityId(e)),shown:e=>this._pending.get(e)?.value??fe[e](t),pending:t=>this._pending.has(t),change:(e,s,o)=>{if(this._clearPending(e),fe[e](t)===s)return void o();const r=window.setTimeout(()=>this._clearPending(e),35e3);this._pending=new Map(this._pending).set(e,{value:s,timer:r}),o().catch(()=>this._clearPending(e))}}}_device(){const t=this._config?.device_id??$t(this.hass)[0];if(t&&this.hass.devices[t])return new KwlDevice(this.hass,t)}render(){if(!this.hass||!this._config)return ot;const t=this._device();if(!t){const t=this._config.device_id?"device_missing":"no_device";return et`<ha-card><p class="empty">${le(this.hass,t)}</p></ha-card>`}return et`
       <ha-card class=${this.hass.themes?.darkMode?"dark":""}>
         ${xe({hass:this.hass,device:t,expanded:this._messagesExpanded,toggle:()=>this._messagesExpanded=!this._messagesExpanded,moreInfo:e=>this._moreInfo(t.entityId(e))})}
         <div class="content">
           ${function(t){const{hass:e,device:s,uid:o}=t,r=Math.max(1,t.scale),a=Math.max(12,11*r),l=Math.max(20,17*r),c=Math.max(12,11.5*r),d=Math.max(11,10.5*r),h=Math.max(18,15*r),u=r>1.15,p=Math.max(4,3.2*r),f=176+Math.max(18,1.25*a),_=e.themes?.darkMode??!1,g=t=>le(e,t),m=s.number(vt),$=s.number(bt),v=s.number(xt),b=s.number(wt),x=s.has(Lt),w=s.isOn(Lt)??!1,C=s.isOn(Mt)??(s.number(kt)??0)>0,A=s.isOn(Et)??(s.number(Ct)??0)>0,M=Se(m,$,_),E=Se(b,v,_),O=Ae(m,_),P=Ae($,_),U=Ae(b,_),T=Ae(v,_),j=w?"M20 62 L96 62 M324 62 L392 62":"M20 62 L392 62",N="M400 142 L28 142",V=t=>`${Math.min(12,Math.max(2,810/Math.max(t??180,1))).toFixed(2)}s`,D=(e,o,r)=>s.entityId(e)?it`<g class="clickable" role="button" tabindex="0" aria-label=${r}
           @click=${()=>t.moreInfo(e)}
           @keydown=${s=>{"Enter"!==s.key&&" "!==s.key||(s.preventDefault(),t.moreInfo(e))}}>${o}</g>`:o,B=(t,e,o,r,c,d,h)=>{if(void 0===o)return ot;const u=s.format(t),f="left"===c;return D(t,it`
+        <rect class="hit-box" x=${f?16:284} y=${Math.min(d,h)-l}
+          width=${120} height=${Math.abs(d-h)+l+6}></rect>
         <text class="name" x=${f?20:400} y=${d} text-anchor=${f?"start":"end"}
           style=${`font-size: ${a}px`}>${e}</text>
         <circle cx=${f?20+p:400-p} cy=${h-.35*l} r=${p}
           style=${`fill: ${r}`}></circle>
         <text class="value" x=${f?26+2*p:394-2*p} y=${h}
           text-anchor=${f?"start":"end"} style=${`font-size: ${l}px`}>${u}</text>
-      `,`${e} ${u}`)},K=(t,e,o,r,l,d)=>{const h=1.2*a,u=s.number(r),p=u&&u>0?`${(4e3/u).toFixed(2)}s`:"2s",f=o?s.format(r):g("fan_off"),_=o?s.format(l):void 0;return D(r,it`
+      `,`${e} ${u}`)},K=(t,e,o,r,l,d)=>{const h=1.2*a,u=Math.min(e-15,d-h-c),p=Math.max(e+15,d+4),f=s.number(r),_=f&&f>0?`${(4e3/f).toFixed(2)}s`:"2s",m=o?s.format(r):g("fan_off"),$=o?s.format(l):void 0;return D(r,it`
+        <rect class="hit-box" x=${t-46} y=${u} width="92" height=${p-u}></rect>
         <circle class="fan-housing" cx=${t} cy=${e} r="13"></circle>
-        <g class=${o?"rotor spinning":"rotor"} style=${`animation-duration: ${p}`}>
+        <g class=${o?"rotor spinning":"rotor"} style=${`animation-duration: ${_}`}>
           <circle cx=${t} cy=${e} r="13" fill="none" stroke="none"></circle>
           ${[0,120,240].map(s=>it`<ellipse cx=${t} cy=${e-6} rx="3" ry="5.5" transform=${`rotate(${s} ${t} ${e})`}></ellipse>`)}
         </g>
-        ${f?it`<text class="fan-speed" x=${t} y=${d-h} text-anchor="middle"
-              style=${`font-size: ${c}px`}>${f}</text>`:ot}
-        ${_?it`<text class="small" x=${t} y=${d} text-anchor="middle"
-              style=${`font-size: ${a}px`}>${_}</text>`:ot}
-      `,`${f??""} ${_??""}`)},W=s.format(Ht);return et`
+        ${m?it`<text class="fan-speed" x=${t} y=${d-h} text-anchor="middle"
+              style=${`font-size: ${c}px`}>${m}</text>`:ot}
+        ${$?it`<text class="small" x=${t} y=${d} text-anchor="middle"
+              style=${`font-size: ${a}px`}>${$}</text>`:ot}
+      `,`${m??""} ${$??""}`)},W=s.format(Ht);return et`
     <svg class="schematic" viewBox="0 -14 420 214" role="img"
       aria-label=${[g("outdoor_air"),g("supply_air"),g("extract_air"),g("exhaust_air")].join(", ")}>
       <defs>
@@ -663,6 +677,7 @@ function t(t,e,s,o){var r,a=arguments.length,l=a<3?e:null===o?o=Object.getOwnPro
       <line class="exchanger-line" x1=${Oe} y1="34" x2=${Le} y2="170"></line>
 
       ${x?D(Lt,it`
+              <path class="hit-area" d=${He}></path>
               <path class=${w?"tube":"bypass-closed"} d=${He}
                 style=${w?`stroke: ${O}`:""}></path>
               <text class=${w?"bypass-label open":"bypass-label"} x="210" y="6" text-anchor="middle"

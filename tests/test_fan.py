@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 import voluptuous as vol
@@ -14,13 +15,17 @@ from homeassistant.components.fan import (
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers.service import _SERVICES_SCHEMA
 from homeassistant.util import dt as dt_util
+from homeassistant.util.yaml import load_yaml_dict
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.maico_kwl.const import DOMAIN
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
+
+COMPONENT = Path(__file__).parent.parent / "custom_components" / "maico_kwl"
 
 
 @pytest.fixture
@@ -184,3 +189,12 @@ async def test_boost_validation(
     assert err.value.translation_key == "boost_unavailable"
     with pytest.raises(vol.Invalid):
         await _boost(hass, eid, duration=0)
+
+
+
+def test_boost_action_description() -> None:
+    """services.yaml matches the schema Home Assistant loads it with."""
+    content = load_yaml_dict(str(COMPONENT / "services.yaml"))
+    services = _SERVICES_SCHEMA(content)
+    assert services["boost"]["target"]["entity"][0]["domain"] == ["fan"]
+    assert services["boost"]["fields"]["duration"]["selector"]["number"]["max"] == 720

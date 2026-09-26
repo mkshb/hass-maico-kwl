@@ -115,6 +115,33 @@ def test_clock_decode_encode():
     assert reg.decode([0, 0, 0, 0, 0, 0]) is None  # clock not set
 
 
+def test_active_bits_of_bitfields():
+    notice = rd.REGISTERS_BY_KEY["notice_code"]
+    fault = rd.REGISTERS_BY_KEY["fault_code"]
+    # Live unit: bit 4 (bypass) plus bit 13 in the low word (404).
+    assert notice.active_bits(notice.decode([0, 0x2010])) == [
+        "bypass_active",
+        "humidity_protection_active",
+    ]
+    # High word (403) holds bits 16-31; undocumented bits keep their number.
+    assert notice.active_bits(notice.decode([0x8001, 0x8000])) == [
+        "bit_15",
+        "door_contact_triggered",
+        "bit_31",
+    ]
+    assert fault.active_bits(fault.decode([0x0040, 0x0001])) == [
+        "supply_fan",
+        "external_safety_shutdown",
+    ]
+    assert notice.active_bits(0) == []
+    assert rd.REGISTERS_BY_KEY["temp_room"].active_bits(5) == []
+
+
+def test_bit_sensors_use_documented_bits():
+    for reg_key, slug, _dev_class in rd.BIT_SENSORS:
+        assert slug in rd.REGISTERS_BY_KEY[reg_key].bits.values(), slug
+
+
 if __name__ == "__main__":
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in funcs:

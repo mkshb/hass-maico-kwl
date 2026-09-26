@@ -65,11 +65,20 @@
       "base_board_contact": {
         "name": "Schaltkontakt Basisplatine"
       },
+      "device_filter_dirty": {
+        "name": "Gerätefilter verschmutzt"
+      },
       "fan_exhaust_active": {
         "name": "Ventilator Abluft aktiv"
       },
       "fan_supply_active": {
         "name": "Ventilator Zuluft aktiv"
+      },
+      "frost_protection_active": {
+        "name": "Frostschutz aktiv"
+      },
+      "outdoor_filter_dirty": {
+        "name": "Außenfilter verschmutzt"
       },
       "problem": {
         "name": "Störung"
@@ -79,6 +88,9 @@
       },
       "reheating_relay_active": {
         "name": "Nachheizrelais aktiv"
+      },
+      "room_filter_dirty": {
+        "name": "Raumfilter verschmutzt"
       },
       "summer_bypass_open": {
         "name": "Sommerbypass offen"
@@ -324,7 +336,12 @@
         "name": "Ventilator Drehzahl Zuluft"
       },
       "fault_code": {
-        "name": "Fehlercode"
+        "name": "Fehlercode",
+        "state_attributes": {
+          "active": {
+            "name": "Aktive Fehler"
+          }
+        }
       },
       "filter_remaining_device": {
         "name": "Filter Restlaufzeit Gerät"
@@ -351,7 +368,12 @@
         "name": "Feuchte Sensor 4"
       },
       "notice_code": {
-        "name": "Hinweiscode"
+        "name": "Hinweiscode",
+        "state_attributes": {
+          "active": {
+            "name": "Aktive Hinweise"
+          }
+        }
       },
       "op_hours_brine_pump": {
         "name": "Betriebsstunden Sole-Umwälzpumpe"

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from homeassistant.helpers.icon import async_get_icons
 
-from custom_components.maico_kwl.register_defs import REGISTERS
+from custom_components.maico_kwl.register_defs import BIT_SENSORS, REGISTERS
 
 from .helpers import setup_entry
 
@@ -16,7 +16,9 @@ COMPONENT = Path(__file__).parent.parent / "custom_components" / "maico_kwl"
 ICONS = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))["entity"]
 REGS = {(reg.platform, reg.key): reg for reg in REGISTERS}
 # Entities that are not backed by a register.
-EXTRA = {("button", "rediscover")}
+EXTRA = {("button", "rediscover")} | {
+    ("binary_sensor", slug) for _reg_key, slug, _dev_class in BIT_SENSORS
+}
 
 ICON_ENTRIES = [
     (platform, key, entry)

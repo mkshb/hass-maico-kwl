@@ -65,11 +65,20 @@
       "base_board_contact": {
         "name": "Base board contact"
       },
+      "device_filter_dirty": {
+        "name": "Device filter dirty"
+      },
       "fan_exhaust_active": {
         "name": "Fan exhaust active"
       },
       "fan_supply_active": {
         "name": "Fan supply active"
+      },
+      "frost_protection_active": {
+        "name": "Frost protection active"
+      },
+      "outdoor_filter_dirty": {
+        "name": "Outdoor filter dirty"
       },
       "problem": {
         "name": "Problem"
@@ -79,6 +88,9 @@
       },
       "reheating_relay_active": {
         "name": "Reheating relay active"
+      },
+      "room_filter_dirty": {
+        "name": "Room filter dirty"
       },
       "summer_bypass_open": {
         "name": "Summer bypass open"
@@ -324,7 +336,12 @@
         "name": "Fan speed supply"
       },
       "fault_code": {
-        "name": "Fault code"
+        "name": "Fault code",
+        "state_attributes": {
+          "active": {
+            "name": "Active faults"
+          }
+        }
       },
       "filter_remaining_device": {
         "name": "Filter remaining device"
@@ -351,7 +368,12 @@
         "name": "Humidity sensor 4"
       },
       "notice_code": {
-        "name": "Notice code"
+        "name": "Notice code",
+        "state_attributes": {
+          "active": {
+            "name": "Active notices"
+          }
+        }
       },
       "op_hours_brine_pump": {
         "name": "Operating hours brine pump"

@@ -74,6 +74,13 @@ class MaicoSensor(MaicoEntity, SensorEntity):
             return value.replace(tzinfo=dt_util.get_default_time_zone())
         return value
 
+    @property
+    def extra_state_attributes(self) -> dict[str, list[str]] | None:
+        """For bitfield registers, the meanings of the bits that are set."""
+        if self._reg.bits is None or self._value is None:
+            return None
+        return {"active": self._reg.active_bits(self._value)}
+
 
 class MaicoBusFeedSensor(MaicoEntity, SensorEntity):
     """The value last written to a write-only bus input register.

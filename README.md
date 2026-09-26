@@ -54,8 +54,8 @@ profile of the unit is derived from the registers it finds.
 
 | Platform         | Examples |
 |------------------|----------|
-| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code, current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
-| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code) |
+| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors |
+| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits) |
 | `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |

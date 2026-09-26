@@ -89,6 +89,58 @@ async def test_problem_sensor(hass: HomeAssistant, device: FakeDevice, loaded) -
     assert _state(hass, loaded, "binary_sensor", "problem") == STATE_UNAVAILABLE
 
 
+async def test_bit_sensors(hass: HomeAssistant, device: FakeDevice, loaded) -> None:
+    """Filter and frost sensors follow single bits of the notice code."""
+    keys = [
+        "device_filter_dirty",
+        "outdoor_filter_dirty",
+        "room_filter_dirty",
+        "frost_protection_active",
+    ]
+    assert [_state(hass, loaded, "binary_sensor", key) for key in keys] == [
+        STATE_OFF
+    ] * 4
+
+    device.registers[404] = (1 << 10) | (1 << 6)  # outdoor filter, frost
+    await _refresh(hass, loaded)
+    assert [_state(hass, loaded, "binary_sensor", key) for key in keys] == [
+        STATE_OFF,
+        STATE_ON,
+        STATE_OFF,
+        STATE_ON,
+    ]
+
+    ent_reg = er.async_get(hass)
+    room = ent_reg.async_get(entity_id(hass, loaded, "binary_sensor", "room_filter_dirty"))
+    assert room.original_device_class == "problem"
+    assert room.entity_category is None
+
+    device.absent |= {403, 404}
+    await _refresh(hass, loaded)
+    assert _state(hass, loaded, "binary_sensor", "room_filter_dirty") == STATE_UNAVAILABLE
+
+
+async def test_code_sensors_list_active_bits(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """Fault and notice code sensors name the bits that are set."""
+    notice = entity_id(hass, loaded, "sensor", "notice_code")
+    assert hass.states.get(notice).attributes["active"] == []
+
+    device.registers[404] = 0x2010
+    device.registers[402] = 2
+    await _refresh(hass, loaded)
+    assert hass.states.get(notice).state == "8208"
+    assert hass.states.get(notice).attributes["active"] == [
+        "bypass_active",
+        "humidity_protection_active",
+    ]
+    fault = entity_id(hass, loaded, "sensor", "fault_code")
+    assert hass.states.get(fault).attributes["active"] == ["exhaust_fan"]
+    temp = entity_id(hass, loaded, "sensor", "temp_room")
+    assert "active" not in hass.states.get(temp).attributes
+
+
 async def test_number_state_and_write(
     hass: HomeAssistant, device: FakeDevice, loaded
 ) -> None:

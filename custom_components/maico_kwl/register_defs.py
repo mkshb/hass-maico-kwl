@@ -13,7 +13,7 @@ Conventions:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 REGISTER_OFFSET = 0
@@ -66,6 +66,69 @@ VENT_LEVEL = {
     4: "intensive",
 }
 PUMP_STATE = {0: "off", 1: "heating", 2: "cooling"}
+
+# Bit meanings of the fault (401/402) and notice (403/404) codes (bit -> slug).
+# The u32 value holds the High-Word (401/403) in bits 16-31. modbus.csv only says
+# "Bitfeld"; the meanings come from docs/geniovent-modbus.csv, where list entry n
+# is bit n-1 of its word. Verified on a live unit: notice bit 4 (bypass_active)
+# follows the summer bypass.
+FAULT_BITS = {
+    0: "supply_fan",
+    1: "exhaust_fan",
+    2: "sensor_air_intake",
+    3: "sensor_supply",
+    4: "sensor_exhaust",
+    5: "sensor_room_bde",
+    6: "sensor_room",
+    7: "sensor_outdoor_before_ehx",
+    8: "bypass",
+    9: "zone_damper",
+    10: "combi_sensor",
+    11: "frost_protection",
+    12: "external_preheater",
+    13: "supply_exhaust_too_cold",
+    14: "sensor_room_bus",
+    15: "communication_zp1",
+    16: "communication_zp2",
+    17: "sensor_extract",
+    18: "communication_bde",
+    19: "system_memory",
+    20: "system_bus",
+    21: "unknown_fault",
+    22: "external_safety_shutdown",
+}
+NOTICE_BITS = {
+    0: "brine_ehx_low_cooling",
+    1: "communication_enocean",
+    2: "communication_knx",
+    3: "communication_air_at_home",
+    4: "bypass_active",
+    5: "zone_ventilation_active",
+    6: "frost_protection_active",
+    7: "frost_protection_airflow_reduced",
+    8: "keypad_locked",
+    9: "device_filter_dirty",
+    10: "outdoor_filter_dirty",
+    11: "room_filter_dirty",
+    12: "airflow_calibration_active",
+    13: "humidity_protection_active",
+    14: "reheating_active",
+    16: "door_contact_triggered",
+    17: "external_safety_shutdown",
+    18: "forced_ventilation_active",
+    19: "communication_modbus",
+    20: "switch_test_active",
+    21: "filter_pressure_init_active",
+    22: "pressure_setpoint_not_reached",
+    23: "external_start_stop_active",
+    24: "night_cooling_active",
+    25: "purge_active",
+    26: "motion_detector_active",
+    27: "external_control_active",
+    28: "airflow_balancing_active",
+    29: "holiday_program_active",
+    30: "sensor_mode_active",
+}
 ZONE_DAMPER = {0: "off", 1: "zone_1", 2: "zone_2", 3: "zone_sensor"}
 
 
@@ -95,7 +158,7 @@ class RegisterDef:
     probe_via: str | None = None
     # Write-only registers (read access "-" in the CSV) cannot be polled.
     readable: bool = True
-    bits: tuple = field(default=())  # reserved; unused for now
+    bits: dict[int, str] | None = None  # bitfield registers: bit -> slug
 
     @property
     def signed(self) -> bool:
@@ -149,6 +212,19 @@ class RegisterDef:
         if self.native_max is not None:
             value = min(value, self.native_max)
         return float(value)
+
+    def active_bits(self, value: int) -> list[str]:
+        """Slugs of the set bits of a bitfield register, in bit order.
+
+        Set bits without a documented meaning show up as ``bit_<n>``.
+        """
+        if self.bits is None:
+            return []
+        return [
+            self.bits.get(bit, f"bit_{bit}")
+            for bit in range(16 * self.word_count)
+            if int(value) >> bit & 1
+        ]
 
     def label_for(self, raw: int) -> str | None:
         """Map a raw enum value to its label (for select/enum sensors)."""
@@ -274,9 +350,9 @@ REGISTERS: list[RegisterDef] = [
     *_enocean_bank(366, "enocean_voc", "EnOcean VOC", PPM, VOC),
     # --- Errors / notices (401-405) ---
     RegisterDef("fault_code", 401, "Fault code", SENSOR, data_type="u32",
-                entity_category=DIAGNOSTIC),
+                entity_category=DIAGNOSTIC, bits=FAULT_BITS),
     RegisterDef("notice_code", 403, "Notice code", SENSOR, data_type="u32",
-                entity_category=DIAGNOSTIC),
+                entity_category=DIAGNOSTIC, bits=NOTICE_BITS),
     RegisterDef("error_reset", 405, "Reset errors", BUTTON, writable=True,
                 readable=False, entity_category=DIAGNOSTIC,
                 probe_via="fault_code"),
@@ -427,3 +503,12 @@ REGISTERS: list[RegisterDef] = [
 ]
 
 REGISTERS_BY_KEY: dict[str, RegisterDef] = {r.key: r for r in REGISTERS}
+
+# Binary sensors for single bits of a bitfield register:
+# (register key, bit slug, device class). The slug is also the entity key.
+BIT_SENSORS: list[tuple[str, str, str | None]] = [
+    ("notice_code", "device_filter_dirty", "problem"),
+    ("notice_code", "outdoor_filter_dirty", "problem"),
+    ("notice_code", "room_filter_dirty", "problem"),
+    ("notice_code", "frost_protection_active", None),
+]

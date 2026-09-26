@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 MANIFEST = json.loads(
@@ -25,3 +26,11 @@ def test_manifest_key_order() -> None:
     keys = list(MANIFEST)
     assert keys[:2] == ["domain", "name"]
     assert keys[2:] == sorted(keys[2:])
+
+
+def test_changelog_describes_this_version() -> None:
+    """The newest section of CHANGELOG.md is the version in the manifest."""
+    changelog = (Path(__file__).parent.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+    newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M)
+    assert newest, "no version section in CHANGELOG.md"
+    assert newest.group(1) == MANIFEST["version"]

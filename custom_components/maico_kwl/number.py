@@ -11,6 +11,7 @@ from homeassistant.components.number import (
     NumberMode,
     RestoreNumber,
 )
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -47,7 +48,7 @@ async def async_setup_entry(
             entities.append(MaicoNumber(coordinator, entry, reg))
         elif reg.key not in fed_by_source:
             entities.append(MaicoBusInputNumber(coordinator, entry, reg))
-    async_add_maico_entities(entry, async_add_entities, entities)
+    async_add_maico_entities(entry, Platform.NUMBER, async_add_entities, entities)
 
 
 def _apply_number_attrs(entity: NumberEntity, reg: RegisterDef) -> None:

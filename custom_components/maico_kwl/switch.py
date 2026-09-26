@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -24,6 +25,7 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     async_add_maico_entities(
         entry,
+        Platform.SWITCH,
         async_add_entities,
         (
             MaicoSwitch(coordinator, entry, REGISTERS_BY_KEY[key])

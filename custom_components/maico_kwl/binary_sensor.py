@@ -6,6 +6,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -54,7 +55,9 @@ async def async_setup_entry(
         for key, source in FILTER_DUE
         if source in coordinator.present
     )
-    async_add_maico_entities(entry, async_add_entities, entities)
+    async_add_maico_entities(
+        entry, Platform.BINARY_SENSOR, async_add_entities, entities
+    )
 
 
 class MaicoBinarySensor(MaicoEntity, BinarySensorEntity):

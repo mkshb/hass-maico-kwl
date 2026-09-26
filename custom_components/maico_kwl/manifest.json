@@ -1,6 +1,7 @@
 {
   "domain": "maico_kwl",
   "name": "Maico KWL",
+  "after_dependencies": ["frontend", "http"],
   "codeowners": ["@mkshb"],
   "config_flow": true,
   "documentation": "https://github.com/mkshb/hass-maico-kwl",
@@ -9,5 +10,5 @@
   "issue_tracker": "https://github.com/mkshb/hass-maico-kwl/issues",
   "loggers": ["pymodbus"],
   "requirements": ["pymodbus>=3.11.2"],
-  "version": "0.3.1"
+  "version": "0.4.0"
 }

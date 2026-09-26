@@ -375,7 +375,32 @@
         "name": "Fehlercode",
         "state_attributes": {
           "active": {
-            "name": "Aktive Fehler"
+            "name": "Aktive Fehler",
+            "state": {
+              "supply_fan": "Ventilator Zuluft",
+              "exhaust_fan": "Ventilator Abluft",
+              "sensor_air_intake": "Sensor Lufteintritt",
+              "sensor_supply": "Sensor Zuluft",
+              "sensor_exhaust": "Sensor Fortluft",
+              "sensor_room_bde": "Sensor Raum am Bedienteil",
+              "sensor_room": "Sensor Raum",
+              "sensor_outdoor_before_ehx": "Sensor Außenluft vor Erdwärmetauscher",
+              "bypass": "Bypass",
+              "zone_damper": "Zonenklappe",
+              "combi_sensor": "Kombisensor",
+              "frost_protection": "Frostschutz",
+              "external_preheater": "Externe Vorheizung",
+              "supply_exhaust_too_cold": "Zuluft oder Abluft zu kalt",
+              "sensor_room_bus": "Raumtemperatur über Bus",
+              "communication_zp1": "Kommunikation ZP1",
+              "communication_zp2": "Kommunikation ZP2",
+              "sensor_extract": "Sensor Abluft",
+              "communication_bde": "Kommunikation Bedienteil",
+              "system_memory": "Systemspeicher",
+              "system_bus": "Systembus",
+              "unknown_fault": "Unbekannter Fehler",
+              "external_safety_shutdown": "Externe Sicherheitsabschaltung"
+            }
           }
         }
       },
@@ -419,7 +444,39 @@
         "name": "Hinweiscode",
         "state_attributes": {
           "active": {
-            "name": "Aktive Hinweise"
+            "name": "Aktive Hinweise",
+            "state": {
+              "brine_ehx_low_cooling": "Kühlleistung Sole-Erdwärmetauscher gering",
+              "communication_enocean": "Kommunikation EnOcean",
+              "communication_knx": "Kommunikation KNX",
+              "communication_air_at_home": "Kommunikation air@home",
+              "bypass_active": "Bypass aktiv",
+              "zone_ventilation_active": "Zonenlüftung aktiv",
+              "frost_protection_active": "Frostschutz aktiv",
+              "frost_protection_airflow_reduced": "Volumenstrom wegen Frostschutz reduziert",
+              "keypad_locked": "Tastensperre",
+              "device_filter_dirty": "Gerätefilter verschmutzt",
+              "outdoor_filter_dirty": "Außenfilter verschmutzt",
+              "room_filter_dirty": "Raumfilter verschmutzt",
+              "airflow_calibration_active": "Volumenstromeinmessung aktiv",
+              "humidity_protection_active": "Überfeuchtungsschutz aktiv",
+              "reheating_active": "Nacherwärmung aktiv",
+              "door_contact_triggered": "Türkontaktschalter ausgelöst",
+              "external_safety_shutdown": "Externe Sicherheitsabschaltung",
+              "forced_ventilation_active": "Zwangslauf aktiv",
+              "communication_modbus": "Kommunikation Modbus",
+              "switch_test_active": "Schalttest aktiv",
+              "filter_pressure_init_active": "Initialisierung Filter und Druckkonstanz aktiv",
+              "pressure_setpoint_not_reached": "Sollwert Druckkonstanz nicht erreicht",
+              "external_start_stop_active": "Externer Start/Stopp aktiv",
+              "night_cooling_active": "Nachtkühlung aktiv",
+              "purge_active": "Spülbetrieb aktiv",
+              "motion_detector_active": "Bewegungsmelderbetrieb aktiv",
+              "external_control_active": "Externe Gerätesteuerung aktiv",
+              "airflow_balancing_active": "Volumenstromausgleich aktiv",
+              "holiday_program_active": "Ferienprogramm aktiv",
+              "sensor_mode_active": "Sensorbetrieb aktiv"
+            }
           }
         }
       },

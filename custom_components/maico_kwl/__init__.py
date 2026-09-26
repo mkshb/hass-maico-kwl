@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
+from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
+# Defined in http/__init__ up to HA 2026.7 and re-exported there from
+# http/server since 2026.8, without marking it as exported for mypy.
+from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er
@@ -41,11 +47,45 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+FRONTEND_URL = f"/{DOMAIN}/frontend"
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+CARD_LOADER = "maico-kwl-card.js"
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions, so they exist even while no unit is loaded."""
     async_setup_services(hass)
+    await _async_register_card(hass)
     return True
+
+
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Serve the dashboard card and load it in every frontend.
+
+    The loader is tiny and served without cache headers, and its URL carries a
+    hash of its content, so a browser never keeps running an old card. The
+    chunks it loads have a content hash in their names and are cached.
+    """
+    if "frontend" not in hass.config.components:
+        return
+    loader = FRONTEND_DIR / CARD_LOADER
+    try:
+        digest = await hass.async_add_executor_job(_content_hash, loader)
+    except OSError as err:
+        # The card is optional: a partial install must not stop the unit.
+        _LOGGER.warning("Dashboard card not available, %s is missing: %s", loader, err)
+        return
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
+            StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True),
+        ]
+    )
+    add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={digest}")
+
+
+def _content_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bool:
@@ -163,10 +203,16 @@ def _async_remove_orphaned_entities(
 
     E.g. registers a rediscovery did not find again, or the "sent" sensor of a
     bus input whose source entity was removed. They would stay unavailable.
+    A platform whose setup failed recorded nothing, so its entities are kept
+    rather than removed with their names and areas.
     """
+    runtime = entry.runtime_data
     ent_reg = er.async_get(hass)
     for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        if reg_entry.unique_id not in entry.runtime_data.unique_ids:
+        if (
+            reg_entry.domain in runtime.platforms
+            and reg_entry.unique_id not in runtime.unique_ids
+        ):
             ent_reg.async_remove(reg_entry.entity_id)
 
 

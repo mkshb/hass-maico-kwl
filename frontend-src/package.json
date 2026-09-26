@@ -1,0 +1,29 @@
+{
+  "name": "maico-kwl-card",
+  "private": true,
+  "description": "Dashboard card shipped with the Maico KWL integration",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:browser",
+    "test:unit": "node --import tsx --test test/unit/*.test.ts",
+    "test:browser": "node --test test/browser/*.test.mjs",
+    "test:webkit": "KWL_BROWSER=webkit node --test test/browser/*.test.mjs"
+  },
+  "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "playwright": "^1.63.0",
+    "rollup": "^4.63.5",
+    "tslib": "^2.8.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

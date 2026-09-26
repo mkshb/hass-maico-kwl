@@ -81,6 +81,18 @@ blueprint:
             - "auto_sensor"
             - "auto_time"
             - "manual"
+    revert_level:
+      name: Fallback revert level
+      description: >
+        Ventilation level to return to with the fallback revert mode "manual".
+        In the auto modes the unit picks the level itself.
+      default: nominal
+      selector:
+        select:
+          options:
+            - "reduced"
+            - "nominal"
+            - "intensive"
 
 mode: queued
 max_exceeded: silent
@@ -93,6 +105,7 @@ variables:
   threshold_low: !input threshold_low
   boost_level: !input boost_level
   revert_mode: !input revert_mode
+  revert_level: !input revert_level
   value: "{{ states(sensor) | float('nan') }}"
   snapshot_id: >
     maico_kwl_boost_{{ (this.attributes.id | default(this.entity_id.split('.')[1], true)) | slugify }}
@@ -108,8 +121,9 @@ trigger:
 
 action:
   # The snapshot is lost on a restart. If the unit is still boosted, stand in
-  # with a snapshot that only holds the fallback revert mode, so the normal
-  # restore below still ends the boost once the value has dropped.
+  # with a snapshot of the fallback revert mode (and, for "manual", its level),
+  # so the normal restore below still ends the boost once the value has
+  # dropped.
   - if:
       - condition: template
         value_template: >
@@ -119,7 +133,9 @@ action:
       - action: scene.create
         data:
           scene_id: "{{ snapshot_id }}"
-          entities: "{{ {operating_mode: revert_mode} }}"
+          entities: >
+            {{ {operating_mode: revert_mode, level: revert_level}
+               if revert_mode == 'manual' else {operating_mode: revert_mode} }}
   - choose:
       # A snapshot existing means the automation is active; if the unit is no
       # longer boosted, the user changed it and it is left alone.

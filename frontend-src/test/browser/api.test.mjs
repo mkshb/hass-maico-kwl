@@ -26,6 +26,18 @@ test("card picker entry, stub config and size", async () => {
   await view.close();
 });
 
+test("the card size matches its rendered height", async () => {
+  const view = await openCard();
+  const { size, height, estimate } = await view.page.evaluate(() => {
+    const card = window.kwl.card;
+    const fresh = document.createElement("maico-kwl-card");
+    return { size: card.getCardSize(), height: card.getBoundingClientRect().height, estimate: fresh.getCardSize() };
+  });
+  assert.equal(size, Math.ceil(height / 50));
+  assert.ok(Math.abs(estimate - size) <= 2, `estimate ${estimate} near ${size}`);
+  await view.close();
+});
+
 test("sections view: full width by default, never narrower than 9 columns, own height", async () => {
   const view = await openCard();
   const grid = await view.page.evaluate(() => window.kwl.card.getGridOptions());

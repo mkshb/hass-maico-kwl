@@ -20,6 +20,8 @@ const PENDING_TIMEOUT_MS = 35_000;
 // Below this card width the level bar shows icons instead of words.
 const NARROW_PX = 400;
 const SCHEMATIC_WIDTH = 420;
+// Before the card is rendered: diagram, tiles, controls and a filter.
+const ESTIMATED_CARD_SIZE = 15;
 // How often today's recovered energy is read from the statistics.
 const ENERGY_REFRESH_MS = 5 * 60_000;
 // The card's own clock: ages of bus values and the energy refresh follow it,
@@ -75,8 +77,10 @@ export class MaicoKwlCard extends LitElement {
     this._config = config;
   }
 
+  /** Height in units of 50 px, for the masonry view to balance its columns. */
   public getCardSize(): number {
-    return 6;
+    const height = this.getBoundingClientRect().height;
+    return height > 0 ? Math.max(1, Math.ceil(height / 50)) : ESTIMATED_CARD_SIZE;
   }
 
   /**

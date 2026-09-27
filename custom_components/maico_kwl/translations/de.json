@@ -604,6 +604,9 @@
     },
     "boost_too_long": {
       "message": "Das Gerät beendet die Stoßlüftung nach {unit_minutes} Minuten (Lüftungsstufe Dauer), {duration} Minuten lassen sich also nicht einhalten: wähle eine kürzere Dauer oder erhöhe Lüftungsstufe Dauer"
+    },
+    "value_out_of_range": {
+      "message": "{entity} wurde nicht auf die Maico KWL geschrieben, der Wert liegt außerhalb des Registerbereichs: {error}"
     }
   },
   "issues": {

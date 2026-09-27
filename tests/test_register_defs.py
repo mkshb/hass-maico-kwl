@@ -132,6 +132,41 @@ def test_bit_sensors_use_documented_bits():
         assert slug in rd.REGISTERS_BY_KEY[reg_key].bits.values(), slug
 
 
+def test_encode_refuses_what_the_register_cannot_hold() -> None:
+    """Rather than cutting it to the register width and writing another value."""
+    for key, value in (
+        ("filter_dp_allowed", -1),  # u16
+        ("filter_dp_allowed", 70000),
+        ("room_setpoint", 3276.8),  # s16, x10: raw 32768
+        ("room_setpoint", -3276.9),
+        ("op_hours_total", 1 << 32),  # u32
+    ):
+        try:
+            rd.REGISTERS_BY_KEY[key].encode(value)
+        except ValueError:
+            continue
+        raise AssertionError(f"{key}: {value} was encoded")
+
+
+def test_encode_at_the_limits_of_the_data_type() -> None:
+    assert rd.REGISTERS_BY_KEY["filter_dp_allowed"].encode(0) == [0]
+    assert rd.REGISTERS_BY_KEY["filter_dp_allowed"].encode(65535) == [0xFFFF]
+    assert rd.REGISTERS_BY_KEY["room_setpoint"].encode(3276.7) == [0x7FFF]
+    assert rd.REGISTERS_BY_KEY["room_setpoint"].encode(-3276.8) == [0x8000]
+    assert rd.REGISTERS_BY_KEY["op_hours_total"].encode((1 << 32) - 1) == [0xFFFF, 0xFFFF]
+
+
+def test_writable_ranges_fit_the_data_type() -> None:
+    """A register definition whose limits its type cannot hold fails here."""
+    for reg in rd.REGISTERS:
+        if not reg.writable or reg.data_type == rd.CLOCK:
+            continue
+        low, high = reg.raw_range
+        for limit in (reg.native_min, reg.native_max):
+            if limit is not None:
+                assert low <= round(limit / reg.scale) <= high, reg.key
+
+
 if __name__ == "__main__":
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in funcs:

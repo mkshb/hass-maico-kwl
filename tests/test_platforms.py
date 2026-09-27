@@ -21,6 +21,8 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.maico_kwl.const import CONF_DISCOVERY, DOMAIN
+from custom_components.maico_kwl.entity import async_write_register
+from custom_components.maico_kwl.register_defs import REGISTERS_BY_KEY
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -237,6 +239,19 @@ async def test_failed_write_raises_home_assistant_error(
         )
     assert err.value.translation_key == "write_failed"
     assert str(err.value).startswith(f"Writing {boost} to the Maico KWL failed: ")
+
+
+async def test_value_the_register_cannot_hold_is_not_written(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """A write that fails in encode is a clear error, and nothing reaches the unit."""
+    reg = REGISTERS_BY_KEY["filter_dp_allowed"]
+    with pytest.raises(HomeAssistantError) as err:
+        await async_write_register(
+            loaded.runtime_data.coordinator, reg, 70000, "number.test"
+        )
+    assert err.value.translation_key == "value_out_of_range"
+    assert not device.writes
 
 
 async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:

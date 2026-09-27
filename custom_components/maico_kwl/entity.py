@@ -44,7 +44,15 @@ async def async_write_register(
             translation_placeholders={"details": problem},
         )
     try:
-        await coordinator.hub.write(reg.address, reg.encode(value))
+        raw = reg.encode(value)
+    except ValueError as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="value_out_of_range",
+            translation_placeholders={"entity": entity_id, "error": str(err)},
+        ) from err
+    try:
+        await coordinator.hub.write(reg.address, raw)
     except MaicoModbusError as err:
         raise HomeAssistantError(
             translation_domain=DOMAIN,

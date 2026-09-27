@@ -194,18 +194,34 @@ class RegisterDef:
             return raw
         return round(raw * self.scale, 3)
 
+    @property
+    def raw_range(self) -> tuple[int, int]:
+        """The raw values the register's data type can hold."""
+        total_bits = 16 * self.word_count
+        if self.signed:
+            return -(1 << (total_bits - 1)), (1 << (total_bits - 1)) - 1
+        return 0, (1 << total_bits) - 1
+
     def encode(self, value: float | datetime) -> list[int]:
-        """Turn a real-world value into the raw register words (High-Word first)."""
+        """Turn a real-world value into the raw register words (High-Word first).
+
+        Raises ValueError for a value the data type cannot hold, rather than
+        cutting it to the register width and writing something else.
+        """
         if isinstance(value, datetime):
             return [
                 value.year, value.month, value.day,
                 value.hour, value.minute, value.second,
             ]
         raw = int(round(value / self.scale))
+        low, high = self.raw_range
+        if not low <= raw <= high:
+            raise ValueError(
+                f"{value:g} does not fit register {self.address} ({self.data_type})"
+            )
         total_bits = 16 * self.word_count
         if raw < 0:
             raw += 1 << total_bits
-        raw &= (1 << total_bits) - 1
         return [
             (raw >> (16 * (self.word_count - 1 - i))) & 0xFFFF
             for i in range(self.word_count)

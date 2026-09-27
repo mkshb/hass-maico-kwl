@@ -604,6 +604,9 @@
     },
     "boost_too_long": {
       "message": "The unit ends the boost after {unit_minutes} minutes (Ventilation level duration), so {duration} minutes cannot be kept: choose a shorter duration or raise the Ventilation level duration"
+    },
+    "value_out_of_range": {
+      "message": "{entity} was not written to the Maico KWL, the value is out of the register's range: {error}"
     }
   },
   "issues": {

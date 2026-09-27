@@ -5,11 +5,8 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
+from typing import Any
 
-from homeassistant.components.frontend import add_extra_js_url
-# Defined in http/__init__ up to HA 2026.7 and re-exported there from
-# http/server since 2026.8, without marking it as exported for mypy.
-from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
 from homeassistant.const import ATTR_RESTORED
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -71,6 +68,12 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     """
     if "frontend" not in hass.config.components:
         return
+    try:
+        add_extra_js_url, static_path_config = _card_api()
+    except ImportError as err:
+        # The card is optional: a change in Home Assistant must not stop the unit.
+        _LOGGER.warning("Dashboard card not available: %s", err)
+        return
     loader = FRONTEND_DIR / CARD_LOADER
     try:
         digest = await hass.async_add_executor_job(_content_hash, loader)
@@ -80,11 +83,26 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         return
     await hass.http.async_register_static_paths(
         [
-            StaticPathConfig(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
-            StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True),
+            static_path_config(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
+            static_path_config(FRONTEND_URL, str(FRONTEND_DIR), True),
         ]
     )
     add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={digest}")
+
+
+def _card_api() -> tuple[Any, Any]:
+    """The frontend functions the card needs.
+
+    Imported here rather than with the module: if Home Assistant moves one of
+    them, only the card is missing, not the whole integration.
+    """
+    from homeassistant.components.frontend import add_extra_js_url
+
+    # Defined in http/__init__ up to HA 2026.7 and re-exported there from
+    # http/server since 2026.8, without marking it as exported for mypy.
+    from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
+
+    return add_extra_js_url, StaticPathConfig
 
 
 def _content_hash(path: Path) -> str:

@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest.mock import patch
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.maico_kwl.const import CONF_DISCOVERY
+from custom_components.maico_kwl.const import (
+    CONF_DISCOVERY,
+    CONF_ROOM_TEMP_SOURCE_ENTITY,
+)
 from custom_components.maico_kwl.discovery import async_discover
 from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
 
@@ -237,3 +243,41 @@ async def test_failed_platform_keeps_its_entities(
         await hass.async_block_till_done()
     assert entity_ids("switch") == switches
     assert entity_ids("sensor") == sensors
+
+
+async def test_failed_setup_after_discovery_closes_the_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """HA does not unload a failed entry, so the setup has to close the hub."""
+    with patch(
+        "custom_components.maico_kwl.BusFeeder.async_start",
+        side_effect=RuntimeError("boom"),
+    ):
+        await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert device.open_connections == 0
+
+
+async def test_failed_platform_setup_stops_the_bus_feed(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A feeder started before the failure must not keep writing."""
+    hass.states.async_set("sensor.room", "21.5")
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}
+    )
+    with patch.object(
+        hass.config_entries,
+        "async_forward_entry_setups",
+        side_effect=RuntimeError("boom"),
+    ):
+        await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert device.open_connections == 0
+    assert device.writes == [(707, [215])]  # written once while starting
+
+    hass.states.async_set("sensor.room", "22.0")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=10))
+    await hass.async_block_till_done()
+    assert device.writes == [(707, [215])]

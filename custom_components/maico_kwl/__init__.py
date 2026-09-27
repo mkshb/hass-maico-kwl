@@ -99,31 +99,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
     )
 
     hub = MaicoModbusHub(host, port, slave)
+    feeder: BusFeeder | None = None
     try:
         coordinator = await _async_discover_and_refresh(
             hass, entry, hub, scan_interval
         )
+
+        feeds = [
+            (REGISTERS_BY_KEY[reg_key], entity_id)
+            for reg_key, conf_key, _device_class in BUS_FEEDS
+            if (entity_id := entry.options.get(conf_key))
+            and reg_key in coordinator.present
+        ]
+        feeder = BusFeeder(hass, entry, hub, feeds)
+        await feeder.async_start()
+
+        entry.runtime_data = MaicoRuntimeData(
+            hub=hub, coordinator=coordinator, feeder=feeder
+        )
+
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except BaseException:
         # Close on any failure, including cancellation. pymodbus reconnects in
         # the background, so an unclosed client would keep a connection open
-        # for every retry of the setup.
+        # for every retry of the setup. HA does not unload an entry whose
+        # setup failed, so a started feeder would keep writing as well.
+        if feeder is not None:
+            feeder.async_stop()
         await hub.close()
         raise
 
-    feeds = [
-        (REGISTERS_BY_KEY[reg_key], entity_id)
-        for reg_key, conf_key, _device_class in BUS_FEEDS
-        if (entity_id := entry.options.get(conf_key))
-        and reg_key in coordinator.present
-    ]
-    feeder = BusFeeder(hass, entry, hub, feeds)
-    await feeder.async_start()
-
-    entry.runtime_data = MaicoRuntimeData(
-        hub=hub, coordinator=coordinator, feeder=feeder
-    )
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _async_remove_orphaned_entities(hass, entry)
 
     async_update_issues(hass, entry)

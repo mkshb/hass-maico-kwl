@@ -50,6 +50,7 @@ async def async_write_register(
             translation_key="write_failed",
             translation_placeholders={"entity": entity_id, "error": str(err)},
         ) from err
+    coordinator.async_notify_write(reg.key, value)
 
 
 def async_add_maico_entities(

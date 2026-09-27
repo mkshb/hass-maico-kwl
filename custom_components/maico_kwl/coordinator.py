@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .bus_feed import BusFeeder
@@ -87,6 +88,24 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
         # Set while the last poll did not look like a Maico KWL; nothing is
         # written to the device then (see register_defs.IDENTITY_RANGES).
         self.identity_problem: str | None = None
+        self._write_listeners: list[Callable[[str, float | datetime], None]] = []
+
+    @callback
+    def async_add_write_listener(
+        self, listener: Callable[[str, float | datetime], None]
+    ) -> Callable[[], None]:
+        """Call listener(key, value) after every successful write by an entity.
+
+        A write shows up in the data only with a later poll; the refresh after
+        a write may be held back by the debouncer.
+        """
+        self._write_listeners.append(listener)
+        return lambda: self._write_listeners.remove(listener)
+
+    @callback
+    def async_notify_write(self, key: str, value: float | datetime) -> None:
+        for listener in list(self._write_listeners):
+            listener(key, value)
 
     async def _async_update_data(self) -> MaicoData:
         try:

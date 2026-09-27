@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import voluptuous as vol
@@ -168,6 +169,47 @@ async def test_boost_timer_cancelled_on_unload(
     await hass.config_entries.async_unload(config_entry.entry_id)
     await _after(hass, 10)
     assert device.writes == [(551, [1])]
+
+
+async def test_boost_timer_ends_with_its_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    """A boost started after the timed one ended runs its full duration."""
+    switch = entity_id(hass, config_entry, "switch", "boost_ventilation")
+    await _boost(hass, fan, duration=20)
+    for service in ("turn_off", "turn_on"):
+        await hass.services.async_call(
+            "switch", service, {ATTR_ENTITY_ID: switch}, blocking=True
+        )
+        await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes[-1] == (551, [1])  # the old timer wrote nothing
+
+
+async def test_boost_timer_dropped_when_the_unit_ends_the_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    await _boost(hass, fan, duration=20)
+    device.registers[551] = 0  # the unit ended it
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes == [(551, [1])]
+
+
+async def test_boost_timer_kept_on_a_poll_from_before_the_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    """A stale "off" right after the start is no end of the boost."""
+    coordinator = config_entry.runtime_data.coordinator
+    with patch.object(coordinator, "async_request_refresh"):
+        await _boost(hass, fan, duration=20)
+    # A poll that read 551 before the write finishes only now.
+    coordinator.async_set_updated_data({**coordinator.data, "boost_ventilation": 0})
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes[-1] == (551, [0])
 
 
 async def test_boost_end_failure_is_logged(

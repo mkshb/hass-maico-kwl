@@ -209,6 +209,41 @@ async def test_heat_recovery_energy_skips_gaps(
     assert _energy(hass, config_entry) == 0.0
 
 
+async def test_heat_recovery_energy_ignores_a_failed_poll(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """The old data of a failed poll is no reading; real ones are bridged.
+
+    1173 W before, 0 W after a 9 min outage: the mean of the two real
+    readings counts, not 5 min of the old power carried on.
+    """
+    await setup_entry(hass, config_entry)
+    device.online = False
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+
+    device.online = True
+    device.registers[704] = device.registers[703]  # supply = intake: 0 W
+    freezer.tick(timedelta(minutes=4))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(
+        1173 / 2 * 9 / 60 / 1000, abs=0.001
+    )
+
+
+async def test_heat_recovery_energy_long_outage_is_a_gap(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    await setup_entry(hass, config_entry)
+    device.online = False
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    device.online = True
+    freezer.tick(timedelta(minutes=25))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0
+
+
 async def test_heat_recovery_energy_with_a_long_scan_interval(
     hass: HomeAssistant, device: FakeDevice, config_entry, freezer
 ) -> None:

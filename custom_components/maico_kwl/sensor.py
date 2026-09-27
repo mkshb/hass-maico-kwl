@@ -269,6 +269,11 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
         return max(MAX_ENERGY_GAP, interval * MAX_ENERGY_GAP_INTERVALS)
 
     def _add_reading(self) -> None:
+        if not self.coordinator.last_update_success:
+            # A failed poll keeps the previous data; it is no new reading. The
+            # last real one stays, so a short outage is bridged between real
+            # readings, a long one is a gap (see _max_gap).
+            return
         numbers = self._numbers
         if numbers is None:
             self._last = None  # a gap: start over with the next reading

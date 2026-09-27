@@ -466,6 +466,37 @@ async def test_reconfigure_normalizes_the_host(
     assert config_entry.data[CONF_HOST] == "kwl.local"
 
 
+async def test_reconfigure_uses_the_running_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The unit accepts one connection: a check of the same host uses the entry's."""
+    await setup_entry(hass, config_entry)
+    device.max_connections = 1
+    clients = len(device.clients)
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST, CONF_PORT: PORT, CONF_SLAVE: 11}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert len(device.clients) == clients + 1  # only the reloaded entry's
+    assert config_entry.data[CONF_SLAVE] == 11
+    assert config_entry.state is ConfigEntryState.LOADED
+
+
+async def test_reconfigure_to_another_host_opens_a_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Another host is another unit: its connection is checked on its own."""
+    await setup_entry(hass, config_entry)
+    device.max_connections = 1  # the fake has one unit for every host
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
 async def test_reconfigure_rejects_another_device(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

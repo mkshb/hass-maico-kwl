@@ -58,7 +58,9 @@ async def test_setup_retry_when_unreachable(
     device.online = False
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
-    assert config_entry.reason == "Cannot connect to the Maico KWL at 192.0.2.10:502"
+    assert config_entry.reason.startswith(
+        "Cannot connect to the Maico KWL at 192.0.2.10:502; it accepts only one"
+    )
     assert device.open_connections == 0
 
 

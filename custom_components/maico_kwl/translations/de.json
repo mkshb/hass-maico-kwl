@@ -33,7 +33,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen.",
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Die Maico KWL nimmt nur eine Modbus-TCP-Verbindung gleichzeitig an: trenne andere Programme oder Einträge, die mit ihr verbunden sind, oder nutze einen Modbus-Proxy.",
       "unsupported_device": "Das Gerät sieht nicht wie eine Maico KWL aus: {details}. Prüfe Host und Modbus-Adresse."
     },
     "abort": {
@@ -579,7 +579,7 @@
   },
   "exceptions": {
     "cannot_connect": {
-      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}"
+      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}; sie nimmt nur eine Modbus-TCP-Verbindung gleichzeitig an, prüfe also, dass kein anderes Programm mit ihr verbunden ist, oder nutze einen Modbus-Proxy"
     },
     "discovery_failed": {
       "message": "Die Register der Maico KWL konnten nicht ermittelt werden: {error}"

@@ -33,7 +33,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the device.",
+      "cannot_connect": "Failed to connect to the device. The Maico KWL accepts only one Modbus TCP connection at a time: disconnect any other program or entry connected to it, or use a Modbus proxy.",
       "unsupported_device": "The device does not look like a Maico KWL: {details}. Check host and Modbus address."
     },
     "abort": {
@@ -579,7 +579,7 @@
   },
   "exceptions": {
     "cannot_connect": {
-      "message": "Cannot connect to the Maico KWL at {host}:{port}"
+      "message": "Cannot connect to the Maico KWL at {host}:{port}; it accepts only one Modbus TCP connection at a time, so check that no other program is connected to it, or use a Modbus proxy"
     },
     "discovery_failed": {
       "message": "Discovering the registers of the Maico KWL failed: {error}"

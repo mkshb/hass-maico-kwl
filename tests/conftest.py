@@ -131,6 +131,9 @@ class FakeDevice:
     registers: dict[int, int] = field(default_factory=lambda: dict(DEFAULT_REGISTERS))
     absent: set[int] = field(default_factory=lambda: set(DEFAULT_ABSENT))
     online: bool = True
+    # Connections the unit accepts at once; a real Maico KWL accepts one and
+    # ignores further ones (None: no limit).
+    max_connections: int | None = None
     # Go offline after this many successful reads (None: never).
     fail_after_reads: int | None = None
     # Exception code returned for writes (None: writes succeed).
@@ -162,6 +165,13 @@ class FakeModbusClient:
         device.clients.append(self)
 
     async def connect(self) -> bool:
+        limit = self._device.max_connections
+        if (
+            not self.connected
+            and limit is not None
+            and self._device.open_connections >= limit
+        ):
+            return False  # ignored, like the unit does
         self.connected = self._device.online
         return self.connected
 

@@ -8,6 +8,7 @@ the slave id is passed as ``device_id`` (not ``slave``).
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 
 from pymodbus.client import AsyncModbusTcpClient
@@ -65,6 +66,8 @@ class MaicoModbusHub:
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
         self._closed = False
+        # False for a view (with_slave) that shares another hub's connection.
+        self._owns_client = True
 
     @property
     def host(self) -> str:
@@ -84,8 +87,22 @@ class MaicoModbusHub:
             await self._client.connect()
             return self._client.connected
 
+    def with_slave(self, slave: int) -> MaicoModbusHub:
+        """This hub's connection, addressing another Modbus address.
+
+        The unit accepts only one Modbus TCP connection at a time, so e.g. a
+        reconfigure check of a running entry must use its connection. The
+        view shares the client and the lock; closing it closes nothing.
+        """
+        view = copy.copy(self)
+        view._slave = slave
+        view._owns_client = False
+        return view
+
     async def close(self) -> None:
         self._closed = True
+        if not self._owns_client:
+            return
         self._client.close()
 
     async def _ensure_connected(self) -> None:

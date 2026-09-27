@@ -40,10 +40,12 @@ profile of the unit is derived from the registers it finds.
   setpoint temperature, airflow rates, filter intervals and much more).
 - **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
   temperature, humidity or air quality) into the unit's write-only "bus" input registers. It is written
-  on every change and refreshed cyclically (~9 min) to satisfy the device's write-cycle
-  requirement. No automation needed.
-- **Correct decoding** per the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
-  High-/Low-word pairs, enum states.
+  on every change and refreshed every 9 minutes to satisfy the device's write-cycle requirement.
+  No automation needed. Values are clamped and rounded, not unit converted, see
+  [Bus inputs](#bus-inputs).
+- **Decoding** based on the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
+  High-/Low-word pairs, enum states. A few registers deliberately differ from the documentation
+  after checks on a real unit, see [Scaling and deviations](#scaling-and-deviations-from-the-maico-documentation).
 - **Readable fault and notice codes**: the set bits are listed by name, and dirty filters and frost
   protection get their own binary sensors.
 - **Calculated values** the unit does not report: heat recovery power and efficiency, airflow
@@ -56,8 +58,9 @@ profile of the unit is derived from the registers it finds.
   entities. Failed write actions show an error message in the UI.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
-- **Repair issues** under *Settings > System > Repairs* while the unit reports a fault, a filter is
-  due or its clock is off by more than 5 minutes. They disappear on their own once the problem is gone.
+- **Repair issues** under *Settings > System > Repairs* while the unit reports a fault (listing the
+  active fault bits), a fitted filter is due or its clock is off by more than 5 minutes. They
+  disappear on their own once the problem is gone, and are removed when the integration is unloaded.
 - **Diagnostics** download with every discovered register, its value and raw words.
 - **Automation blueprints** for demand boost, open windows and summer night cooling.
 - **Local**: purely local Modbus communication, no cloud (`iot_class: local_polling`).
@@ -66,31 +69,40 @@ profile of the unit is derived from the registers it finds.
 
 | Platform         | Examples |
 |------------------|----------|
-| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors, deviation of the unit clock from Home Assistant |
-| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits) |
-| `fan`            | *Ventilation*: operating mode and ventilation level as one fan (levels as speeds, operating modes as presets), for voice assistants, HomeKit and fan cards |
-| `number`         | Filter intervals, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
+| `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors, deviation of the unit clock from Home Assistant, the [calculated values](#calculated-values), and per fed bus input a *(sent)* sensor with the value last written (see [Bus inputs](#bus-inputs)) |
+| `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits), *Filter due* per fitted filter |
+| `fan`            | *Ventilation*: operating mode and ventilation level as one fan (levels as speeds, operating modes as presets), for voice assistants, HomeKit and fan cards. Only created when both registers are present. |
+| `number`         | Filter intervals, ventilation level duration, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature for cooling, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
 | `button`         | Reset filter (device/outdoor/room), reset errors, sync the unit clock with Home Assistant, rediscover registers |
 
 Around **100 registers** are mapped in total. Rarely used or duplicated sensors (EnOcean banks,
-additional sensor IDs, ZP1 counters) are still discovered but **disabled by default** to keep the
-UI tidy. They can be enabled individually when needed.
+wired sensors 1 to 4, external room temperature, ZP1 states and counters) are still discovered but
+**disabled by default** to keep the UI tidy. They can be enabled individually when needed.
+
+**Entity IDs**: the device is named after the config entry, by default *Maico KWL (&lt;host&gt;)*.
+Entity IDs therefore contain the host, e.g. `fan.maico_kwl_192_168_1_50_ventilation` for host
+`192.168.1.50`. Rename the device before you write automations if you want shorter IDs.
+
+**Availability**: an entity is unavailable while its register could not be read in the last poll,
+and all entities are unavailable while the unit is not reachable. Buttons and write-only bus inputs
+stay available as long as the connection works.
 
 ### Calculated values
 
 Some useful values have no register of their own. They are calculated from the registers that are
-there, and each is only created when the unit has all the registers it needs.
+there, and each is only created when the unit has all the registers it needs. A calculated value is
+unavailable while one of its inputs is missing from the last poll.
 
 | Sensor | Calculation |
 |--------|-------------|
-| *Heat recovery power* (W) | Supply airflow × 0.34 Wh/(m³·K) × (supply air − air intake temperature), like the vendor app. Negative while the exchanger cools the supply air. Includes the heat of the supply fan and of any heater that is running. The *Heat recovery energy* sensor below adds it up. |
-| *Heat recovery energy* (kWh) | The recovered heat added up over time, as a total that only increases (cooling does not count). It survives restarts and skips periods without readings, and it keeps long-term statistics for daily, monthly and yearly values. |
-| *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; a slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
-| *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (diagnostic). A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
-| *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature and humidity (Magnus formula). The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
-| *Filter due device / outdoor / room* (on/off), *Filter next change* (date) | From the remaining filter days: a filter is due once its days reach 0, the date is when the first filter runs out. Use these for filter change reminders. |
+| *Heat recovery power* (W) | Supply airflow (653) × 0.34 Wh/(m³·K) × (supply air (704) − air intake temperature (703)). Negative while the exchanger cools the supply air; the value is not clamped. Since the supply air is measured after the fan and any heater, their heat is included. The *Heat recovery energy* sensor below adds it up. |
+| *Heat recovery energy* (kWh) | The heat recovery power integrated between polls (trapezoidal rule), as a total that only increases: negative power counts as 0. The total is restored after a restart. A gap between two readings longer than 10 minutes, or two scan intervals if that is longer, is not counted. Long-term statistics give daily, monthly and yearly values. |
+| *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air (705) − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; fan heat can push it slightly above 100. A slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
+| *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (653 − 654, diagnostic). Positive: more air goes in. A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
+| *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature (705) and humidity (750), Magnus formula (Sonntag 1990). The dew point is unknown at 0 % humidity. The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
+| *Filter due device / outdoor / room* (on/off), *Filter next change* (date) | From the remaining filter days (655 to 657): a filter is due once its days reach 0, the date is today plus the smallest number of days left of the fitted filters. Use these for filter change reminders. |
 
 ### Fault and notice codes
 
@@ -131,14 +143,44 @@ The detection can be wrong, e.g. when a wireless sensor has not sent anything ye
 [Options](#options)). If you fit an accessory later, either select it there or press *Rediscover
 registers* once it is set up on the unit.
 
+### Discovery and its limits
+
+> [!IMPORTANT]
+> Discovery tells which registers **answer**, not which model you have. Keep these limits in mind:
+>
+> - **No model or serial number.** The Maico register map has neither. The device model shown in
+>   Home Assistant is a capability profile built from the registers in use, e.g.
+>   *Maico KWL (EnOcean, CO2, ZP1)*. It is not a model name. The type-dependent airflow limits
+>   (154 to 156) are not used for it; the airflow numbers always allow 80 to 300 m³/h.
+> - **One device per config entry.** Since there is no serial number, the device is identified by
+>   its config entry, and a second entry with the same host, port and Modbus address is refused.
+> - **Proxies can hide missing registers.** A register counts as missing only when the unit answers
+>   with Modbus exception 1, 2 or 3 (e.g. *Illegal Data Address*). Some gateways and proxies answer
+>   every address, then nothing is filtered.
+> - **Accessories are guessed from values** (see [Accessories](#accessories)), and the PTC heater and
+>   the ZP1 module cannot be detected at all.
+> - **Write-only registers cannot be probed.** The bus inputs 707, 763 and 764 are assumed to exist
+>   when *Room temperature source* (109) answers, the error reset (405) when the fault code answers,
+>   the clock sync when the clock answers.
+>
+> If the unit is busy or a gateway reports its target as unreachable (exception 5, 6, 10 or 11), or
+> the connection drops, discovery stops and Home Assistant retries the setup instead of storing an
+> incomplete result.
+
+The discovery result is stored in the config entry. The unit is probed again when you press
+*Rediscover registers*, after **Reconfigure**, and after an update that knows registers the stored
+result does not cover or that stores the result in a newer format.
+
 ## Requirements
 
-- Home Assistant **2025.10** or newer (developed/tested with 2026.9). Older releases ship a
-  pymodbus version that is too old for this integration. The integration's icon and logo are shown
-  from Home Assistant 2026.3.
+- Home Assistant **2025.10** or newer (the minimum in `hacs.json`). Development and the automated
+  tests use the current Home Assistant release; older releases within the supported range are not
+  tested automatically. The integration's icon and logo are shown from Home Assistant 2026.3.
 - The Maico unit must be reachable via **Modbus TCP**, directly or through a gateway / Modbus
   proxy.
-- `pymodbus` (3.11.2 or newer) is provided by Home Assistant; no separate installation is required.
+- `pymodbus` 3.11.2 or newer (`manifest.json`). Home Assistant installs it when needed; no separate
+  installation is required. The integration passes the Modbus address as `device_id`, which older
+  pymodbus versions do not accept.
 
 > Note: this integration speaks **Modbus TCP** only. Modbus RTU (serial) is not currently
 > supported.
@@ -149,7 +191,8 @@ registers* once it is set up on the unit.
   documentation (`docs/modbus.csv`). According to that documentation, Modbus TCP is available from
   firmware **V1.1.1**.
 - Units without some of the optional parts (EnOcean, ZP1, brine ground heat exchanger, extra
-  sensors) are supported: registers the unit does not implement get no entity.
+  sensors) are supported: registers the unit does not implement get no entity, and accessories that
+  answer anyway are left out as described under [Accessories](#accessories).
 - Tested so far with **one unit**, connected through a Modbus TCP proxy. Reports from other models
   are welcome, see [Contributing](#contributing).
 - Not supported: Modbus RTU (serial) and other Maico product lines with a different register map.
@@ -160,14 +203,19 @@ registers* once it is set up on the unit.
 
 1. In HACS > **Custom repositories**, add `https://github.com/mkshb/hass-maico-kwl` with category
    **Integration**.
-2. Install "Maico KWL".
+2. Install "Maico KWL". HACS downloads the `maico_kwl.zip` attached to the release.
 3. Restart Home Assistant.
 
 ### Manual
 
-1. Copy the `custom_components/maico_kwl` folder into the `custom_components` directory of your
-   Home Assistant configuration.
+1. Download `maico_kwl.zip` from the [latest release][releases] and unpack it into
+   `custom_components/maico_kwl` of your Home Assistant configuration, or copy the
+   `custom_components/maico_kwl` folder of the release source. The `main` branch may contain
+   unreleased changes.
 2. Restart Home Assistant.
+
+After an update, restart Home Assistant and reload the dashboard in the browser once, so the
+browser loads the new card.
 
 ## Configuration
 
@@ -175,12 +223,14 @@ registers* once it is set up on the unit.
 2. Enter the connection details:
    - **Host**: IP/hostname of the unit or gateway
    - **Port**: default `502`
-   - **Modbus address**: default `10`
-   - **Scan interval**: default `30` seconds (changeable later via the options)
-3. The integration tests the connection, probes the registers and creates the entities.
+   - **Modbus address**: default `10` (1 to 247)
+   - **Scan interval**: default `30` seconds, 5 to 3600 (changeable later via the options)
+3. The integration reads register 650 (current ventilation level) to test the connection, then
+   probes the registers and creates the entities.
 
-To change host, port or Modbus address later, use **Reconfigure** on the integration. The entities
-and their history are kept.
+To change host, port or Modbus address later, use **Reconfigure** on the integration. The unit is
+probed again; entities that are still found keep their IDs, names and history. If the connection
+points somewhere else, a manual accessory choice is dropped and detection decides again.
 
 ### Options
 
@@ -194,25 +244,64 @@ The accessories are preselected with what discovery detected. Only accessories t
 are listed. A choice that differs from the detected one is kept, also after *Rediscover
 registers*; select the detected accessories again to let discovery decide.
 
-When a source entity is selected, its value is written to the matching Modbus register on every
-change and refreshed about every 9 minutes, no automation required. The corresponding device
-source must be set to **"Bus"** (e.g. the *Room temperature source* select for room temperature).
-While a source entity is configured, the manual bus `number` is hidden ("source has priority");
-leave the option empty to set the value manually instead.
+For the bus source entities, see [Bus inputs](#bus-inputs). Changing the options reloads the
+integration.
+
+### Bus inputs
+
+The unit can take room temperature, humidity and air quality from the Modbus master instead of its
+own sensors. These three registers are **write-only**. The Maico documentation notes a write cycle
+of "min. 10 min" for them; the integration reads this as "refresh at least every 10 minutes" and
+writes every 9 minutes. Whether the unit also limits how often it may be written is not documented.
+
+| Register | Number entity (manual) | Source entity in the options | Range written | Resolution |
+|---|---|---|---|---|
+| 707 room temperature | *Room temperature (bus)* | `sensor` with device class `temperature` | 0 to 40 °C | 0.1 °C |
+| 763 humidity | *Humidity (bus)* | `sensor` with device class `humidity` | 0 to 100 % | 1 % |
+| 764 air quality | *Air quality (bus)* | any `sensor` | 0 to 5000 ppm | 1 ppm |
+
+> [!IMPORTANT]
+> - **Source has priority.** With a source entity configured, its value is written right after
+>   setup, on every state change and every **9 minutes**. The manual `number` for that input is
+>   not created then; leave the option empty to set the value manually instead.
+> - **Manual numbers** keep their value across restarts, write it again after a restart and every
+>   9 minutes.
+> - **Values are clamped and rounded** to the range and resolution above, e.g. 55.4 % is sent as
+>   55 %. A room temperature below 0 °C is sent as 0 °C.
+> - **No unit conversion.** The state is sent as a number as it is. Use a source in °C, % and ppm;
+>   a sensor in °F, ppb or µg/m³ gives wrong values on the unit.
+> - **Invalid states are skipped.** `unknown`, `unavailable`, empty and non-numeric states are not
+>   written.
+> - **The unit has to use the bus value.** For room temperature set the *Room temperature source*
+>   select to **"Bus"**. Humidity and air quality have no such register in the Maico map; how the
+>   unit selects the bus for them is not documented there.
+>
+> Failed writes are logged once and retried at the next change or interval.
+
+With a source entity configured, a sensor *Room temperature bus (sent)*, *Humidity bus (sent)* or
+*Air quality bus (sent)* shows the value the unit last received, as encoded on the wire. It is
+unknown until the first successful write and keeps the previous value while writes fail. Its
+attributes `source_entity` and `last_written` (time of the last successful write) tell where the
+value comes from and how old it is. The [dashboard card](#dashboard-card) marks a bus value as
+stale from 10 minutes on.
 
 ### How data is updated
 
-- **Polling**: all readable registers are read every *scan interval* (default 30 s, 5 to 3600 s).
-  Adjacent registers are read in one request.
+- **Polling**: all readable registers in use are read every *scan interval* (default 30 s, 5 to
+  3600 s); registers of accessories that are not fitted are not read. Directly adjacent registers
+  are read in one request of up to 100 registers. If the unit rejects a block, its registers are
+  read one by one; a register that still fails is unavailable until the next poll.
 - **Writes**: changing a control writes the register right away and then refreshes all values, so
   the new state shows up without waiting for the next poll.
 - **Bus inputs**: a configured source entity is written on every change and at least every
-  ~9 minutes. Manual bus numbers are rewritten every ~9 minutes as well.
+  9 minutes. Manual bus numbers are rewritten every 9 minutes as well, see [Bus inputs](#bus-inputs).
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
-  after a firmware update or after adding sensors or filters to the unit. An update that changes
-  the discovery rules probes the unit once more on its own. Changing the options reloads the
-  integration; entities of accessories that are no longer selected are removed.
+  after a firmware update or after adding sensors or filters to the unit, see
+  [Discovery and its limits](#discovery-and-its-limits).
+- **Cleanup**: after every setup, entities the integration no longer creates are removed from the
+  entity registry, e.g. registers a rediscovery did not find again, accessories that are no longer
+  selected, or the *(sent)* sensor of a bus input without a source.
 
 ## Dashboard card
 
@@ -271,14 +360,21 @@ than the unit's built-in *Auto-Sensor* mode, which only uses the sensors configu
 ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration*, `select` *Season*.
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
 
+The fan has four speeds (humidity protection, reduced, nominal, intensive; 25 % steps) and the
+operating modes except *off* as presets. Setting a speed switches the unit to manual mode first,
+since the auto modes pick the level themselves. The percentage shows the level that is actually
+running (*Current ventilation level*). `fan.turn_on` without arguments returns to the last mode.
+
 **Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button
-in the bathroom. With `duration` (minutes), Home Assistant ends the boost when the time is up;
-without it, the unit ends it on its own terms. A new call replaces a running timer.
+in the bathroom. Its target is the *Ventilation* fan of the unit. With `duration` (1 to 720 minutes),
+Home Assistant ends the boost when the time is up; without it, the unit ends it on its own terms. A
+new call replaces a running timer. The timer does not survive a restart of Home Assistant. On a unit
+without the boost register the action fails with an error.
 
 ```yaml
 action: maico_kwl.boost
 target:
-  entity_id: fan.maico_kwl_ventilation
+  entity_id: fan.maico_kwl_192_168_1_50_ventilation  # the ID of your unit's fan
 data:
   duration: 20
 ```
@@ -317,16 +413,31 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 - **Register addressing** is assumed to be 0-based (documented decimal code = protocol address).
   If all entities show as "unavailable", a central `REGISTER_OFFSET` can be adjusted in
   `register_defs.py`.
-- **Humidity** is reported as a whole percentage on this unit (×1, not ×10 as in the docs). CO2/VOC
-  remain at ×10 for now, not yet verified against real values.
 - **Discovery via proxy**: some Modbus proxies/devices answer *every* address instead of returning
   an error for missing registers. In that case the probe cannot filter anything; the accessory
-  detection and the entities disabled by default still keep the overview lean.
+  detection and the entities disabled by default still keep the overview lean. See
+  [Discovery and its limits](#discovery-and-its-limits).
 - **State values are slugs**: select and enum sensors store internal slugs (e.g. `manual`,
   `reduced`, `summer`) and display the translated text. Automations/templates should compare
   against the **slug**, not the displayed text.
-- **Bus feed units**: a source entity's numeric state is sent as-is (assumed to match the
-  register unit: °C / % / ppm). Make sure the source reports in the device's unit.
+- **Unit clock**: the unit keeps local time without a time zone. *Clock deviation* is the unit's
+  time minus Home Assistant's time in seconds (positive: the unit is ahead); changes below 2 s are
+  not shown. *Sync clock* writes Home Assistant's local time to registers 100 to 105 in one request.
+  A repair issue appears at a deviation of more than 5 minutes.
+- **Bus feed units**: see [Bus inputs](#bus-inputs); values are not converted.
+
+### Scaling and deviations from the Maico documentation
+
+| Registers | Maico documentation | Integration | Status |
+|---|---|---|---|
+| 300, 302, 553, 700 to 707 (temperatures) | signed, ×10 | signed 16 bit, ÷10 | as documented |
+| 301 *Supply temp min cooling* | Format °C, comment "step 1 (= 0.1 °C)" | **not scaled**, whole °C (8 to 29) | deviates; a live unit reports 14 |
+| 750 to 754 (humidity) | ×10 | **not scaled**, whole % | deviates; checked on a live unit |
+| 358 to 365 (EnOcean humidity) | raw 0 to 1000 for 0 to 100 % | **not scaled**, whole % | deviates by analogy with 750; not checked on a unit |
+| 350 to 357, 366 to 373, 755 to 762 (CO2, VOC) | ×10 | ÷10 | as documented; not checked against real readings |
+| 763, 764 (humidity and air quality bus) | 0 to 100 %, 0 to 5000 ppm | not scaled | as documented |
+| 401/402, 403/404, 850 to 869 | High-Word / Low-Word | one unsigned 32-bit value each | as documented |
+| 154 to 156 (airflow setpoints) | limits depend on the unit type | fixed 80 to 300 m³/h | the unit may reject values outside its own limits |
 
 ## Troubleshooting
 
@@ -363,13 +474,14 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 **The dashboard card is missing or shows "Custom element doesn't exist"**
 - Reload the page in the browser; in the companion app, reset the frontend cache in the app
   settings. The card is loaded with the rest of the frontend, so a page that was open before the
-  integration was set up or updated does not know it yet.
+  integration was set up or updated does not know it yet. The card's URL changes with every new
+  version, so a reload is enough to get it.
 - The card needs the integration to be set up; without a configured unit it is not loaded.
 
 **Collecting information for a bug report**
 - Download the diagnostics: **Settings > Devices & Services > Maico KWL > ⋮ > Download
-  diagnostics**. They contain every discovered register with its value and raw words; the host
-  is removed.
+  diagnostics**. They contain the capability profile, every discovered register with its value
+  and raw words, the absent registers and the last bus writes; host and title are removed.
 - Enable debug logging on the same page (**⋮ > Enable debug logging**), reproduce the problem, then
   disable it again to download the log.
 

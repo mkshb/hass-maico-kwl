@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
@@ -10,6 +11,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import (
     CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
     CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
@@ -187,6 +189,7 @@ async def test_options_flow_accessories(
     )
     await hass.async_block_till_done()
     assert set(config_entry.options[CONF_ACCESSORIES]) == {*detected, "outdoor_filter"}
+    assert config_entry.options[CONF_ACCESSORIES_OFFERED] == sorted(options)
     assert "filter_remaining_outdoor" in config_entry.runtime_data.coordinator.present
     assert entity_id(hass, config_entry, "button", "filter_reset_outdoor")
 
@@ -197,6 +200,7 @@ async def test_options_flow_accessories(
     )
     await hass.async_block_till_done()
     assert CONF_ACCESSORIES not in config_entry.options
+    assert CONF_ACCESSORIES_OFFERED not in config_entry.options
     present = config_entry.runtime_data.coordinator.present
     assert "filter_remaining_outdoor" not in present
     ent_reg = er.async_get(hass)
@@ -204,6 +208,33 @@ async def test_options_flow_accessories(
         "button", DOMAIN, f"{config_entry.entry_id}_filter_reset_outdoor"
     )
     assert ent_reg.async_get(button).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_accessory_fitted_after_the_choice_is_detected(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Rediscover finds an accessory the choice could not cover yet."""
+    await setup_entry(hass, config_entry)
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30, CONF_ACCESSORIES: ["outdoor_filter"]}
+    )
+    await hass.async_block_till_done()
+    assert "enocean" not in config_entry.options[CONF_ACCESSORIES_OFFERED]
+
+    device.absent -= set(range(350, 374))  # EnOcean module fitted
+    device.registers[350] = 4500  # 450 ppm
+    button = entity_id(hass, config_entry, "button", "rediscover")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    present = config_entry.runtime_data.coordinator.present
+    assert "enocean_co2_id0" in present
+    # The room filter was offered and left out: it stays out.
+    assert "filter_remaining_room" not in present
+    assert "filter_remaining_outdoor" in present
 
 
 async def test_options_flow_without_discovery_keeps_accessories(
@@ -287,7 +318,12 @@ async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
     """Another connection may be another unit: detection decides again."""
     await setup_entry(hass, config_entry)
     hass.config_entries.async_update_entry(
-        config_entry, options={**config_entry.options, CONF_ACCESSORIES: ["room_filter"]}
+        config_entry,
+        options={
+            **config_entry.options,
+            CONF_ACCESSORIES: ["room_filter"],
+            CONF_ACCESSORIES_OFFERED: ["room_filter"],
+        },
     )
     await hass.async_block_till_done()
 
@@ -297,6 +333,7 @@ async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
     )
     await hass.async_block_till_done()
     assert CONF_ACCESSORIES not in config_entry.options
+    assert CONF_ACCESSORIES_OFFERED not in config_entry.options
 
 
 async def test_reconfigure_with_the_same_connection_keeps_the_accessories(

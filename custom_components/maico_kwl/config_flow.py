@@ -26,6 +26,7 @@ from homeassistant.helpers.selector import (
 from .const import (
     BUS_FEEDS,
     CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
     CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
@@ -154,6 +155,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                     entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
                 ):
                     options.pop(CONF_ACCESSORIES, None)
+                    options.pop(CONF_ACCESSORIES_OFFERED, None)
                 # A loaded entry is reloaded by its update listener; reloading
                 # here as well would set the unit up twice. An entry that
                 # failed to set up (retrying, or in error) has no listener, so
@@ -219,13 +221,17 @@ class MaicoOptionsFlow(OptionsFlow):
             data = dict(user_input)
             if not offered:
                 # No stored discovery to choose from: keep the last choice.
-                if CONF_ACCESSORIES in opts:
-                    data[CONF_ACCESSORIES] = opts[CONF_ACCESSORIES]
+                for key in (CONF_ACCESSORIES, CONF_ACCESSORIES_OFFERED):
+                    if key in opts:
+                        data[key] = opts[key]
             elif set(data.get(CONF_ACCESSORIES, [])) == set(
                 cache.get("accessories", [])
             ):
                 # Same as detected: store nothing, a rediscovery still applies.
                 data.pop(CONF_ACCESSORIES, None)
+            else:
+                # The choice covers what was offered; see active_accessories.
+                data[CONF_ACCESSORIES_OFFERED] = sorted(offered)
             return self.async_create_entry(title="", data=data)
 
         scan_current = opts.get(

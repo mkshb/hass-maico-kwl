@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 
 from custom_components.maico_kwl.coordinator import build_blocks
-from custom_components.maico_kwl.const import CONF_ACCESSORIES
+from custom_components.maico_kwl.const import CONF_ACCESSORIES, CONF_ACCESSORIES_OFFERED
 from custom_components.maico_kwl.discovery import (
+    ACCESSORIES_UNTIL_0_4_0,
     active_accessories,
     async_discover,
     derive_profile,
@@ -287,8 +288,30 @@ def test_registers_in_use_and_active_accessories() -> None:
     """The user's choice wins over the detected accessories."""
     cache = {"accessories": ["room_filter", "zp1"]}
     assert active_accessories(cache, {}) == {"room_filter", "zp1"}
-    assert active_accessories(cache, {CONF_ACCESSORIES: []}) == set()
     assert active_accessories({}, {}) == set()
+    # A choice made with 0.4.0 or older covers all accessories known then.
+    assert active_accessories(cache, {CONF_ACCESSORIES: []}) == set()
+
+
+def test_choice_covers_only_the_accessories_offered_with_it() -> None:
+    """What the unit answers to only later is decided by detection."""
+    cache = {"accessories": ["room_filter", "enocean", "future"]}
+    options = {
+        CONF_ACCESSORIES: ["outdoor_filter"],
+        CONF_ACCESSORIES_OFFERED: ["outdoor_filter", "room_filter"],
+    }
+    # room_filter was offered and left out: stays out. enocean was not
+    # offered then (fitted later), "future" is new in a later version.
+    assert active_accessories(cache, options) == {"outdoor_filter", "enocean", "future"}
+    # Without the offered ones (choice from 0.4.0 or older) only new
+    # accessories are left to detection.
+    del options[CONF_ACCESSORIES_OFFERED]
+    assert active_accessories(cache, options) == {"outdoor_filter", "future"}
+
+
+def test_accessories_until_0_4_0_exist() -> None:
+    """The list must name real accessories, or old choices would widen."""
+    assert ACCESSORIES_UNTIL_0_4_0 <= {acc.key for acc in ACCESSORIES}
 
     present = {"temp_room", "filter_remaining_outdoor", "filter_remaining_room"}
     assert registers_in_use(present, {"room_filter"}) == {

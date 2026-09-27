@@ -21,7 +21,12 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from .const import CONF_ACCESSORIES, CONF_DISCOVERY, MaicoProfile
+from .const import (
+    CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
+    CONF_DISCOVERY,
+    MaicoProfile,
+)
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import (
@@ -114,14 +119,36 @@ def offered_accessories(present: set[str]) -> set[str]:
     return {acc.key for acc in ACCESSORIES if present.intersection(acc.keys)}
 
 
+# All accessories up to 0.4.0, which stored a choice without the offered ones.
+# Such a choice was made from these at most.
+ACCESSORIES_UNTIL_0_4_0 = frozenset(
+    {
+        "outdoor_filter",
+        "room_filter",
+        "wired_sensors",
+        "enocean",
+        "external_room_sensor",
+        "ptc_heater",
+        "zp1",
+    }
+)
+
+
 def active_accessories(
     cache: Mapping[str, Any], options: Mapping[str, Any]
 ) -> set[str]:
-    """The accessories in use: the user's choice, else the detected ones."""
+    """The accessories in use: the user's choice, else the detected ones.
+
+    The choice only covers the accessories offered when it was made. One the
+    unit answers to only later (fitted afterwards, or new in a later version)
+    is decided by detection, instead of counting as not fitted.
+    """
+    detected = set(cache.get("accessories", []))
     chosen = options.get(CONF_ACCESSORIES)
-    if chosen is not None:
-        return set(chosen)
-    return set(cache.get("accessories", []))
+    if chosen is None:
+        return detected
+    offered = set(options.get(CONF_ACCESSORIES_OFFERED, ACCESSORIES_UNTIL_0_4_0))
+    return set(chosen) | (detected - offered)
 
 
 def registers_in_use(present: set[str], accessories: set[str]) -> set[str]:

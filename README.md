@@ -140,8 +140,9 @@ it cannot be read), the accessory counts as fitted.
 
 The detection can be wrong, e.g. when a wireless sensor has not sent anything yet. Under
 **Configure** on the integration you can choose the fitted accessories yourself (see
-[Options](#options)). If you fit an accessory later, either select it there or press *Rediscover
-registers* once it is set up on the unit.
+[Options](#options)). If you fit an accessory later, press *Rediscover registers* once it is set up
+on the unit. If you chose the accessories yourself and had left this one out, select it there
+instead: your choice stays in force for the accessories it covered.
 
 ### Discovery and its limits
 
@@ -244,7 +245,9 @@ Use **Configure** on the integration to:
 
 The accessories are preselected with what discovery detected. Only accessories the unit answers to
 are listed. A choice that differs from the detected one is kept, also after *Rediscover
-registers*; select the detected accessories again to let discovery decide.
+registers*; select the detected accessories again to let discovery decide. The choice only covers
+the accessories listed when you made it: one the unit answers to only later (fitted afterwards, or
+added in a new version of the integration) is detected as usual.
 
 For the bus source entities, see [Bus inputs](#bus-inputs). Changing the options reloads the
 integration.
@@ -471,8 +474,8 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
   missing registers, so discovery cannot filter them. Disable the ones you don't need.
 
 **The filter reset for the outdoor or room filter has no effect**
-- The unit does not monitor this filter. Once it is fitted and enabled on the unit, select it under
-  **Configure** or press *Rediscover registers*.
+- The unit does not monitor this filter. Once it is fitted and enabled on the unit, press
+  *Rediscover registers*, or select it under **Configure** if you chose the accessories yourself.
 
 **A bus input has no effect**
 - The matching source on the unit must be set to **"Bus"**, e.g. the *Room temperature source*

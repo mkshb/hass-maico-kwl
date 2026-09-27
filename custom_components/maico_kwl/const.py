@@ -18,6 +18,9 @@ CONF_DISCOVERY = "discovery"
 # Accessories the user marked as fitted (option). Only stored while it differs
 # from the detected ones, so a later rediscovery still applies otherwise.
 CONF_ACCESSORIES = "accessories"
+# The accessories offered when that choice was made: the choice only covers
+# these, detection decides on the ones that came later.
+CONF_ACCESSORIES_OFFERED = "accessories_offered"
 
 # Optional source entities whose value is fed cyclically into a write-only
 # "bus" input register.

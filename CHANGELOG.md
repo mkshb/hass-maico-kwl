@@ -3,6 +3,68 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
+## 0.4.1 (2026-09-27)
+
+A careful look at everything that can go wrong: bus values that reach the unit reliably, no writes
+to a device that is not a Maico KWL, and entities that keep your settings.
+
+### What's new
+
+- **Bus values the unit can use.** A source for room temperature, humidity or air quality now
+  needs a unit: °F and K are converted to °C, ppb to ppm. A source without a unit (e.g. an air
+  quality index) or in another unit (e.g. µg/m³) is not sent, and neither is a value outside the
+  range of the input, instead of sending its limit. The log says once why a source is not sent.
+- **Repair issues for bus inputs.** When a configured source no longer exists, when it has sent
+  nothing usable for 30 minutes, or when the unit has had no valid bus value for 10 minutes
+  (e.g. the connection is down), a repair issue says so. Inputs without a source get none.
+- **Renamed sources are followed.** If you change the entity ID of a bus source, the option
+  follows it.
+- **Only a Maico KWL is set up and written to.** Setup, reconfigure and every poll check a few
+  registers every Maico KWL has. If the device at the address reports values a Maico KWL does not
+  have (e.g. another Modbus device got its IP address), it is not set up, nothing is written to it,
+  and a repair issue names the register and the value.
+- **Entities keep your settings.** Entities the integration no longer creates (a register a
+  rediscovery did not find, an accessory you deselected) are now disabled instead of deleted.
+  When they come back, their names, areas and entity IDs are still there.
+
+### What changed
+
+- **Bus values are refreshed every 8 minutes** instead of 9, and a failed write is retried every
+  minute. The unit keeps a bus value for 10 minutes and then uses its own sensor again, so a
+  single missed refresh no longer means minutes without the bus value.
+- **A source reporting `nan` or `inf`** no longer stops the whole integration.
+- **Boost with a duration.** The unit ends a boost itself after its *Ventilation level duration*.
+  A longer `duration` is now refused with a message instead of being cut short without notice;
+  the maximum is 90 minutes. A timed boost no longer ends a boost started after it.
+- **Recovered heat** no longer counts a failed poll, a sensor fault (e.g. a temperature of
+  3276.7 °C) or a reading above 10 kW. Calculated values are unavailable while an input is outside
+  its measuring range.
+- **Modbus answers** that lack registers are no longer read as 0, and a register that answers
+  with an unexpected error is asked three times before it is left out.
+- **A manual accessory choice** no longer hides an accessory that was fitted later or that a new
+  version adds; your choice only covers the accessories it listed.
+- **One Modbus connection.** The unit accepts only one Modbus TCP connection at a time. Reconfigure
+  now checks over the running connection, so it also works without a proxy, and the connection
+  messages say what to check. A Modbus TCP proxy is strongly recommended, see the README.
+- **The same unit twice.** A host written with spaces or in other letter case is recognized as the
+  same unit.
+- **Robustness.** A damaged or newer stored discovery is probed again instead of failing the setup;
+  a setup that fails late closes its connection; a change in Home Assistant's frontend functions
+  only costs the dashboard card; a value a register cannot hold is refused instead of cut to its
+  width; values are rounded as Home Assistant shows them (54.5 % is sent as 55 %).
+
+### Do I need to do anything?
+
+- **Update and restart.**
+- **Bus sources need a unit.** Check that your sources report °C, °F or K for the room
+  temperature, % for the humidity and ppm or ppb for the air quality. A template sensor without a
+  unit needs `unit_of_measurement`. A repair issue appears after 30 minutes if a source sends
+  nothing usable.
+- **Boost automations:** a `duration` longer than the *Ventilation level duration* of your unit
+  now fails. Shorten it, or raise the *Ventilation level duration*.
+- **Connected directly without a proxy?** Only one program can talk to the unit at a time; consider
+  a Modbus TCP proxy.
+
 ## 0.4.0 (2026-09-27)
 
 Your ventilation at a glance: a dashboard card made for the unit, included with the integration.

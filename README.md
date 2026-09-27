@@ -463,6 +463,12 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
   an error for missing registers. In that case the probe cannot filter anything; the accessory
   detection and the entities disabled by default still keep the overview lean. See
   [Discovery and its limits](#discovery-and-its-limits).
+- **Airflow limits**: the *Airflow reduced / nominal / intensive* numbers allow 80 to 300 m³/h, the
+  general limits of the Maico Modbus documentation. According to it the limits depend on the unit
+  type, and there is no register that tells them, so your unit may allow less. Set the airflows
+  within the limits the manufacturer or your installer gives for your unit. Whether the unit
+  refuses a value outside its own limits, cuts it to them or takes it as it is, has not been
+  checked yet; if a value springs back after the next update, the unit did not take it.
 - **State values are slugs**: select and enum sensors store internal slugs (e.g. `manual`,
   `reduced`, `summer`) and display the translated text. Automations/templates should compare
   against the **slug**, not the displayed text.
@@ -484,7 +490,7 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 | 350 to 357, 366 to 373, 755 to 762 (CO2, VOC) | ×10 | ÷10 | as documented; not checked against real readings |
 | 763, 764 (humidity and air quality bus) | 0 to 100 %, 0 to 5000 ppm | not scaled | as documented |
 | 401/402, 403/404, 850 to 869 | High-Word / Low-Word | one unsigned 32-bit value each | as documented |
-| 154 to 156 (airflow setpoints) | limits depend on the unit type | fixed 80 to 300 m³/h | the unit may reject values outside its own limits |
+| 154 to 156 (airflow setpoints) | limits depend on the unit type | fixed 80 to 300 m³/h | see *Airflow limits* above |
 
 ## Troubleshooting
 

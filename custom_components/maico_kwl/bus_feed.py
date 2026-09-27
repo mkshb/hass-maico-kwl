@@ -35,6 +35,7 @@ from homeassistant.core import (
 )
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_entity_registry_updated_event,
     async_track_state_change_event,
     async_track_time_interval,
@@ -42,7 +43,13 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
 
-from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL, DOMAIN
+from .const import (
+    BUS_FEEDS,
+    BUS_RETRY_INTERVAL,
+    BUS_REWRITE_INTERVAL,
+    BUS_VALUE_VALID,
+    DOMAIN,
+)
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import PPM, RegisterDef, RegisterValue
 
@@ -53,6 +60,8 @@ _INVALID = {None, "", "unknown", "unavailable"}
 # Repair issues (translation keys) of a configured source.
 _MISSING = "bus_source_missing"
 _NO_DATA = "bus_source_no_data"
+# Repair issue of a bus input the unit gets no valid value for.
+_NOT_DELIVERED = "bus_value_not_delivered"
 
 PPB = "ppb"
 
@@ -98,6 +107,85 @@ def source_raw(reg: RegisterDef, state: State) -> tuple[list[int] | None, str]:
     return reg.encode(raw * reg.scale), ""
 
 
+class BusDelivery:
+    """Keeps a bus input valid on the unit: retries, logging and its issue.
+
+    After a failed write, ``retry`` is called every BUS_RETRY_INTERVAL until a
+    write succeeds. Once the last successful write is older than
+    BUS_VALUE_VALID, the unit uses its own sensor again, and a repair issue
+    says so until the next write succeeds. Used by the bus feed and by the
+    manual bus numbers.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        reg: RegisterDef,
+        retry: Callable[[], object],
+    ) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._reg = reg
+        self._retry = retry
+        self._last_success = dt_util.utcnow()
+        self._retry_unsub: CALLBACK_TYPE | None = None
+        self._failing = False
+
+    @property
+    def _issue_id(self) -> str:
+        return f"{self._entry.entry_id}_{self._reg.key}_{_NOT_DELIVERED}"
+
+    @callback
+    def succeeded(self) -> None:
+        self._last_success = dt_util.utcnow()
+        self._cancel_retry()
+        ir.async_delete_issue(self._hass, DOMAIN, self._issue_id)
+        if self._failing:
+            self._failing = False
+            _LOGGER.info("Bus input %s: writes succeed again", self._reg.key)
+
+    @callback
+    def failed(self, err: Exception) -> None:
+        if not self._failing:
+            # A lasting outage is logged once.
+            self._failing = True
+            _LOGGER.info("Bus input %s: write failed: %s", self._reg.key, err)
+        if dt_util.utcnow() - self._last_success >= BUS_VALUE_VALID:
+            ir.async_create_issue(
+                self._hass,
+                DOMAIN,
+                self._issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=_NOT_DELIVERED,
+                translation_placeholders={
+                    "name": self._entry.title,
+                    "register": str(self._reg.address),
+                    "error": str(err),
+                },
+            )
+        if self._retry_unsub is None:
+            self._retry_unsub = async_call_later(
+                self._hass, BUS_RETRY_INTERVAL, self._handle_retry
+            )
+
+    @callback
+    def stop(self) -> None:
+        self._cancel_retry()
+        ir.async_delete_issue(self._hass, DOMAIN, self._issue_id)
+
+    @callback
+    def _handle_retry(self, _now: datetime) -> None:
+        self._retry_unsub = None
+        self._retry()
+
+    def _cancel_retry(self) -> None:
+        if self._retry_unsub is not None:
+            self._retry_unsub()
+            self._retry_unsub = None
+
+
 @dataclass(frozen=True)
 class SentValue:
     """The value the unit last received for a bus input."""
@@ -122,8 +210,12 @@ class BusFeeder:
         self._feeds = feeds
         self._unsubs: list[CALLBACK_TYPE] = []
         self._tasks: set[asyncio.Task[None]] = set()
-        # Registers whose last write failed, so a lasting outage is logged once.
-        self._failing: set[str] = set()
+        self._delivery = {
+            reg.key: BusDelivery(
+                hass, entry, reg, self._retry_callback(reg, entity_id)
+            )
+            for reg, entity_id in feeds
+        }
         # Registers whose source value is skipped, and why, so that is logged
         # once (see source_raw).
         self._skipped: dict[str, str] = {}
@@ -138,6 +230,11 @@ class BusFeeder:
     def sent(self, key: str) -> SentValue | None:
         """Return what was last written successfully to a bus input."""
         return self._sent.get(key)
+
+    def _retry_callback(self, reg: RegisterDef, entity_id: str) -> Callable[[], None]:
+        return lambda: self._schedule_write(
+            reg, self.hass.states.get(entity_id), force=True
+        )
 
     @callback
     def async_add_listener(
@@ -183,6 +280,8 @@ class BusFeeder:
         for reg, _entity_id in self._feeds:
             for issue in (_MISSING, _NO_DATA):
                 ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(reg, issue))
+        for delivery in self._delivery.values():
+            delivery.stop()
 
     @callback
     def _schedule_write(
@@ -312,15 +411,11 @@ class BusFeeder:
         try:
             await self._hub.write(reg.address, raw)
         except MaicoModbusError as err:
-            if reg.key not in self._failing:
-                self._failing.add(reg.key)
-                _LOGGER.info("Bus feed %s write failed: %s", reg.key, err)
+            self._delivery[reg.key].failed(err)
             return
         self._written[reg.key] = raw
         # Decode the raw words so the value shows what the unit received.
         self._sent[reg.key] = SentValue(reg.decode(raw), dt_util.utcnow())
         for listener in list(self._listeners.get(reg.key, [])):
             listener()
-        if reg.key in self._failing:
-            self._failing.discard(reg.key)
-            _LOGGER.info("Bus feed %s writes succeed again", reg.key)
+        self._delivery[reg.key].succeeded()

@@ -35,9 +35,13 @@ BUS_FEEDS: list[tuple[str, str, str | None]] = [
     ("air_quality_bus", CONF_AIR_QUALITY_SOURCE_ENTITY, None),
 ]
 
-# Bus input values expire on the unit unless written at least every 10
-# minutes. Rewrite just under that so the value stays valid.
-BUS_REWRITE_INTERVAL = timedelta(minutes=9)
+# A bus input value is valid on the unit for 10 minutes; without a new one it
+# falls back to its internal sensor. Rewrite well within that, and after a
+# failed write retry every minute until one succeeds: the retries at 9 and 10
+# minutes still come before the value expires.
+BUS_VALUE_VALID = timedelta(minutes=10)
+BUS_REWRITE_INTERVAL = timedelta(minutes=8)
+BUS_RETRY_INTERVAL = timedelta(minutes=1)
 
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 10

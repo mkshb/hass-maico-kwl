@@ -627,6 +627,10 @@
     "bus_source_no_data": {
       "title": "Bus-Quelle von {name} liefert keine Daten",
       "description": "{entity} ist unter **Konfigurieren** als Quelle eines Bus-Eingangs eingestellt, hat aber seit mehr als 30 Minuten keinen Wert geliefert, der sich senden lässt ({reason}). Das Gerät bekommt für diesen Eingang keinen neuen Wert.\n\nPrüfe die Quelle: Sie muss eine Zahl im Bereich des Eingangs liefern, in °C, °F oder K für die Raumtemperatur, % für die Feuchte und ppm oder ppb für die Luftqualität. Dieser Hinweis verschwindet mit dem nächsten gesendeten Wert."
+    },
+    "bus_value_not_delivered": {
+      "title": "{name} bekommt keinen Bus-Wert",
+      "description": "Der Wert für den Bus-Eingang {register} (707 Raumtemperatur, 763 Feuchte, 764 Luftqualität) ließ sich seit 10 Minuten nicht schreiben: {error}.\n\nDas Gerät behält einen Bus-Wert nur 10 Minuten und nutzt danach wieder seinen internen Fühler. Die Integration versucht es weiter jede Minute. Prüfe die Verbindung zum Gerät. Dieser Hinweis verschwindet mit dem nächsten erfolgreichen Schreiben."
     }
   },
   "services": {

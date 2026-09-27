@@ -40,7 +40,7 @@ profile of the unit is derived from the registers it finds.
   setpoint temperature, airflow rates, filter intervals and much more).
 - **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
   temperature, humidity or air quality) into the unit's write-only "bus" input registers. It is written
-  on every change and refreshed every 9 minutes to satisfy the device's write-cycle requirement.
+  on every change and refreshed every 8 minutes, since the unit only keeps a bus value for 10.
   No automation needed. Values in an unsuitable unit or outside the register's range are not
   sent, see [Bus inputs](#bus-inputs).
 - **Decoding** based on the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
@@ -258,7 +258,9 @@ The unit can take room temperature, humidity and air quality from the Modbus mas
 own sensors. These three registers are **write-only**, and a value written to them is only valid
 for 10 minutes (the Maico documentation: "Schreibzyklus min. 10 min"). If no new room temperature
 arrives within that time, the unit falls back to its internal sensor. The integration therefore
-writes every 9 minutes. The unit sets no upper limit on how often the values may be written.
+writes every 8 minutes, and after a failed write it tries again every minute until one succeeds:
+the retries at 9 and 10 minutes still come before the value expires. The unit sets no upper limit
+on how often the values may be written.
 
 | Register | Number entity (manual) | Source entity in the options | Source units accepted | Range | Resolution |
 |---|---|---|---|---|---|
@@ -268,10 +270,10 @@ writes every 9 minutes. The unit sets no upper limit on how often the values may
 
 > [!IMPORTANT]
 > - **Source has priority.** With a source entity configured, its value is written right after
->   setup, on every state change and every **9 minutes**. The manual `number` for that input is
+>   setup, on every state change and every **8 minutes**. The manual `number` for that input is
 >   not created then; leave the option empty to set the value manually instead.
 > - **Manual numbers** keep their value across restarts, write it again after a restart and every
->   9 minutes.
+>   8 minutes.
 > - **Only suitable values are sent.** The source needs one of the units above; a source without
 >   a unit (e.g. an air quality index) or in another unit (e.g. µg/m³) is not sent. Values are
 >   rounded to the resolution above, e.g. 55.4 % is sent as 55 %. A value outside the range is
@@ -286,13 +288,14 @@ writes every 9 minutes. The unit sets no upper limit on how often the values may
 >   updated and the integration reloads once.
 > - **Repair issues for a configured source**: one when the source no longer exists, and one when
 >   it has given no value that can be sent for more than 30 minutes (e.g. it stays unavailable,
->   has the wrong unit or is out of range). They are checked every 9 minutes once Home Assistant
+>   has the wrong unit or is out of range). They are checked every 8 minutes once Home Assistant
 >   has started, and disappear with the next value sent. Inputs without a source get no issue.
 > - **The unit has to use the bus value.** For room temperature set the *Room temperature source*
 >   select to **"Bus"**. Humidity and air quality have no such register in the Maico map; how the
 >   unit selects the bus for them is not documented there.
->
-> Failed writes are logged once and retried at the next change or interval.
+> - **Failed writes are retried every minute** and logged once. If a bus input has had no valid
+>   value for 10 minutes, a repair issue says so until the next write succeeds; this applies to
+>   manual numbers as well.
 
 With a source entity configured, a sensor *Room temperature bus (sent)*, *Humidity bus (sent)* or
 *Air quality bus (sent)* shows the value the unit last received, as encoded on the wire. It is
@@ -310,7 +313,8 @@ stale from 10 minutes on.
 - **Writes**: changing a control writes the register right away and then refreshes all values, so
   the new state shows up without waiting for the next poll.
 - **Bus inputs**: a configured source entity is written on every change and at least every
-  9 minutes. Manual bus numbers are rewritten every 9 minutes as well, see [Bus inputs](#bus-inputs).
+  8 minutes, and every minute after a failed write. Manual bus numbers are rewritten the same way,
+  see [Bus inputs](#bus-inputs).
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
   after a firmware update or after adding sensors or filters to the unit, see

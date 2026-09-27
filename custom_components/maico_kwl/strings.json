@@ -627,6 +627,10 @@
     "bus_source_no_data": {
       "title": "Bus source of {name} sends no data",
       "description": "{entity} is set as the source of a bus input under **Configure**, but has given no value that can be sent for more than 30 minutes ({reason}). The unit gets no new value for this input.\n\nCheck the source: it needs a number within the range of the input, in °C, °F or K for the room temperature, % for the humidity and ppm or ppb for the air quality. This message disappears with the next value that is sent."
+    },
+    "bus_value_not_delivered": {
+      "title": "{name} gets no bus value",
+      "description": "The value of bus input {register} (707 room temperature, 763 humidity, 764 air quality) could not be written for 10 minutes: {error}.\n\nThe unit only keeps a bus value for 10 minutes and then uses its internal sensor again. The integration keeps trying every minute. Check the connection to the unit. This message disappears with the next successful write."
     }
   },
   "services": {

@@ -26,7 +26,7 @@ from custom_components.maico_kwl.const import (
 from .conftest import FakeDevice
 from .helpers import CELSIUS, PERCENT, PPM, entity_id, setup_entry
 
-REWRITE = timedelta(minutes=9, seconds=1)
+REWRITE = timedelta(minutes=8, seconds=1)
 
 
 async def _setup_with_feeds(hass: HomeAssistant, entry) -> None:
@@ -222,7 +222,7 @@ async def test_feed_write_failure_is_logged(
     with caplog.at_level(logging.INFO):
         hass.states.async_set("sensor.room", "22.5", CELSIUS)
         await hass.async_block_till_done()
-    assert "Bus feed room_temp_bus write failed" in caplog.text
+    assert "Bus input room_temp_bus: write failed" in caplog.text
 
 
 async def test_feed_stops_after_unload(
@@ -366,7 +366,7 @@ async def test_bus_number_restore_survives_failed_write(
     with caplog.at_level(logging.INFO):
         await setup_entry(hass, config_entry)
     assert hass.states.get(eid).state == "19.5"
-    assert "Rewrite of room_temp_bus failed" in caplog.text
+    assert "Bus input room_temp_bus: write failed" in caplog.text
 
 
 async def test_feed_logs_outage_once_and_recovery(
@@ -384,12 +384,12 @@ async def test_feed_logs_outage_once_and_recovery(
         for value in ("22.0", "22.5", "23.0"):
             hass.states.async_set("sensor.room", value, CELSIUS)
             await hass.async_block_till_done()
-        assert caplog.text.count("Bus feed room_temp_bus write failed") == 1
+        assert caplog.text.count("Bus input room_temp_bus: write failed") == 1
 
         device.write_exception = None
         hass.states.async_set("sensor.room", "23.5", CELSIUS)
         await hass.async_block_till_done()
-    assert "Bus feed room_temp_bus writes succeed again" in caplog.text
+    assert "Bus input room_temp_bus: writes succeed again" in caplog.text
     assert device.writes[-1] == (707, [235])
 
 
@@ -411,12 +411,12 @@ async def test_bus_number_logs_rewrite_outage_once_and_recovery(
         for step in (1, 2, 3):
             async_fire_time_changed(hass, now + REWRITE * step)
             await hass.async_block_till_done()
-        assert caplog.text.count("Rewrite of room_temp_bus failed") == 1
+        assert caplog.text.count("Bus input room_temp_bus: write failed") == 1
 
         device.write_exception = None
         async_fire_time_changed(hass, now + REWRITE * 4)
         await hass.async_block_till_done()
-    assert "Rewrite of room_temp_bus succeeds again" in caplog.text
+    assert "Bus input room_temp_bus: writes succeed again" in caplog.text
 
 
 async def test_feed_skips_unchanged_values(
@@ -701,3 +701,74 @@ async def test_source_issues_removed_on_unload(
     assert await hass.config_entries.async_unload(config_entry.entry_id)
     await hass.async_block_till_done()
     assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None
+
+
+# --- Retries and the value the unit no longer gets -------------------------
+
+
+async def test_feed_retries_every_minute_until_a_write_succeeds(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """The unit keeps a bus value 10 minutes: a missed refresh is retried soon."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    device.writes.clear()
+
+    device.write_exception = 4
+    await _tick(hass, freezer)  # 8 min: refresh fails
+    await _tick(hass, freezer, timedelta(seconds=61))  # 9 min: fails again
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered") is None
+    await _tick(hass, freezer, timedelta(seconds=61))  # 10 min: the value expired
+    issue = _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered")
+    assert issue.translation_placeholders["register"] == "707"
+    assert "code=4" in issue.translation_placeholders["error"]
+    assert not device.writes
+
+    device.write_exception = None
+    await _tick(hass, freezer, timedelta(seconds=61))
+    assert device.writes == [(707, [215])]
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered") is None
+
+    # Back to the regular refresh: no retry is left over.
+    await _tick(hass, freezer, timedelta(minutes=2))
+    assert device.writes == [(707, [215])]
+
+
+async def test_bus_number_retries_every_minute(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    await setup_entry(hass, config_entry)
+    number = entity_id(hass, config_entry, "number", "room_temp_bus")
+    await hass.services.async_call(
+        "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0}, blocking=True
+    )
+    device.writes.clear()
+
+    device.write_exception = 4
+    for delta in (REWRITE, timedelta(seconds=61), timedelta(seconds=61)):
+        await _tick(hass, freezer, delta)  # 8, 9 and 10 minutes
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered")
+
+    device.write_exception = None
+    await _tick(hass, freezer, timedelta(seconds=61))
+    assert device.writes == [(707, [210])]
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered") is None
+
+
+async def test_retry_and_issue_end_with_unload(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    device.write_exception = 4
+    for delta in (REWRITE, timedelta(seconds=61), timedelta(seconds=61)):
+        await _tick(hass, freezer, delta)
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered")
+
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered") is None
+    device.write_exception = None
+    writes = len(device.writes)
+    await _tick(hass, freezer, timedelta(minutes=2))
+    assert len(device.writes) == writes

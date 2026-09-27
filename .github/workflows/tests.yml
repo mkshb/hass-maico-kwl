@@ -7,6 +7,10 @@ on:
       - main
   pull_request:
 
+# Read only, also if the repository default changes.
+permissions:
+  contents: read
+
 jobs:
   pytest:
     name: "Pytest"

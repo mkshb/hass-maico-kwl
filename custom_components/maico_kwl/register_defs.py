@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 
 REGISTER_OFFSET = 0
 
@@ -137,6 +138,16 @@ NOTICE_BITS = {
 ZONE_DAMPER = {0: "off", 1: "zone_1", 2: "zone_2", 3: "zone_sensor"}
 
 
+def to_raw(value: float, scale: float) -> int:
+    """A real-world value in register steps, rounded half away from zero.
+
+    As Home Assistant shows values (54.5 % as 55 %), unlike round() (54), and
+    computed from the decimal text, so 21.35 degC becomes 214, not 213.
+    """
+    steps = Decimal(str(value)) / Decimal(str(scale))
+    return int(steps.quantize(Decimal(1), rounding=ROUND_HALF_UP))
+
+
 @dataclass(frozen=True)
 class RegisterDef:
     """A single Maico Modbus register mapped to one HA entity."""
@@ -213,7 +224,7 @@ class RegisterDef:
                 value.year, value.month, value.day,
                 value.hour, value.minute, value.second,
             ]
-        raw = int(round(value / self.scale))
+        raw = to_raw(value, self.scale)
         low, high = self.raw_range
         if not low <= raw <= high:
             raise ValueError(

@@ -51,7 +51,7 @@ from .const import (
     DOMAIN,
 )
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
-from .register_defs import PPM, RegisterDef, RegisterValue
+from .register_defs import PPM, RegisterDef, RegisterValue, to_raw
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,9 +97,9 @@ def source_raw(reg: RegisterDef, state: State) -> tuple[list[int] | None, str]:
             value /= 1000
         else:
             return None, f"unit {unit!r} is not {reg.unit}"
-    raw = round(value / reg.scale)
-    low = None if reg.native_min is None else round(reg.native_min / reg.scale)
-    high = None if reg.native_max is None else round(reg.native_max / reg.scale)
+    raw = to_raw(value, reg.scale)
+    low = None if reg.native_min is None else to_raw(reg.native_min, reg.scale)
+    high = None if reg.native_max is None else to_raw(reg.native_max, reg.scale)
     if (low is not None and raw < low) or (high is not None and raw > high):
         return None, (
             f"{value:g} {reg.unit} is outside {reg.native_min} to {reg.native_max}"

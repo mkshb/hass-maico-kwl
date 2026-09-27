@@ -167,6 +167,19 @@ def test_writable_ranges_fit_the_data_type() -> None:
                 assert low <= round(limit / reg.scale) <= high, reg.key
 
 
+def test_encode_rounds_half_away_from_zero() -> None:
+    """As Home Assistant shows the source, so "(sent)" matches it."""
+    humidity = rd.REGISTERS_BY_KEY["humidity_bus"]
+    room = rd.REGISTERS_BY_KEY["room_temp_bus"]
+    offset = rd.REGISTERS_BY_KEY["room_temp_offset"]
+    assert humidity.encode(54.5) == [55]
+    assert humidity.encode(55.5) == [56]
+    assert humidity.encode(54.4) == [54]
+    assert room.encode(21.25) == [213]
+    assert room.encode(21.35) == [214]  # 21.35 / 0.1 is 213.4999... as a float
+    assert offset.encode(-0.05) == [0xFFFF]  # -0.1 degC
+
+
 if __name__ == "__main__":
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in funcs:

@@ -137,6 +137,46 @@ async def test_user_flow_already_configured(
     assert result["reason"] == "already_configured"
 
 
+async def test_user_flow_normalizes_the_host(
+    hass: HomeAssistant, device: FakeDevice
+) -> None:
+    """Spaces and upper case must not make the same unit a second entry."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: " KWL.Local "}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_HOST] == "kwl.local"
+    assert result["title"] == "Maico KWL (kwl.local)"
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: "KWL.LOCAL"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_user_flow_matches_an_older_entry_in_upper_case(
+    hass: HomeAssistant, device: FakeDevice
+) -> None:
+    """Entries stored before the host was normalized are found as well."""
+    MockConfigEntry(
+        domain=DOMAIN, data={**USER_INPUT, CONF_HOST: "KWL.local"}
+    ).add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: "kwl.local"}
+    )
+    assert result["reason"] == "already_configured"
+
+
 async def test_user_flow_other_modbus_address_allowed(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
@@ -402,6 +442,28 @@ async def test_reconfigure_keeps_custom_title_and_same_values(
     await hass.async_block_till_done()
     assert result["reason"] == "reconfigure_successful"
     assert config_entry.title == "Basement KWL"
+
+
+async def test_reconfigure_normalizes_the_host(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await setup_entry(hass, config_entry)
+    MockConfigEntry(
+        domain=DOMAIN, data={**USER_INPUT, CONF_HOST: "Other.Unit"}
+    ).add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: " other.unit", CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["reason"] == "already_configured"
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: " KWL.Local ", CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert config_entry.data[CONF_HOST] == "kwl.local"
 
 
 async def test_reconfigure_rejects_another_device(

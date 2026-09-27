@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -50,6 +51,24 @@ from .register_defs import ACCESSORIES
 
 _LOGGER = logging.getLogger(__name__)
 
+def _host(value: str) -> str:
+    """The host as stored and compared: without spaces, names in lower case.
+
+    DNS names are case-insensitive, so "KWL.local" and "kwl.local " are the
+    same unit and must not become two entries.
+    """
+    return value.strip().lower()
+
+
+def _connection(data: Mapping[str, Any]) -> tuple[str, int, int]:
+    """Host, port and Modbus address of an entry, for finding duplicates."""
+    return (
+        _host(data.get(CONF_HOST, "")),
+        data.get(CONF_PORT, DEFAULT_PORT),
+        data.get(CONF_SLAVE, DEFAULT_SLAVE),
+    )
+
+
 class UnsupportedDevice(Exception):
     """The device answers, but does not look like a Maico KWL."""
 
@@ -81,15 +100,18 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            host = user_input[CONF_HOST]
+            host = _host(user_input[CONF_HOST])
             port = user_input[CONF_PORT]
             slave = user_input[CONF_SLAVE]
+            user_input = {**user_input, CONF_HOST: host}
 
             # The unit has no serial number to use as unique_id, and an IP
             # address is not a stable one, so match on the connection instead.
-            self._async_abort_entries_match(
-                {CONF_HOST: host, CONF_PORT: port, CONF_SLAVE: slave}
-            )
+            if any(
+                _connection(other.data) == (host, port, slave)
+                for other in self._async_current_entries(include_ignore=False)
+            ):
+                return self.async_abort(reason="already_configured")
 
             try:
                 await _validate(host, port, slave)
@@ -135,16 +157,14 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            host = user_input[CONF_HOST]
+            host = _host(user_input[CONF_HOST])
             port = user_input[CONF_PORT]
             slave = user_input[CONF_SLAVE]
 
             # Keeping the current values must not match the entry itself.
             if any(
                 other.entry_id != entry.entry_id
-                and other.data.get(CONF_HOST) == host
-                and other.data.get(CONF_PORT) == port
-                and other.data.get(CONF_SLAVE) == slave
+                and _connection(other.data) == (host, port, slave)
                 for other in self._async_current_entries(include_ignore=False)
             ):
                 return self.async_abort(reason="already_configured")
@@ -165,11 +185,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 # A new connection may lead to another unit: the accessories
                 # chosen for the old one no longer apply, detection decides.
                 options = dict(entry.options)
-                if (host, port, slave) != (
-                    entry.data[CONF_HOST],
-                    entry.data.get(CONF_PORT, DEFAULT_PORT),
-                    entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
-                ):
+                if (host, port, slave) != _connection(entry.data):
                     options.pop(CONF_ACCESSORIES, None)
                     options.pop(CONF_ACCESSORIES_OFFERED, None)
                 # A loaded entry is reloaded by its update listener; reloading

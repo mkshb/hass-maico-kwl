@@ -115,9 +115,25 @@ def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in data.items() if key != CONF_DISCOVERY}
 
 
-def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
+def _valid_cache(cache: Any) -> bool:
+    """Whether a stored discovery has the format of this version.
+
+    An older one is discovered again, and so is a newer one (e.g. after a
+    downgrade) or a damaged one, rather than read with the wrong meaning or
+    failing the setup.
+    """
+    if not isinstance(cache, Mapping) or cache.get("version") != DISCOVERY_VERSION:
+        return False
+    return all(
+        isinstance(items := cache.get(key), list)
+        and all(isinstance(item, str) for item in items)
+        for key in ("probed", "present", "accessories")
+    )
+
+
+def present_from_cache(cache: Any) -> set[str] | None:
     """Present registers from a stored discovery, or None to discover again."""
-    if not cache or cache.get("version", 1) < DISCOVERY_VERSION:
+    if not _valid_cache(cache):
         return None
     probed = set(cache.get("probed", []))
     if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
@@ -159,7 +175,8 @@ def active_accessories(
     unit answers to only later (fitted afterwards, or new in a later version)
     is decided by detection, instead of counting as not fitted.
     """
-    detected = set(cache.get("accessories", []))
+    stored = cache.get("accessories") if isinstance(cache, Mapping) else None
+    detected = set(stored) if isinstance(stored, list) else set()
     chosen = options.get(CONF_ACCESSORIES)
     if chosen is None:
         return detected

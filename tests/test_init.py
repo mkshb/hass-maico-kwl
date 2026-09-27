@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -305,3 +307,33 @@ async def test_setup_retry_when_another_device_answers(
     assert CONF_DISCOVERY not in config_entry.data
     assert not device.writes
     assert device.open_connections == 0
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "not a dict",
+        ["a", "list"],
+        {"present": 5},
+        {"accessories": "enocean"},
+        {"probed": [1, 2]},
+        {"version": 3},  # written by a newer version, e.g. before a downgrade
+    ],
+)
+async def test_damaged_or_newer_discovery_is_probed_again(
+    hass: HomeAssistant, device: FakeDevice, config_entry, damage
+) -> None:
+    """Instead of failing the setup or reading it with the wrong meaning."""
+    await setup_entry(hass, config_entry)
+    cache = config_entry.data[CONF_DISCOVERY]
+    stored = {**cache, **damage} if isinstance(damage, dict) else damage
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    hass.config_entries.async_update_entry(
+        config_entry, data={**config_entry.data, CONF_DISCOVERY: stored}
+    )
+    device.reads = 0
+    await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert config_entry.data[CONF_DISCOVERY] == cache  # probed and stored anew
+    identity = len(build_blocks([REGISTERS_BY_KEY[key] for key in IDENTITY_RANGES]))
+    assert device.reads > identity + len(config_entry.runtime_data.coordinator._blocks)

@@ -255,9 +255,10 @@ integration.
 ### Bus inputs
 
 The unit can take room temperature, humidity and air quality from the Modbus master instead of its
-own sensors. These three registers are **write-only**. The Maico documentation notes a write cycle
-of "min. 10 min" for them; the integration reads this as "refresh at least every 10 minutes" and
-writes every 9 minutes. Whether the unit also limits how often it may be written is not documented.
+own sensors. These three registers are **write-only**, and a value written to them is only valid
+for 10 minutes (the Maico documentation: "Schreibzyklus min. 10 min"). If no new room temperature
+arrives within that time, the unit falls back to its internal sensor. The integration therefore
+writes every 9 minutes. The unit sets no upper limit on how often the values may be written.
 
 | Register | Number entity (manual) | Source entity in the options | Source units accepted | Range | Resolution |
 |---|---|---|---|---|---|
@@ -278,9 +279,9 @@ writes every 9 minutes. Whether the unit also limits how often it may be written
 >   reading to the unit.
 > - **Invalid states are skipped.** `unknown`, `unavailable`, empty, non-numeric, `nan` and
 >   `inf` states are not written.
-> - **Skipped values are logged.** While nothing is sent, no new value reaches the unit; what it
->   does with the last one after 10 minutes is not documented. The log says once why a source is
->   not sent, and again when it is sent again.
+> - **Skipped values are logged.** While nothing is sent, no new value reaches the unit; 10 minutes
+>   after the last one it uses its internal room temperature sensor again. The log says once why a
+>   source is not sent, and again when it is sent again.
 > - **Renamed sources are followed.** If you change the entity ID of a source, the option is
 >   updated and the integration reloads once.
 > - **Repair issues for a configured source**: one when the source no longer exists, and one when
@@ -516,8 +517,9 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
    integration is removed; delete them from your dashboards.
 
 Settings written to the unit (operating mode, ventilation level, airflow rates, etc.) stay on the
-unit. Bus inputs are no longer refreshed; if the unit should use its own sensors again, set the
-matching source (e.g. *Room temperature source*) away from "Bus" before removing the integration.
+unit. Bus inputs are no longer refreshed: 10 minutes after the last value the unit uses its internal
+room temperature sensor again, while *Room temperature source* still says "Bus". Set it to another
+source before removing the integration if the setting should say so as well.
 
 ## Data source
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -63,6 +64,8 @@ class BusFeeder:
         self._tasks: set[asyncio.Task[None]] = set()
         # Registers whose last write failed, so a lasting outage is logged once.
         self._failing: set[str] = set()
+        # Registers whose source reports no number, so that is logged once.
+        self._no_number: set[str] = set()
         # Last raw words written per register, to skip unchanged values.
         self._written: dict[str, list[int]] = {}
         self._sent: dict[str, SentValue] = {}
@@ -134,17 +137,38 @@ class BusFeeder:
         for reg, entity_id in self._feeds:
             self._schedule_write(reg, self.hass.states.get(entity_id), force=True)
 
-    async def _async_write(
-        self, reg: RegisterDef, state: State | None, force: bool = False
-    ) -> None:
+    def _source_value(self, reg: RegisterDef, state: State | None) -> float | None:
+        """The source state as a finite number, or None if it must not be sent.
+
+        "nan" and "inf" convert to a float, but NaN passes the clamp and cannot
+        be encoded, and infinity would be sent as the register's limit.
+        """
         if state is None or state.state in _INVALID:
-            return
+            return None
         try:
             value = float(state.state)
         except (TypeError, ValueError):
-            _LOGGER.debug(
-                "Bus feed %s: state %r is not numeric", reg.key, state.state
+            value = math.nan
+        if not math.isfinite(value):
+            if reg.key not in self._no_number:
+                self._no_number.add(reg.key)
+                _LOGGER.info(
+                    "Bus feed %s: %s reports %r, which is not sent",
+                    reg.key, state.entity_id, state.state,
+                )
+            return None
+        if reg.key in self._no_number:
+            self._no_number.discard(reg.key)
+            _LOGGER.info(
+                "Bus feed %s: %s reports numbers again", reg.key, state.entity_id
             )
+        return value
+
+    async def _async_write(
+        self, reg: RegisterDef, state: State | None, force: bool = False
+    ) -> None:
+        value = self._source_value(reg, state)
+        if value is None:
             return
         raw = reg.encode(reg.clamp(value))
         if not force and self._written.get(reg.key) == raw:

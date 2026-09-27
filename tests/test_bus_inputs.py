@@ -86,7 +86,9 @@ async def test_feed_clamps_to_register_range(
     assert float(_sent_state(hass, config_entry, "room_temp_bus")) == 40.0
 
 
-@pytest.mark.parametrize("value", ["abc", "unavailable", "unknown"])
+@pytest.mark.parametrize(
+    "value", ["abc", "unavailable", "unknown", "nan", "inf", "-inf"]
+)
 async def test_feed_ignores_invalid_states(
     hass: HomeAssistant, device: FakeDevice, config_entry, value: str
 ) -> None:
@@ -94,6 +96,33 @@ async def test_feed_ignores_invalid_states(
     await _setup_with_feeds(hass, config_entry)
     assert not [w for w in device.writes if w[0] == 707]
     assert _sent_state(hass, config_entry, "room_temp_bus") == STATE_UNKNOWN
+
+
+async def test_feed_skips_non_finite_values_and_logs_once(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """NaN would stop the feed, infinity would be sent as the register limit."""
+    hass.states.async_set("sensor.room", "21.5")
+    await _setup_with_feeds(hass, config_entry)
+    writes = len(device.writes)
+
+    with caplog.at_level(logging.INFO):
+        for value in ("nan", "inf", "nan"):
+            hass.states.async_set("sensor.room", value)
+            await hass.async_block_till_done()
+        async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
+        await hass.async_block_till_done()
+        assert len(device.writes) == writes
+        assert _sent_state(hass, config_entry, "room_temp_bus") == "21.5"
+        assert caplog.text.count("which is not sent") == 1
+
+        hass.states.async_set("sensor.room", "22.0")
+        await hass.async_block_till_done()
+    assert "sensor.room reports numbers again" in caplog.text
+    assert device.writes[-1] == (707, [220])
 
 
 async def test_feed_waits_for_missing_source(

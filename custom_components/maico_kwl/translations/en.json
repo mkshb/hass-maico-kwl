@@ -33,7 +33,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the device."
+      "cannot_connect": "Failed to connect to the device.",
+      "unsupported_device": "The device does not look like a Maico KWL: {details}. Check host and Modbus address."
     },
     "abort": {
       "already_configured": "This device is already configured.",
@@ -597,6 +598,9 @@
     },
     "boost_unavailable": {
       "message": "The unit does not support boost ventilation"
+    },
+    "unsupported_device": {
+      "message": "The device at the configured address does not look like a Maico KWL: {details}"
     }
   },
   "issues": {
@@ -631,6 +635,10 @@
     "bus_value_not_delivered": {
       "title": "{name} gets no bus value",
       "description": "The value of bus input {register} (707 room temperature, 763 humidity, 764 air quality) could not be written for 10 minutes: {error}.\n\nThe unit only keeps a bus value for 10 minutes and then uses its internal sensor again. The integration keeps trying every minute. Check the connection to the unit. This message disappears with the next successful write."
+    },
+    "unsupported_device": {
+      "title": "{name} does not look like a Maico KWL",
+      "description": "The device at the configured address reports values a Maico KWL does not have: {details}.\n\nPerhaps another device has this IP address now. Nothing is written to it until its values look right again. Check the address of the unit, or correct it with **Reconfigure** on the integration. This message disappears once the values look right again."
     }
   },
   "services": {

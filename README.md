@@ -155,6 +155,14 @@ instead: your choice stays in force for the accessories it covered.
 >   (154 to 156) are not used for it; the airflow numbers always allow 80 to 300 m³/h.
 > - **One device per config entry.** Since there is no serial number, the device is identified by
 >   its config entry, and a second entry with the same host, port and Modbus address is refused.
+> - **Is it a Maico KWL at all?** Before setup, and on every poll, a few registers every Maico KWL
+>   has are checked against the values its documentation allows: language (108), room temperature
+>   source (109), operating mode, boost, season and ventilation level (550 to 554) and current
+>   ventilation level (650). If a value is out of range, or none of them can be read, the device is
+>   not taken for a Maico KWL: it is not set up (Home Assistant retries), and while running
+>   **nothing is written to it** (neither bus values nor your own changes) and a repair issue says
+>   why. This protects another Modbus device that got the unit's IP address. It cannot tell one
+>   Maico KWL from another.
 > - **Proxies can hide missing registers.** A register counts as missing only when the unit answers
 >   with Modbus exception 1, 2 or 3 (e.g. *Illegal Data Address*). Some gateways and proxies answer
 >   every address, then nothing is filtered.
@@ -228,8 +236,9 @@ browser loads the new card.
    - **Port**: default `502`
    - **Modbus address**: default `10` (1 to 247)
    - **Scan interval**: default `30` seconds, 5 to 3600 (changeable later via the options)
-3. The integration reads register 650 (current ventilation level) to test the connection, then
-   probes the registers and creates the entities.
+3. The integration checks that a Maico KWL answers (see
+   [Discovery and its limits](#discovery-and-its-limits)), then probes the registers and creates
+   the entities.
 
 To change host, port or Modbus address later, use **Reconfigure** on the integration. The unit is
 probed again; entities that are still found keep their IDs, names and history. If the connection
@@ -471,6 +480,13 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
   integration.
 - Make sure Modbus TCP is enabled on the unit (firmware V1.1.1 or newer) and that no firewall
   blocks the port.
+
+**"The device does not look like a Maico KWL"**
+- The device at host, port and Modbus address reports a value a Maico KWL does not have; the
+  message names the register and the value. Check that the address belongs to the unit (e.g. after
+  the router gave its IP address to another device), and correct it with **Reconfigure**.
+- If it is your Maico unit, please open an issue with the message: its firmware may use a value
+  the documentation does not list.
 
 **All entities are unavailable**
 - The unit is not reachable at the moment (see above); entities come back on their own once it

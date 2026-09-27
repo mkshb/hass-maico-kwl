@@ -33,7 +33,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen."
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen.",
+      "unsupported_device": "Das Gerät sieht nicht wie eine Maico KWL aus: {details}. Prüfe Host und Modbus-Adresse."
     },
     "abort": {
       "already_configured": "Dieses Gerät ist bereits eingerichtet.",
@@ -597,6 +598,9 @@
     },
     "boost_unavailable": {
       "message": "Das Gerät unterstützt keine Stoßlüftung"
+    },
+    "unsupported_device": {
+      "message": "Das Gerät unter der eingestellten Adresse sieht nicht wie eine Maico KWL aus: {details}"
     }
   },
   "issues": {
@@ -631,6 +635,10 @@
     "bus_value_not_delivered": {
       "title": "{name} bekommt keinen Bus-Wert",
       "description": "Der Wert für den Bus-Eingang {register} (707 Raumtemperatur, 763 Feuchte, 764 Luftqualität) ließ sich seit 10 Minuten nicht schreiben: {error}.\n\nDas Gerät behält einen Bus-Wert nur 10 Minuten und nutzt danach wieder seinen internen Fühler. Die Integration versucht es weiter jede Minute. Prüfe die Verbindung zum Gerät. Dieser Hinweis verschwindet mit dem nächsten erfolgreichen Schreiben."
+    },
+    "unsupported_device": {
+      "title": "{name} sieht nicht wie eine Maico KWL aus",
+      "description": "Das Gerät unter der eingestellten Adresse meldet Werte, die eine Maico KWL nicht hat: {details}.\n\nVielleicht hat jetzt ein anderes Gerät diese IP-Adresse. Solange seine Werte nicht passen, wird nichts dorthin geschrieben. Prüfe die Adresse des Geräts oder korrigiere sie mit **Neu konfigurieren** in der Integration. Dieser Hinweis verschwindet, sobald die Werte wieder passen."
     }
   },
   "services": {

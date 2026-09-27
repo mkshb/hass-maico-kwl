@@ -772,3 +772,46 @@ async def test_retry_and_issue_end_with_unload(
     writes = len(device.writes)
     await _tick(hass, freezer, timedelta(minutes=2))
     assert len(device.writes) == writes
+
+
+# --- Another device at the address ---------------------------------------
+
+
+async def test_nothing_is_written_while_the_device_is_no_maico(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """E.g. the IP address went to another device while running."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    coordinator = config_entry.runtime_data.coordinator
+    device.writes.clear()
+
+    device.registers[650] = 300
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, f"{config_entry.entry_id}_unsupported_device"
+    )
+    assert issue.translation_placeholders["details"] == (
+        "register 650 reads 300, expected 0 to 4"
+    )
+
+    hass.states.async_set("sensor.room", "22.0", CELSIUS)
+    await _tick(hass, freezer)
+    assert not device.writes  # neither the change nor the refresh
+    number = entity_id(hass, config_entry, "number", "air_quality_bus")
+    with pytest.raises(HomeAssistantError) as err:
+        await hass.services.async_call(
+            "number", "set_value", {ATTR_ENTITY_ID: number, "value": 600}, blocking=True
+        )
+    assert err.value.translation_key == "unsupported_device"
+    assert not device.writes
+
+    device.registers[650] = 3  # the unit is back
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert ir.async_get(hass).async_get_issue(
+        DOMAIN, f"{config_entry.entry_id}_unsupported_device"
+    ) is None
+    await _tick(hass, freezer, timedelta(seconds=61))  # the pending retry
+    assert device.writes == [(707, [220])]

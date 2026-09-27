@@ -24,7 +24,7 @@ FILTERS = {
     "filter_due_outdoor": "filter_remaining_outdoor",
     "filter_due_room": "filter_remaining_room",
 }
-ISSUES = ["fault_active", "clock_drift", *FILTERS]
+ISSUES = ["fault_active", "clock_drift", "unsupported_device", *FILTERS]
 
 
 def _issue_id(entry: MaicoConfigEntry, key: str) -> str:
@@ -60,7 +60,18 @@ def async_update_issues(hass: HomeAssistant, entry: MaicoConfigEntry) -> None:
 
     A register missing from this poll leaves its issue as it is.
     """
-    data = entry.runtime_data.coordinator.data or {}
+    coordinator = entry.runtime_data.coordinator
+    data = coordinator.data or {}
+
+    problem = coordinator.identity_problem
+    _async_set(
+        hass,
+        entry,
+        "unsupported_device",
+        problem is not None,
+        ir.IssueSeverity.ERROR,
+        {"details": problem or ""},
+    )
 
     fault = data.get("fault_code")
     if isinstance(fault, (int, float)):

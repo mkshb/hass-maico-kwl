@@ -40,6 +40,7 @@ from .const import (
 )
 from .discovery import (
     active_accessories,
+    async_check_identity,
     data_without_discovery,
     offered_accessories,
     present_from_cache,
@@ -49,18 +50,22 @@ from .register_defs import ACCESSORIES
 
 _LOGGER = logging.getLogger(__name__)
 
-# A holding register that every Maico KWL implements (current ventilation
-# level), used to confirm the target really answers FC 03.
-_VALIDATION_REGISTER = 650
+class UnsupportedDevice(Exception):
+    """The device answers, but does not look like a Maico KWL."""
 
 
 async def _validate(host: str, port: int, slave: int) -> None:
-    """Raise MaicoModbusError if the device can't be reached / read."""
+    """Check that a Maico KWL answers at the address.
+
+    Raises MaicoModbusError if it cannot be reached, UnsupportedDevice if the
+    device there reports values a Maico KWL does not have.
+    """
     hub = MaicoModbusHub(host, port, slave)
     try:
         if not await hub.connect():
             raise MaicoModbusError(f"cannot connect to {host}:{port}")
-        await hub.read_block(_VALIDATION_REGISTER, 1)
+        if problem := await async_check_identity(hub):
+            raise UnsupportedDevice(problem)
     finally:
         await hub.close()
 
@@ -74,6 +79,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
             port = user_input[CONF_PORT]
@@ -90,6 +96,9 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
+            except UnsupportedDevice as err:
+                errors["base"] = "unsupported_device"
+                placeholders["details"] = str(err)
             else:
                 return self.async_create_entry(
                     title=f"{DEFAULT_NAME} ({host})", data=user_input
@@ -112,7 +121,10 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
         )
 
     async def async_step_reconfigure(
@@ -121,6 +133,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         """Change host, port or Modbus address of an existing entry."""
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
             port = user_input[CONF_PORT]
@@ -141,6 +154,9 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
+            except UnsupportedDevice as err:
+                errors["base"] = "unsupported_device"
+                placeholders["details"] = str(err)
             else:
                 # Keep a custom title, follow the host in the default one.
                 title = entry.title
@@ -194,7 +210,10 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(
-            step_id="reconfigure", data_schema=schema, errors=errors
+            step_id="reconfigure",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
         )
 
     @staticmethod

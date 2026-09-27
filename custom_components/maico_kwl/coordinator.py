@@ -13,7 +13,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .bus_feed import BusFeeder
 from .const import DOMAIN, MAX_BLOCK_SIZE, MaicoProfile
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef, RegisterValue
+from .register_defs import (
+    BUTTON,
+    REGISTERS_BY_KEY,
+    RegisterDef,
+    RegisterValue,
+    identity_problem,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,10 +84,13 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
             and REGISTERS_BY_KEY[key].readable
         ]
         self._blocks = build_blocks(read_defs)
+        # Set while the last poll did not look like a Maico KWL; nothing is
+        # written to the device then (see register_defs.IDENTITY_RANGES).
+        self.identity_problem: str | None = None
 
     async def _async_update_data(self) -> MaicoData:
         try:
-            return await self._read_all()
+            data = await self._read_all()
         except MaicoConnectionError as err:
             # Retrying register by register would only multiply the timeouts.
             raise UpdateFailed(
@@ -89,6 +98,8 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
                 translation_key="device_unreachable",
                 translation_placeholders={"error": str(err)},
             ) from err
+        self.identity_problem = identity_problem(data)
+        return data
 
     async def _read_all(self) -> MaicoData:
         data: MaicoData = {}

@@ -524,6 +524,34 @@ BIT_SENSORS: list[tuple[str, str, str | None]] = [
 type Values = dict[str, RegisterValue | None]
 
 
+# Registers every Maico KWL has, with the values its documentation allows. A
+# device at the configured address that reports others is not taken for a
+# Maico KWL (e.g. another Modbus device got its IP address): it is not set up,
+# and nothing is written to it.
+IDENTITY_RANGES: dict[str, tuple[int, int]] = {
+    "language": (0, 3),
+    "room_temp_source": (0, 3),
+    "operating_mode": (0, 5),
+    "boost_ventilation": (0, 1),
+    "season": (0, 1),
+    "ventilation_level": (0, 4),
+    "current_vent_level": (0, 4),
+}
+
+
+def identity_problem(values: Values) -> str | None:
+    """Why the values do not look like a Maico KWL, or None.
+
+    A missing value is no reason: it may just have failed to read.
+    """
+    for key, (low, high) in IDENTITY_RANGES.items():
+        value = values.get(key)
+        if isinstance(value, (int, float)) and not low <= value <= high:
+            address = REGISTERS_BY_KEY[key].address
+            return f"register {address} reads {value:g}, expected {low} to {high}"
+    return None
+
+
 def _filter_fitted(remaining: str, notice_bit: str) -> Callable[[Values], bool | None]:
     """A monitored filter has days left, or has run out and sets its notice bit.
 

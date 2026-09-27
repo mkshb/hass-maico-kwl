@@ -33,8 +33,15 @@ async def async_write_register(
     """Write a real-world value to a register on behalf of an entity.
 
     Raises HomeAssistantError so the UI shows a clear message instead of
-    an unexpected error with a traceback.
+    an unexpected error with a traceback. Nothing is written while the device
+    does not look like a Maico KWL (see MaicoCoordinator.identity_problem).
     """
+    if problem := coordinator.identity_problem:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="unsupported_device",
+            translation_placeholders={"details": problem},
+        )
     try:
         await coordinator.hub.write(reg.address, reg.encode(value))
     except MaicoModbusError as err:

@@ -31,10 +31,12 @@ from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import (
     ACCESSORIES,
+    IDENTITY_RANGES,
     REGISTERS,
     REGISTERS_BY_KEY,
     RegisterDef,
     Values,
+    identity_problem,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,6 +80,20 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
         ", ".join(sorted(offered_accessories(present) - accessories)) or "-",
     )
     return present, accessories
+
+
+async def async_check_identity(hub: MaicoModbusHub) -> str | None:
+    """Why the device does not look like a Maico KWL, or None.
+
+    Reads the registers of IDENTITY_RANGES, a rejected block register by
+    register: a unit may lack one of them (discovery allows for that), but not
+    all. Raises MaicoConnectionError if the device cannot be reached.
+    """
+    defs = [REGISTERS_BY_KEY[key] for key in IDENTITY_RANGES]
+    values = await _read_values(hub, defs, singly=True)
+    if not values:
+        return "none of its registers 108, 109, 550 to 554 and 650 can be read"
+    return identity_problem(values)
 
 
 def cache_data(present: set[str], accessories: set[str]) -> dict[str, Any]:
@@ -223,7 +239,11 @@ async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str
     }
 
 
-async def _read_values(hub: MaicoModbusHub, defs: list[RegisterDef]) -> Values:
+async def _read_values(
+    hub: MaicoModbusHub, defs: list[RegisterDef], singly: bool = False
+) -> Values:
+    """The values of defs that can be read; with singly, a rejected block is
+    read again register by register."""
     values: Values = {}
     for start, count, block in build_blocks(defs):
         try:
@@ -231,7 +251,10 @@ async def _read_values(hub: MaicoModbusHub, defs: list[RegisterDef]) -> Values:
         except MaicoConnectionError:
             raise
         except MaicoModbusError as err:
-            _LOGGER.debug("Accessory check read %s+%s failed: %s", start, count, err)
+            _LOGGER.debug("Read %s+%s failed: %s", start, count, err)
+            if singly and len(block) > 1:
+                for reg in block:
+                    values.update(await _read_values(hub, [reg]))
             continue
         for reg in block:
             offset = reg.address - start

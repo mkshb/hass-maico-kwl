@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
@@ -72,10 +74,10 @@ async def test_user_flow_cannot_connect(hass: HomeAssistant, device: FakeDevice)
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_user_flow_validation_register_rejected(
+async def test_user_flow_unit_without_one_identity_register(
     hass: HomeAssistant, device: FakeDevice
 ) -> None:
-    """A device that rejects the validation register is not accepted."""
+    """A unit may lack a register; discovery allows for that."""
     device.absent.add(650)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
@@ -83,8 +85,40 @@ async def test_user_flow_validation_register_rejected(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
     )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.parametrize(
+    ("absent", "registers", "details"),
+    [
+        (
+            set(range(0, 1000)),
+            {},
+            "none of its registers 108, 109, 550 to 554 and 650 can be read",
+        ),
+        (set(), {550: 7}, "register 550 reads 7, expected 0 to 5"),
+        (set(), {108: 1234}, "register 108 reads 1234, expected 0 to 3"),
+    ],
+)
+async def test_user_flow_rejects_another_device(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    absent: set[int],
+    registers: dict[int, int],
+    details: str,
+) -> None:
+    """E.g. an inverter at the address: not set up, and why is shown."""
+    device.absent = absent
+    device.registers.update(registers)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["errors"] == {"base": "unsupported_device"}
+    assert result["description_placeholders"] == {"details": details}
     assert device.open_connections == 0
 
 
@@ -368,6 +402,19 @@ async def test_reconfigure_keeps_custom_title_and_same_values(
     await hass.async_block_till_done()
     assert result["reason"] == "reconfigure_successful"
     assert config_entry.title == "Basement KWL"
+
+
+async def test_reconfigure_rejects_another_device(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await setup_entry(hass, config_entry)
+    result = await config_entry.start_reconfigure_flow(hass)
+    device.registers[554] = 9
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["errors"] == {"base": "unsupported_device"}
+    assert config_entry.data[CONF_HOST] == HOST
 
 
 async def test_reconfigure_cannot_connect(

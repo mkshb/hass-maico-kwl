@@ -15,8 +15,10 @@ from custom_components.maico_kwl.const import (
     CONF_DISCOVERY,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
 )
+from custom_components.maico_kwl.coordinator import build_blocks
 from custom_components.maico_kwl.discovery import async_discover
 from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
+from custom_components.maico_kwl.register_defs import IDENTITY_RANGES, REGISTERS_BY_KEY
 
 from .conftest import HOST, PORT, SLAVE, FakeDevice
 from .helpers import CELSIUS, setup_entry
@@ -90,7 +92,10 @@ async def test_setup_retry_when_nothing_discovered(
     device.absent = set(range(0, 1000))
     await setup_entry(hass, config_entry)
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
-    assert config_entry.reason == "The unit did not answer any known Maico KWL register"
+    assert config_entry.reason == (
+        "The device at the configured address does not look like a Maico KWL: "
+        "none of its registers 108, 109, 550 to 554 and 650 can be read"
+    )
     assert device.open_connections == 0
 
 
@@ -131,7 +136,8 @@ async def test_discovery_is_stored_and_reused(
     await _reload(hass, config_entry)
     assert config_entry.state is ConfigEntryState.LOADED
     blocks = len(config_entry.runtime_data.coordinator._blocks)
-    assert device.reads == blocks  # first poll only, no probing
+    identity = len(build_blocks([REGISTERS_BY_KEY[key] for key in IDENTITY_RANGES]))
+    assert device.reads == identity + blocks  # identity check and first poll only
     # Write-only registers are resolved from the stored readable ones.
     assert "error_reset" in config_entry.runtime_data.coordinator.present
 
@@ -281,3 +287,19 @@ async def test_failed_platform_setup_stops_the_bus_feed(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=10))
     await hass.async_block_till_done()
     assert device.writes == [(707, [215])]
+
+
+async def test_setup_retry_when_another_device_answers(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Nothing is probed, stored or written; retried in case it is temporary."""
+    device.registers[550] = 42
+    await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
+    assert config_entry.reason == (
+        "The device at the configured address does not look like a Maico KWL: "
+        "register 550 reads 42, expected 0 to 5"
+    )
+    assert CONF_DISCOVERY not in config_entry.data
+    assert not device.writes
+    assert device.open_connections == 0

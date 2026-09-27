@@ -33,6 +33,7 @@ from .const import (
 from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
 from .discovery import (
     active_accessories,
+    async_check_identity,
     async_discover,
     cache_data,
     derive_profile,
@@ -113,7 +114,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
             if (entity_id := entry.options.get(conf_key))
             and reg_key in coordinator.present
         ]
-        feeder = BusFeeder(hass, entry, hub, feeds)
+        feeder = BusFeeder(
+            hass, entry, hub, feeds, lambda: coordinator.identity_problem
+        )
         await feeder.async_start()
 
         entry.runtime_data = MaicoRuntimeData(
@@ -160,6 +163,21 @@ async def _async_discover_and_refresh(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
             translation_placeholders={"host": hub.host, "port": str(hub.port)},
+        )
+    # Before anything is probed, stored or written: is it a Maico KWL at all?
+    try:
+        problem = await async_check_identity(hub)
+    except MaicoModbusError as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="device_unreachable",
+            translation_placeholders={"error": str(err)},
+        ) from err
+    if problem:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="unsupported_device",
+            translation_placeholders={"details": problem},
         )
 
     present = present_from_cache(entry.data.get(CONF_DISCOVERY))

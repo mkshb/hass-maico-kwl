@@ -203,10 +203,13 @@ class BusFeeder:
         entry: ConfigEntry,
         hub: MaicoModbusHub,
         feeds: list[tuple[RegisterDef, str]],
+        identity_problem: Callable[[], str | None],
     ) -> None:
         self.hass = hass
         self._entry = entry
         self._hub = hub
+        # Why the device does not look like a Maico KWL; nothing is written then.
+        self._identity_problem = identity_problem
         self._feeds = feeds
         self._unsubs: list[CALLBACK_TYPE] = []
         self._tasks: set[asyncio.Task[None]] = set()
@@ -408,6 +411,11 @@ class BusFeeder:
             return
         if not force and self._written.get(reg.key) == raw:
             return  # e.g. a source reporting 21.52 after 21.5
+        if problem := self._identity_problem():
+            self._delivery[reg.key].failed(
+                MaicoModbusError(f"not written, no Maico KWL: {problem}")
+            )
+            return
         try:
             await self._hub.write(reg.address, raw)
         except MaicoModbusError as err:

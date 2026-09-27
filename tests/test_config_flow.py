@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
@@ -10,6 +13,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import (
     CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
     CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
@@ -70,10 +74,10 @@ async def test_user_flow_cannot_connect(hass: HomeAssistant, device: FakeDevice)
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_user_flow_validation_register_rejected(
+async def test_user_flow_unit_without_one_identity_register(
     hass: HomeAssistant, device: FakeDevice
 ) -> None:
-    """A device that rejects the validation register is not accepted."""
+    """A unit may lack a register; discovery allows for that."""
     device.absent.add(650)
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
@@ -81,8 +85,40 @@ async def test_user_flow_validation_register_rejected(
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
     )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.parametrize(
+    ("absent", "registers", "details"),
+    [
+        (
+            set(range(0, 1000)),
+            {},
+            "none of its registers 108, 109, 550 to 554 and 650 can be read",
+        ),
+        (set(), {550: 7}, "register 550 reads 7, expected 0 to 5"),
+        (set(), {108: 1234}, "register 108 reads 1234, expected 0 to 3"),
+    ],
+)
+async def test_user_flow_rejects_another_device(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    absent: set[int],
+    registers: dict[int, int],
+    details: str,
+) -> None:
+    """E.g. an inverter at the address: not set up, and why is shown."""
+    device.absent = absent
+    device.registers.update(registers)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "cannot_connect"}
+    assert result["errors"] == {"base": "unsupported_device"}
+    assert result["description_placeholders"] == {"details": details}
     assert device.open_connections == 0
 
 
@@ -98,6 +134,46 @@ async def test_user_flow_already_configured(
         result["flow_id"], USER_INPUT
     )
     assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_user_flow_normalizes_the_host(
+    hass: HomeAssistant, device: FakeDevice
+) -> None:
+    """Spaces and upper case must not make the same unit a second entry."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: " KWL.Local "}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_HOST] == "kwl.local"
+    assert result["title"] == "Maico KWL (kwl.local)"
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: "KWL.LOCAL"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_user_flow_matches_an_older_entry_in_upper_case(
+    hass: HomeAssistant, device: FakeDevice
+) -> None:
+    """Entries stored before the host was normalized are found as well."""
+    MockConfigEntry(
+        domain=DOMAIN, data={**USER_INPUT, CONF_HOST: "KWL.local"}
+    ).add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_HOST: "kwl.local"}
+    )
     assert result["reason"] == "already_configured"
 
 
@@ -187,6 +263,7 @@ async def test_options_flow_accessories(
     )
     await hass.async_block_till_done()
     assert set(config_entry.options[CONF_ACCESSORIES]) == {*detected, "outdoor_filter"}
+    assert config_entry.options[CONF_ACCESSORIES_OFFERED] == sorted(options)
     assert "filter_remaining_outdoor" in config_entry.runtime_data.coordinator.present
     assert entity_id(hass, config_entry, "button", "filter_reset_outdoor")
 
@@ -197,12 +274,41 @@ async def test_options_flow_accessories(
     )
     await hass.async_block_till_done()
     assert CONF_ACCESSORIES not in config_entry.options
+    assert CONF_ACCESSORIES_OFFERED not in config_entry.options
     present = config_entry.runtime_data.coordinator.present
     assert "filter_remaining_outdoor" not in present
     ent_reg = er.async_get(hass)
-    assert not ent_reg.async_get_entity_id(
+    button = ent_reg.async_get_entity_id(
         "button", DOMAIN, f"{config_entry.entry_id}_filter_reset_outdoor"
     )
+    assert ent_reg.async_get(button).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_accessory_fitted_after_the_choice_is_detected(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Rediscover finds an accessory the choice could not cover yet."""
+    await setup_entry(hass, config_entry)
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30, CONF_ACCESSORIES: ["outdoor_filter"]}
+    )
+    await hass.async_block_till_done()
+    assert "enocean" not in config_entry.options[CONF_ACCESSORIES_OFFERED]
+
+    device.absent -= set(range(350, 374))  # EnOcean module fitted
+    device.registers[350] = 4500  # 450 ppm
+    button = entity_id(hass, config_entry, "button", "rediscover")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    present = config_entry.runtime_data.coordinator.present
+    assert "enocean_co2_id0" in present
+    # The room filter was offered and left out: it stays out.
+    assert "filter_remaining_room" not in present
+    assert "filter_remaining_outdoor" in present
 
 
 async def test_options_flow_without_discovery_keeps_accessories(
@@ -286,7 +392,12 @@ async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
     """Another connection may be another unit: detection decides again."""
     await setup_entry(hass, config_entry)
     hass.config_entries.async_update_entry(
-        config_entry, options={**config_entry.options, CONF_ACCESSORIES: ["room_filter"]}
+        config_entry,
+        options={
+            **config_entry.options,
+            CONF_ACCESSORIES: ["room_filter"],
+            CONF_ACCESSORIES_OFFERED: ["room_filter"],
+        },
     )
     await hass.async_block_till_done()
 
@@ -296,6 +407,7 @@ async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
     )
     await hass.async_block_till_done()
     assert CONF_ACCESSORIES not in config_entry.options
+    assert CONF_ACCESSORIES_OFFERED not in config_entry.options
 
 
 async def test_reconfigure_with_the_same_connection_keeps_the_accessories(
@@ -330,6 +442,72 @@ async def test_reconfigure_keeps_custom_title_and_same_values(
     await hass.async_block_till_done()
     assert result["reason"] == "reconfigure_successful"
     assert config_entry.title == "Basement KWL"
+
+
+async def test_reconfigure_normalizes_the_host(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await setup_entry(hass, config_entry)
+    MockConfigEntry(
+        domain=DOMAIN, data={**USER_INPUT, CONF_HOST: "Other.Unit"}
+    ).add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: " other.unit", CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["reason"] == "already_configured"
+
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: " KWL.Local ", CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert config_entry.data[CONF_HOST] == "kwl.local"
+
+
+async def test_reconfigure_uses_the_running_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The unit accepts one connection: a check of the same host uses the entry's."""
+    await setup_entry(hass, config_entry)
+    device.max_connections = 1
+    clients = len(device.clients)
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST, CONF_PORT: PORT, CONF_SLAVE: 11}
+    )
+    await hass.async_block_till_done()
+    assert result["reason"] == "reconfigure_successful"
+    assert len(device.clients) == clients + 1  # only the reloaded entry's
+    assert config_entry.data[CONF_SLAVE] == 11
+    assert config_entry.state is ConfigEntryState.LOADED
+
+
+async def test_reconfigure_to_another_host_opens_a_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Another host is another unit: its connection is checked on its own."""
+    await setup_entry(hass, config_entry)
+    device.max_connections = 1  # the fake has one unit for every host
+    result = await config_entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_reconfigure_rejects_another_device(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    await setup_entry(hass, config_entry)
+    result = await config_entry.start_reconfigure_flow(hass)
+    device.registers[554] = 9
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: NEW_HOST, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+    )
+    assert result["errors"] == {"base": "unsupported_device"}
+    assert config_entry.data[CONF_HOST] == HOST
 
 
 async def test_reconfigure_cannot_connect(

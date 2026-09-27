@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 
 from custom_components.maico_kwl.coordinator import build_blocks
-from custom_components.maico_kwl.const import CONF_ACCESSORIES
+from custom_components.maico_kwl.const import CONF_ACCESSORIES, CONF_ACCESSORIES_OFFERED
 from custom_components.maico_kwl.discovery import (
+    ACCESSORIES_UNTIL_0_4_0,
     active_accessories,
     async_discover,
     derive_profile,
@@ -63,13 +64,15 @@ async def test_discovery_write_only_registers_follow_sibling(
 
 
 async def test_discovery_unexpected_exception_code(
-    hub: MaicoModbusHub, device: FakeDevice
+    hub: MaicoModbusHub, device: FakeDevice, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Any other exception response marks just that register as absent."""
+    """An exception response that stays marks just that register as absent."""
     original = device.clients[0].read_holding_registers
+    asked: list[int] = []
 
     async def failure_at_700(*, address, count, device_id):
         if address == 700:
+            asked.append(count)
             return FakeExceptionResponse(4)  # slave device failure
         return await original(address=address, count=count, device_id=device_id)
 
@@ -77,6 +80,26 @@ async def test_discovery_unexpected_exception_code(
     present, _ = await async_discover(hub)
     assert "temp_room" not in present
     assert "temp_supply_air" in present
+    assert asked == [7, 1, 1, 1]  # the block, then the register three times
+    assert "Register 700 did not answer in 3 attempts" in caplog.text
+
+
+async def test_discovery_asks_again_after_a_temporary_exception(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A gateway that fails once must not cost the register its entities."""
+    original = device.clients[0].read_holding_registers
+    failures = {700: 2}  # the block and the first single probe fail
+
+    async def flaky(*, address, count, device_id):
+        if failures.get(address):
+            failures[address] -= 1
+            return FakeExceptionResponse(4)
+        return await original(address=address, count=count, device_id=device_id)
+
+    device.clients[0].read_holding_registers = flaky
+    present, _ = await async_discover(hub)
+    assert "temp_room" in present
 
 
 @pytest.mark.parametrize("code", [5, 6, 10, 11])
@@ -179,6 +202,25 @@ async def test_discovery_detects_filters_that_are_not_fitted(
     assert not {"outdoor_filter", "room_filter"} & accessories
 
 
+async def test_discovery_with_short_block_answers(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Short answers are probed singly and cannot mark an accessory as missing.
+
+    With 0 days left the filters would count as not fitted, but the notice
+    code (two registers) cannot be read, so the check cannot tell.
+    """
+    expected, _ = await async_discover(hub)
+    device.registers[656] = 0
+    device.registers[657] = 0
+    device.short_blocks = True
+    present, accessories = await async_discover(hub)
+    assert present == expected - {
+        reg.key for reg in REGISTERS if reg.word_count > 1 and reg.probe_via is None
+    } - {"error_reset", "clock_sync"}
+    assert {"outdoor_filter", "room_filter"} <= accessories
+
+
 async def test_discovery_keeps_filters_that_ran_out(
     hub: MaicoModbusHub, device: FakeDevice
 ) -> None:
@@ -246,8 +288,30 @@ def test_registers_in_use_and_active_accessories() -> None:
     """The user's choice wins over the detected accessories."""
     cache = {"accessories": ["room_filter", "zp1"]}
     assert active_accessories(cache, {}) == {"room_filter", "zp1"}
-    assert active_accessories(cache, {CONF_ACCESSORIES: []}) == set()
     assert active_accessories({}, {}) == set()
+    # A choice made with 0.4.0 or older covers all accessories known then.
+    assert active_accessories(cache, {CONF_ACCESSORIES: []}) == set()
+
+
+def test_choice_covers_only_the_accessories_offered_with_it() -> None:
+    """What the unit answers to only later is decided by detection."""
+    cache = {"accessories": ["room_filter", "enocean", "future"]}
+    options = {
+        CONF_ACCESSORIES: ["outdoor_filter"],
+        CONF_ACCESSORIES_OFFERED: ["outdoor_filter", "room_filter"],
+    }
+    # room_filter was offered and left out: stays out. enocean was not
+    # offered then (fitted later), "future" is new in a later version.
+    assert active_accessories(cache, options) == {"outdoor_filter", "enocean", "future"}
+    # Without the offered ones (choice from 0.4.0 or older) only new
+    # accessories are left to detection.
+    del options[CONF_ACCESSORIES_OFFERED]
+    assert active_accessories(cache, options) == {"outdoor_filter", "future"}
+
+
+def test_accessories_until_0_4_0_exist() -> None:
+    """The list must name real accessories, or old choices would widen."""
+    assert ACCESSORIES_UNTIL_0_4_0 <= {acc.key for acc in ACCESSORIES}
 
     present = {"temp_room", "filter_remaining_outdoor", "filter_remaining_room"}
     assert registers_in_use(present, {"room_filter"}) == {

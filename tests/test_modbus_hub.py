@@ -63,3 +63,17 @@ async def test_reconnects_after_connection_loss(
     device.online = False
     with pytest.raises(MaicoConnectionError, match="cannot connect"):
         await hub.write(553, [220])
+
+
+async def test_short_answer_is_a_rejected_read(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Missing registers must not decode as 0, and are no connection loss."""
+    device.short_blocks = True
+    with pytest.raises(MaicoModbusError) as err:
+        await hub.read_block(553, 2)
+    assert not isinstance(err.value, MaicoConnectionError)
+    with pytest.raises(MaicoModbusError) as err:
+        await hub.probe(553, 2)
+    assert not isinstance(err.value, MaicoConnectionError)
+    assert await hub.read_block(553, 1) == [215]

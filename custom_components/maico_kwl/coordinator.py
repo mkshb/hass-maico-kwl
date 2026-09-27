@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .bus_feed import BusFeeder
 from .const import DOMAIN, MAX_BLOCK_SIZE, MaicoProfile
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
-from .register_defs import BUTTON, REGISTERS_BY_KEY, RegisterDef, RegisterValue
+from .register_defs import (
+    BUTTON,
+    REGISTERS_BY_KEY,
+    RegisterDef,
+    RegisterValue,
+    identity_problem,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,10 +85,31 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
             and REGISTERS_BY_KEY[key].readable
         ]
         self._blocks = build_blocks(read_defs)
+        # Set while the last poll did not look like a Maico KWL; nothing is
+        # written to the device then (see register_defs.IDENTITY_RANGES).
+        self.identity_problem: str | None = None
+        self._write_listeners: list[Callable[[str, float | datetime], None]] = []
+
+    @callback
+    def async_add_write_listener(
+        self, listener: Callable[[str, float | datetime], None]
+    ) -> Callable[[], None]:
+        """Call listener(key, value) after every successful write by an entity.
+
+        A write shows up in the data only with a later poll; the refresh after
+        a write may be held back by the debouncer.
+        """
+        self._write_listeners.append(listener)
+        return lambda: self._write_listeners.remove(listener)
+
+    @callback
+    def async_notify_write(self, key: str, value: float | datetime) -> None:
+        for listener in list(self._write_listeners):
+            listener(key, value)
 
     async def _async_update_data(self) -> MaicoData:
         try:
-            return await self._read_all()
+            data = await self._read_all()
         except MaicoConnectionError as err:
             # Retrying register by register would only multiply the timeouts.
             raise UpdateFailed(
@@ -89,6 +117,8 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
                 translation_key="device_unreachable",
                 translation_placeholders={"error": str(err)},
             ) from err
+        self.identity_problem = identity_problem(data)
+        return data
 
     async def _read_all(self) -> MaicoData:
         data: MaicoData = {}

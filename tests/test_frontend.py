@@ -23,7 +23,7 @@ async def test_card_is_served_and_loaded(hass: HomeAssistant) -> None:
     """With the frontend loaded, the card is served and its loader added."""
     hass.config.components.add("frontend")
     hass.http = MagicMock(async_register_static_paths=AsyncMock())
-    with patch("custom_components.maico_kwl.add_extra_js_url") as add_js:
+    with patch("homeassistant.components.frontend.add_extra_js_url") as add_js:
         assert await async_setup_component(hass, DOMAIN, {})
 
     (paths,), _ = hass.http.async_register_static_paths.call_args
@@ -45,12 +45,27 @@ async def test_missing_card_does_not_stop_the_integration(
     hass.http = MagicMock(async_register_static_paths=AsyncMock())
     with (
         patch("custom_components.maico_kwl.FRONTEND_DIR", tmp_path),
-        patch("custom_components.maico_kwl.add_extra_js_url") as add_js,
+        patch("homeassistant.components.frontend.add_extra_js_url") as add_js,
     ):
         assert await async_setup_component(hass, DOMAIN, {})
     add_js.assert_not_called()
     hass.http.async_register_static_paths.assert_not_called()
     assert "Dashboard card not available" in caplog.text
+
+
+async def test_card_api_changed_does_not_stop_the_integration(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """If HA moves a frontend function, only the card is missing."""
+    hass.config.components.add("frontend")
+    hass.http = MagicMock(async_register_static_paths=AsyncMock())
+    with patch(
+        "custom_components.maico_kwl._card_api",
+        side_effect=ImportError("cannot import name 'StaticPathConfig'"),
+    ):
+        assert await async_setup_component(hass, DOMAIN, {})
+    hass.http.async_register_static_paths.assert_not_called()
+    assert "Dashboard card not available: cannot import name" in caplog.text
 
 
 def test_static_path_config_from_the_http_package() -> None:
@@ -62,7 +77,7 @@ def test_static_path_config_from_the_http_package() -> None:
 
 async def test_card_is_skipped_without_frontend(hass: HomeAssistant) -> None:
     """Without the frontend (e.g. a headless install) nothing is registered."""
-    with patch("custom_components.maico_kwl.add_extra_js_url") as add_js:
+    with patch("homeassistant.components.frontend.add_extra_js_url") as add_js:
         assert await async_setup_component(hass, DOMAIN, {})
     add_js.assert_not_called()
 

@@ -16,19 +16,27 @@ registers of a block the device rejects are probed one by one.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Mapping
 from typing import Any
 
-from .const import CONF_ACCESSORIES, CONF_DISCOVERY, MaicoProfile
+from .const import (
+    CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
+    CONF_DISCOVERY,
+    MaicoProfile,
+)
 from .coordinator import build_blocks
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import (
     ACCESSORIES,
+    IDENTITY_RANGES,
     REGISTERS,
     REGISTERS_BY_KEY,
     RegisterDef,
     Values,
+    identity_problem,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +44,12 @@ _LOGGER = logging.getLogger(__name__)
 # Version of the stored discovery. A stored result of an older version is
 # discovered again: 2 adds the detected accessories.
 DISCOVERY_VERSION = 2
+
+# An unexpected exception response (e.g. 4, slave device failure) may be
+# temporary, e.g. from a gateway whose device did not answer in time. A single
+# register only counts as absent if it keeps coming.
+PROBE_ATTEMPTS = 3
+PROBE_RETRY_DELAY = 1.0  # seconds
 
 
 async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
@@ -68,6 +82,20 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
     return present, accessories
 
 
+async def async_check_identity(hub: MaicoModbusHub) -> str | None:
+    """Why the device does not look like a Maico KWL, or None.
+
+    Reads the registers of IDENTITY_RANGES, a rejected block register by
+    register: a unit may lack one of them (discovery allows for that), but not
+    all. Raises MaicoConnectionError if the device cannot be reached.
+    """
+    defs = [REGISTERS_BY_KEY[key] for key in IDENTITY_RANGES]
+    values = await _read_values(hub, defs, singly=True)
+    if not values:
+        return "none of its registers 108, 109, 550 to 554 and 650 can be read"
+    return identity_problem(values)
+
+
 def cache_data(present: set[str], accessories: set[str]) -> dict[str, Any]:
     """Discovery result to store in the config entry.
 
@@ -87,9 +115,25 @@ def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in data.items() if key != CONF_DISCOVERY}
 
 
-def present_from_cache(cache: dict[str, Any] | None) -> set[str] | None:
+def _valid_cache(cache: Any) -> bool:
+    """Whether a stored discovery has the format of this version.
+
+    An older one is discovered again, and so is a newer one (e.g. after a
+    downgrade) or a damaged one, rather than read with the wrong meaning or
+    failing the setup.
+    """
+    if not isinstance(cache, Mapping) or cache.get("version") != DISCOVERY_VERSION:
+        return False
+    return all(
+        isinstance(items := cache.get(key), list)
+        and all(isinstance(item, str) for item in items)
+        for key in ("probed", "present", "accessories")
+    )
+
+
+def present_from_cache(cache: Any) -> set[str] | None:
     """Present registers from a stored discovery, or None to discover again."""
-    if not cache or cache.get("version", 1) < DISCOVERY_VERSION:
+    if not _valid_cache(cache):
         return None
     probed = set(cache.get("probed", []))
     if any(reg.probe_via is None and reg.key not in probed for reg in REGISTERS):
@@ -107,14 +151,37 @@ def offered_accessories(present: set[str]) -> set[str]:
     return {acc.key for acc in ACCESSORIES if present.intersection(acc.keys)}
 
 
+# All accessories up to 0.4.0, which stored a choice without the offered ones.
+# Such a choice was made from these at most.
+ACCESSORIES_UNTIL_0_4_0 = frozenset(
+    {
+        "outdoor_filter",
+        "room_filter",
+        "wired_sensors",
+        "enocean",
+        "external_room_sensor",
+        "ptc_heater",
+        "zp1",
+    }
+)
+
+
 def active_accessories(
     cache: Mapping[str, Any], options: Mapping[str, Any]
 ) -> set[str]:
-    """The accessories in use: the user's choice, else the detected ones."""
+    """The accessories in use: the user's choice, else the detected ones.
+
+    The choice only covers the accessories offered when it was made. One the
+    unit answers to only later (fitted afterwards, or new in a later version)
+    is decided by detection, instead of counting as not fitted.
+    """
+    stored = cache.get("accessories") if isinstance(cache, Mapping) else None
+    detected = set(stored) if isinstance(stored, list) else set()
     chosen = options.get(CONF_ACCESSORIES)
-    if chosen is not None:
-        return set(chosen)
-    return set(cache.get("accessories", []))
+    if chosen is None:
+        return detected
+    offered = set(options.get(CONF_ACCESSORIES_OFFERED, ACCESSORIES_UNTIL_0_4_0))
+    return set(chosen) | (detected - offered)
 
 
 def registers_in_use(present: set[str], accessories: set[str]) -> set[str]:
@@ -135,22 +202,41 @@ async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]
     if len(defs) > 1:
         start = defs[0].address
         count = defs[-1].address + defs[-1].word_count - start
-        if await _probe(hub, start, count):
+        if await _probe(hub, start, count, attempts=1):
             return {reg.key for reg in defs}
     return {
-        reg.key for reg in defs if await _probe(hub, reg.address, reg.word_count)
+        reg.key
+        for reg in defs
+        if await _probe(hub, reg.address, reg.word_count, PROBE_ATTEMPTS)
     }
 
 
-async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
-    try:
-        return await hub.probe(address, count)
-    except MaicoConnectionError:
-        raise
-    except MaicoModbusError as err:
-        # An unexpected exception code: handle it like a rejected read.
-        _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
-        return False
+async def _probe(
+    hub: MaicoModbusHub, address: int, count: int, attempts: int
+) -> bool:
+    """Whether the registers answer; 1 to 3 (e.g. Illegal Data Address) is no.
+
+    Any other exception response is asked again up to ``attempts`` times; one
+    that stays counts as absent, and is logged as a warning for a single
+    register, since its entities are then left out.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            return await hub.probe(address, count)
+        except MaicoConnectionError:
+            raise
+        except MaicoModbusError as err:
+            if attempt < attempts:
+                await asyncio.sleep(PROBE_RETRY_DELAY)
+                continue
+            if attempts > 1:
+                _LOGGER.warning(
+                    "Register %s did not answer in %d attempts and is left out: %s",
+                    address, attempts, err,
+                )
+            else:
+                _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
+    return False
 
 
 async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str]:
@@ -170,7 +256,11 @@ async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str
     }
 
 
-async def _read_values(hub: MaicoModbusHub, defs: list[RegisterDef]) -> Values:
+async def _read_values(
+    hub: MaicoModbusHub, defs: list[RegisterDef], singly: bool = False
+) -> Values:
+    """The values of defs that can be read; with singly, a rejected block is
+    read again register by register."""
     values: Values = {}
     for start, count, block in build_blocks(defs):
         try:
@@ -178,7 +268,10 @@ async def _read_values(hub: MaicoModbusHub, defs: list[RegisterDef]) -> Values:
         except MaicoConnectionError:
             raise
         except MaicoModbusError as err:
-            _LOGGER.debug("Accessory check read %s+%s failed: %s", start, count, err)
+            _LOGGER.debug("Read %s+%s failed: %s", start, count, err)
+            if singly and len(block) > 1:
+                for reg in block:
+                    values.update(await _read_values(hub, [reg]))
             continue
         for reg in block:
             offset = reg.address - start

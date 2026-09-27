@@ -40,6 +40,7 @@ MODE = "operating_mode"
 LEVEL = "ventilation_level"
 BOOST = "boost_ventilation"
 CURRENT_LEVEL = "current_vent_level"
+LEVEL_DURATION = "vent_level_duration"
 
 # Speeds from low to high; "off" is the fan being off, not a speed.
 SPEEDS = [slug for raw, slug in sorted(VENT_LEVEL.items()) if raw > 0]
@@ -77,6 +78,23 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
         mode = self._slug(MODE)
         self._last_mode = mode if mode in PRESETS else "manual"
         self._end_boost: CALLBACK_TYPE | None = None
+        # Whether 551 was read as on since the timer was set: only its change
+        # back to off ends the boost the timer belongs to. A poll that started
+        # before the boost was written may still read off.
+        self._boost_seen_on = False
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_write_listener(self._handle_write)
+        )
+
+    @callback
+    def _handle_write(self, key: str, value: float | datetime) -> None:
+        # Switched off in Home Assistant (e.g. at the boost switch): the timed
+        # boost has ended, a later one must not be cut short by its timer.
+        if key == BOOST and value == 0:
+            self._cancel_boost_timer()
 
     async def async_will_remove_from_hass(self) -> None:
         self._cancel_boost_timer()
@@ -90,13 +108,29 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
     async def async_boost(self, duration: int | None = None) -> None:
         """Start the boost ventilation (551), optionally for a number of minutes.
 
-        Without a duration the unit ends the boost on its own terms. With one,
-        Home Assistant switches it off again when the time is up; a new call
-        replaces the running timer.
+        The unit ends a boost itself after its ventilation level duration
+        (153). A shorter duration makes Home Assistant switch it off earlier; a
+        new call replaces the running timer. A longer one could not be kept,
+        so it is refused. The timer does not survive a reload: the unit then
+        ends the boost after its own duration.
         """
         if BOOST not in self.coordinator.present:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="boost_unavailable"
+            )
+        unit_minutes = self.coordinator.data.get(LEVEL_DURATION)
+        if (
+            duration is not None
+            and isinstance(unit_minutes, (int, float))
+            and duration > unit_minutes
+        ):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="boost_too_long",
+                translation_placeholders={
+                    "duration": str(duration),
+                    "unit_minutes": f"{unit_minutes:g}",
+                },
             )
         reg = REGISTERS_BY_KEY[BOOST]
         self._cancel_boost_timer()
@@ -105,6 +139,7 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
             self._end_boost = async_call_later(
                 self.hass, duration * 60, self._async_boost_time_up
             )
+            self._boost_seen_on = False
         await self.coordinator.async_request_refresh()
 
     async def _async_boost_time_up(self, _now: datetime) -> None:
@@ -133,7 +168,25 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
     def _handle_coordinator_update(self) -> None:
         if (mode := self._slug(MODE)) in PRESETS:
             self._last_mode = mode
+        self._follow_boost()
         super()._handle_coordinator_update()
+
+    def _follow_boost(self) -> None:
+        """Drop the timer once its boost has ended, however it ended.
+
+        E.g. the unit ended it after its ventilation level duration, or it was
+        switched off at the control panel. A boost started after that must not
+        be cut short by this timer. Switching it off in Home Assistant is seen
+        at once (_handle_write); off and on again at the control panel within
+        one poll cannot be told apart.
+        """
+        if self._end_boost is None:
+            return
+        boost = self.coordinator.data.get(BOOST)
+        if boost == 1:
+            self._boost_seen_on = True
+        elif boost == 0 and self._boost_seen_on:
+            self._cancel_boost_timer()
 
     @property
     def preset_mode(self) -> str | None:

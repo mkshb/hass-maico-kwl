@@ -12,13 +12,13 @@ from pytest_homeassistant_custom_component.components.diagnostics import (
 from custom_components.maico_kwl.const import CONF_HOST, CONF_ROOM_TEMP_SOURCE_ENTITY
 
 from .conftest import HOST, FakeDevice
-from .helpers import setup_entry
+from .helpers import CELSIUS, setup_entry
 
 
 async def test_diagnostics(
     hass: HomeAssistant, hass_client, device: FakeDevice, config_entry
 ) -> None:
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     config_entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(
         config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}

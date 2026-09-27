@@ -8,6 +8,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import DOMAIN
 
+# Attributes of bus feed sources in the unit of their register.
+CELSIUS = {"unit_of_measurement": "°C"}
+PERCENT = {"unit_of_measurement": "%"}
+PPM = {"unit_of_measurement": "ppm"}
+
 
 async def setup_entry(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     """Add the entry to HA (unless already added) and set it up."""

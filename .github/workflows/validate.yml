@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+# Read only, also if the repository default changes.
+permissions:
+  contents: read
+
 jobs:
   hassfest:
     name: "Hassfest"

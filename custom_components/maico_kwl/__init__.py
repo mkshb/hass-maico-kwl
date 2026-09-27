@@ -5,11 +5,9 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
+from typing import Any
 
-from homeassistant.components.frontend import add_extra_js_url
-# Defined in http/__init__ up to HA 2026.7 and re-exported there from
-# http/server since 2026.8, without marking it as exported for mypy.
-from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
+from homeassistant.const import ATTR_RESTORED
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er
@@ -32,12 +30,14 @@ from .const import (
 from .coordinator import MaicoConfigEntry, MaicoCoordinator, MaicoRuntimeData
 from .discovery import (
     active_accessories,
+    async_check_identity,
     async_discover,
     cache_data,
     derive_profile,
     present_from_cache,
     registers_in_use,
 )
+from .entity import ORPHANED
 from .issues import async_delete_issues, async_update_issues
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
@@ -68,6 +68,12 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     """
     if "frontend" not in hass.config.components:
         return
+    try:
+        add_extra_js_url, static_path_config = _card_api()
+    except ImportError as err:
+        # The card is optional: a change in Home Assistant must not stop the unit.
+        _LOGGER.warning("Dashboard card not available: %s", err)
+        return
     loader = FRONTEND_DIR / CARD_LOADER
     try:
         digest = await hass.async_add_executor_job(_content_hash, loader)
@@ -77,11 +83,26 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         return
     await hass.http.async_register_static_paths(
         [
-            StaticPathConfig(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
-            StaticPathConfig(FRONTEND_URL, str(FRONTEND_DIR), True),
+            static_path_config(f"{FRONTEND_URL}/{CARD_LOADER}", str(loader), False),
+            static_path_config(FRONTEND_URL, str(FRONTEND_DIR), True),
         ]
     )
     add_extra_js_url(hass, f"{FRONTEND_URL}/{CARD_LOADER}?v={digest}")
+
+
+def _card_api() -> tuple[Any, Any]:
+    """The frontend functions the card needs.
+
+    Imported here rather than with the module: if Home Assistant moves one of
+    them, only the card is missing, not the whole integration.
+    """
+    from homeassistant.components.frontend import add_extra_js_url
+
+    # Defined in http/__init__ up to HA 2026.7 and re-exported there from
+    # http/server since 2026.8, without marking it as exported for mypy.
+    from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
+
+    return add_extra_js_url, StaticPathConfig
 
 
 def _content_hash(path: Path) -> str:
@@ -99,32 +120,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
     )
 
     hub = MaicoModbusHub(host, port, slave)
+    feeder: BusFeeder | None = None
     try:
         coordinator = await _async_discover_and_refresh(
             hass, entry, hub, scan_interval
         )
+
+        feeds = [
+            (REGISTERS_BY_KEY[reg_key], entity_id)
+            for reg_key, conf_key, _device_class in BUS_FEEDS
+            if (entity_id := entry.options.get(conf_key))
+            and reg_key in coordinator.present
+        ]
+        feeder = BusFeeder(
+            hass, entry, hub, feeds, lambda: coordinator.identity_problem
+        )
+        await feeder.async_start()
+
+        entry.runtime_data = MaicoRuntimeData(
+            hub=hub, coordinator=coordinator, feeder=feeder
+        )
+
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except BaseException:
         # Close on any failure, including cancellation. pymodbus reconnects in
         # the background, so an unclosed client would keep a connection open
-        # for every retry of the setup.
+        # for every retry of the setup. HA does not unload an entry whose
+        # setup failed, so a started feeder would keep writing as well.
+        if feeder is not None:
+            feeder.async_stop()
         await hub.close()
         raise
 
-    feeds = [
-        (REGISTERS_BY_KEY[reg_key], entity_id)
-        for reg_key, conf_key, _device_class in BUS_FEEDS
-        if (entity_id := entry.options.get(conf_key))
-        and reg_key in coordinator.present
-    ]
-    feeder = BusFeeder(hass, entry, hub, feeds)
-    await feeder.async_start()
-
-    entry.runtime_data = MaicoRuntimeData(
-        hub=hub, coordinator=coordinator, feeder=feeder
-    )
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    _async_remove_orphaned_entities(hass, entry)
+    _async_disable_orphaned_entities(hass, entry)
 
     async_update_issues(hass, entry)
     entry.async_on_unload(
@@ -153,6 +181,21 @@ async def _async_discover_and_refresh(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
             translation_placeholders={"host": hub.host, "port": str(hub.port)},
+        )
+    # Before anything is probed, stored or written: is it a Maico KWL at all?
+    try:
+        problem = await async_check_identity(hub)
+    except MaicoModbusError as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="device_unreachable",
+            translation_placeholders={"error": str(err)},
+        ) from err
+    if problem:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="unsupported_device",
+            translation_placeholders={"details": problem},
         )
 
     present = present_from_cache(entry.data.get(CONF_DISCOVERY))
@@ -196,15 +239,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bo
 
 
 @callback
-def _async_remove_orphaned_entities(
+def _async_disable_orphaned_entities(
     hass: HomeAssistant, entry: MaicoConfigEntry
 ) -> None:
-    """Remove entities this setup no longer creates.
+    """Disable the entities this setup no longer creates.
 
-    E.g. registers a rediscovery did not find again, or the "sent" sensor of a
-    bus input whose source entity was removed. They would stay unavailable.
-    A platform whose setup failed recorded nothing, so its entities are kept
-    rather than removed with their names and areas.
+    E.g. registers a rediscovery did not find, accessories no longer selected,
+    or the "sent" sensor of a bus input without a source. They would stay
+    unavailable. Disabled rather than removed, so their names, areas and
+    entity ids are still there when they come back (see
+    async_add_maico_entities); only entities that were enabled are marked, so
+    ones the user or the defaults disabled stay as they are.
+    A platform whose setup failed recorded nothing, so its entities are kept.
     """
     runtime = entry.runtime_data
     ent_reg = er.async_get(hass)
@@ -212,8 +258,20 @@ def _async_remove_orphaned_entities(
         if (
             reg_entry.domain in runtime.platforms
             and reg_entry.unique_id not in runtime.unique_ids
+            and reg_entry.disabled_by is None
         ):
-            ent_reg.async_remove(reg_entry.entity_id)
+            ent_reg.async_update_entity_options(
+                reg_entry.entity_id, DOMAIN, {ORPHANED: True}
+            )
+            ent_reg.async_update_entity(
+                reg_entry.entity_id,
+                disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+            )
+            # The placeholder HA leaves when an entity is removed would show
+            # it as unavailable until the next restart.
+            state = hass.states.get(reg_entry.entity_id)
+            if state is not None and state.attributes.get(ATTR_RESTORED):
+                hass.states.async_remove(reg_entry.entity_id)
 
 
 async def _async_update_listener(

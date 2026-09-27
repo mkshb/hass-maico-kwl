@@ -9,10 +9,13 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, service
 
 from .const import DOMAIN
+from .register_defs import REGISTERS_BY_KEY
 
 SERVICE_BOOST = "boost"
 ATTR_DURATION = "duration"
-MAX_BOOST_MINUTES = 720
+# The unit ends a boost after its "ventilation level duration" (153), at most
+# 90 minutes; a longer duration could not be kept. See MaicoFan.async_boost.
+MAX_BOOST_MINUTES = int(REGISTERS_BY_KEY["vent_level_duration"].native_max or 90)
 
 
 @callback

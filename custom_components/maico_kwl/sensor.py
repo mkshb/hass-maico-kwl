@@ -23,6 +23,7 @@ from .derived import (
     DERIVED_SENSORS,
     FILTER_DUE,
     HEAT_RECOVERY_SOURCES,
+    MAX_RECOVERY_POWER,
     DerivedDef,
     heat_recovery_power,
 )
@@ -269,12 +270,20 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
         return max(MAX_ENERGY_GAP, interval * MAX_ENERGY_GAP_INTERVALS)
 
     def _add_reading(self) -> None:
+        if not self.coordinator.last_update_success:
+            # A failed poll keeps the previous data; it is no new reading. The
+            # last real one stays, so a short outage is bridged between real
+            # readings, a long one is a gap (see _max_gap).
+            return
         numbers = self._numbers
         if numbers is None:
             self._last = None  # a gap: start over with the next reading
             return
         now = dt_util.utcnow()
         power = max(0.0, heat_recovery_power(*numbers))
+        if power > MAX_RECOVERY_POWER:
+            self._last = None  # no measurement: a gap, as for a missing one
+            return
         if self._last is not None:
             last_time, last_power = self._last
             elapsed = now - last_time

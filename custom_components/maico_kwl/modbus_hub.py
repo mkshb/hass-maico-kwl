@@ -8,6 +8,7 @@ the slave id is passed as ``device_id`` (not ``slave``).
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 
 from pymodbus.client import AsyncModbusTcpClient
@@ -39,6 +40,22 @@ class MaicoConnectionError(MaicoModbusError):
     """
 
 
+def _checked_registers(result: ModbusPDU, address: int, count: int) -> list[int]:
+    """The registers of a response, if it holds exactly the ones requested.
+
+    pymodbus takes the length from the response, so a short answer (e.g. from a
+    gateway) would otherwise decode the missing registers as 0. Raised as a
+    rejected read: polling falls back to single reads, discovery to single
+    probes.
+    """
+    registers = list(result.registers)
+    if len(registers) != count:
+        raise MaicoModbusError(
+            f"read at {address} returned {len(registers)} of {count} registers"
+        )
+    return registers
+
+
 class MaicoModbusHub:
     """Owns the pymodbus client and serializes access to it."""
 
@@ -49,6 +66,8 @@ class MaicoModbusHub:
         self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
         self._closed = False
+        # False for a view (with_slave) that shares another hub's connection.
+        self._owns_client = True
 
     @property
     def host(self) -> str:
@@ -68,8 +87,22 @@ class MaicoModbusHub:
             await self._client.connect()
             return self._client.connected
 
+    def with_slave(self, slave: int) -> MaicoModbusHub:
+        """This hub's connection, addressing another Modbus address.
+
+        The unit accepts only one Modbus TCP connection at a time, so e.g. a
+        reconfigure check of a running entry must use its connection. The
+        view shares the client and the lock; closing it closes nothing.
+        """
+        view = copy.copy(self)
+        view._slave = slave
+        view._owns_client = False
+        return view
+
     async def close(self) -> None:
         self._closed = True
+        if not self._owns_client:
+            return
         self._client.close()
 
     async def _ensure_connected(self) -> None:
@@ -97,7 +130,7 @@ class MaicoModbusHub:
         result = await self._read(address, count)
         if result.isError():
             raise MaicoModbusError(f"read at {address} returned {result}")
-        return list(result.registers)
+        return _checked_registers(result, address, count)
 
     async def probe(self, address: int, count: int = 1) -> bool:
         """Return True if the register exists on this device.
@@ -116,6 +149,7 @@ class MaicoModbusHub:
             if code in _TRANSIENT_CODES:
                 raise MaicoConnectionError(f"probe at {address} returned {result}")
             raise MaicoModbusError(f"probe at {address} returned {result}")
+        _checked_registers(result, address, count)
         return True
 
     async def write(self, address: int, values: list[int]) -> None:

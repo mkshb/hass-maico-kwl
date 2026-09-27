@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 
 REGISTER_OFFSET = 0
 
@@ -137,6 +138,16 @@ NOTICE_BITS = {
 ZONE_DAMPER = {0: "off", 1: "zone_1", 2: "zone_2", 3: "zone_sensor"}
 
 
+def to_raw(value: float, scale: float) -> int:
+    """A real-world value in register steps, rounded half away from zero.
+
+    As Home Assistant shows values (54.5 % as 55 %), unlike round() (54), and
+    computed from the decimal text, so 21.35 degC becomes 214, not 213.
+    """
+    steps = Decimal(str(value)) / Decimal(str(scale))
+    return int(steps.quantize(Decimal(1), rounding=ROUND_HALF_UP))
+
+
 @dataclass(frozen=True)
 class RegisterDef:
     """A single Maico Modbus register mapped to one HA entity."""
@@ -194,30 +205,38 @@ class RegisterDef:
             return raw
         return round(raw * self.scale, 3)
 
+    @property
+    def raw_range(self) -> tuple[int, int]:
+        """The raw values the register's data type can hold."""
+        total_bits = 16 * self.word_count
+        if self.signed:
+            return -(1 << (total_bits - 1)), (1 << (total_bits - 1)) - 1
+        return 0, (1 << total_bits) - 1
+
     def encode(self, value: float | datetime) -> list[int]:
-        """Turn a real-world value into the raw register words (High-Word first)."""
+        """Turn a real-world value into the raw register words (High-Word first).
+
+        Raises ValueError for a value the data type cannot hold, rather than
+        cutting it to the register width and writing something else.
+        """
         if isinstance(value, datetime):
             return [
                 value.year, value.month, value.day,
                 value.hour, value.minute, value.second,
             ]
-        raw = int(round(value / self.scale))
+        raw = to_raw(value, self.scale)
+        low, high = self.raw_range
+        if not low <= raw <= high:
+            raise ValueError(
+                f"{value:g} does not fit register {self.address} ({self.data_type})"
+            )
         total_bits = 16 * self.word_count
         if raw < 0:
             raw += 1 << total_bits
-        raw &= (1 << total_bits) - 1
         return [
             (raw >> (16 * (self.word_count - 1 - i))) & 0xFFFF
             for i in range(self.word_count)
         ]
-
-    def clamp(self, value: float) -> float:
-        """Limit a real-world value to the register's native_min/native_max."""
-        if self.native_min is not None:
-            value = max(value, self.native_min)
-        if self.native_max is not None:
-            value = min(value, self.native_max)
-        return float(value)
 
     def active_bits(self, value: float) -> list[str]:
         """Slugs of the set bits of a bitfield register, in bit order.
@@ -530,6 +549,34 @@ BIT_SENSORS: list[tuple[str, str, str | None]] = [
 # (read once at discovery), and the user can correct that in the options.
 
 type Values = dict[str, RegisterValue | None]
+
+
+# Registers every Maico KWL has, with the values its documentation allows. A
+# device at the configured address that reports others is not taken for a
+# Maico KWL (e.g. another Modbus device got its IP address): it is not set up,
+# and nothing is written to it.
+IDENTITY_RANGES: dict[str, tuple[int, int]] = {
+    "language": (0, 3),
+    "room_temp_source": (0, 3),
+    "operating_mode": (0, 5),
+    "boost_ventilation": (0, 1),
+    "season": (0, 1),
+    "ventilation_level": (0, 4),
+    "current_vent_level": (0, 4),
+}
+
+
+def identity_problem(values: Values) -> str | None:
+    """Why the values do not look like a Maico KWL, or None.
+
+    A missing value is no reason: it may just have failed to read.
+    """
+    for key, (low, high) in IDENTITY_RANGES.items():
+        value = values.get(key)
+        if isinstance(value, (int, float)) and not low <= value <= high:
+            address = REGISTERS_BY_KEY[key].address
+            return f"register {address} reads {value:g}, expected {low} to {high}"
+    return None
 
 
 def _filter_fitted(remaining: str, notice_bit: str) -> Callable[[Values], bool | None]:

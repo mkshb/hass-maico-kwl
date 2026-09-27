@@ -131,10 +131,16 @@ class FakeDevice:
     registers: dict[int, int] = field(default_factory=lambda: dict(DEFAULT_REGISTERS))
     absent: set[int] = field(default_factory=lambda: set(DEFAULT_ABSENT))
     online: bool = True
+    # Connections the unit accepts at once; a real Maico KWL accepts one and
+    # ignores further ones (None: no limit).
+    max_connections: int | None = None
     # Go offline after this many successful reads (None: never).
     fail_after_reads: int | None = None
     # Exception code returned for writes (None: writes succeed).
     write_exception: int | None = None
+    # Answer reads of more than one register with the last one missing, like
+    # a faulty gateway.
+    short_blocks: bool = False
     reads: int = 0
     writes: list[tuple[int, list[int]]] = field(default_factory=list)
     clients: list[FakeModbusClient] = field(default_factory=list)
@@ -159,6 +165,13 @@ class FakeModbusClient:
         device.clients.append(self)
 
     async def connect(self) -> bool:
+        limit = self._device.max_connections
+        if (
+            not self.connected
+            and limit is not None
+            and self._device.open_connections >= limit
+        ):
+            return False  # ignored, like the unit does
         self.connected = self._device.online
         return self.connected
 
@@ -173,7 +186,10 @@ class FakeModbusClient:
         span = range(address, address + count)
         if any(addr in self._device.absent for addr in span):
             return FakeExceptionResponse(2)
-        return FakeResponse([self._device.registers.get(addr, 0) for addr in span])
+        registers = [self._device.registers.get(addr, 0) for addr in span]
+        if self._device.short_blocks and count > 1:
+            registers = registers[:-1]
+        return FakeResponse(registers)
 
     async def write_register(
         self, *, address: int, value: int, device_id: int
@@ -192,6 +208,13 @@ class FakeModbusClient:
         for offset, value in enumerate(values):
             self._device.registers[address + offset] = value
         return FakeResponse()
+
+
+@pytest.fixture(autouse=True)
+def no_probe_retry_delay() -> Generator[None]:
+    """Ask a register again at once instead of after a second."""
+    with patch("custom_components.maico_kwl.discovery.PROBE_RETRY_DELAY", 0):
+        yield
 
 
 @pytest.fixture(autouse=True)

@@ -33,7 +33,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen."
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Die Maico KWL nimmt nur eine Modbus-TCP-Verbindung gleichzeitig an: trenne andere Programme oder Einträge, die mit ihr verbunden sind, oder nutze einen Modbus-Proxy.",
+      "unsupported_device": "Das Gerät sieht nicht wie eine Maico KWL aus: {details}. Prüfe Host und Modbus-Adresse."
     },
     "abort": {
       "already_configured": "Dieses Gerät ist bereits eingerichtet.",
@@ -578,7 +579,7 @@
   },
   "exceptions": {
     "cannot_connect": {
-      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}"
+      "message": "Keine Verbindung zur Maico KWL unter {host}:{port}; sie nimmt nur eine Modbus-TCP-Verbindung gleichzeitig an, prüfe also, dass kein anderes Programm mit ihr verbunden ist, oder nutze einen Modbus-Proxy"
     },
     "discovery_failed": {
       "message": "Die Register der Maico KWL konnten nicht ermittelt werden: {error}"
@@ -597,6 +598,15 @@
     },
     "boost_unavailable": {
       "message": "Das Gerät unterstützt keine Stoßlüftung"
+    },
+    "unsupported_device": {
+      "message": "Das Gerät unter der eingestellten Adresse sieht nicht wie eine Maico KWL aus: {details}"
+    },
+    "boost_too_long": {
+      "message": "Das Gerät beendet die Stoßlüftung nach {unit_minutes} Minuten (Lüftungsstufe Dauer), {duration} Minuten lassen sich also nicht einhalten: wähle eine kürzere Dauer oder erhöhe Lüftungsstufe Dauer"
+    },
+    "value_out_of_range": {
+      "message": "{entity} wurde nicht auf die Maico KWL geschrieben, der Wert liegt außerhalb des Registerbereichs: {error}"
     }
   },
   "issues": {
@@ -619,6 +629,22 @@
     "clock_drift": {
       "title": "Uhr von {name} geht falsch",
       "description": "Die Uhr des Lüftungsgeräts weicht um etwa {minutes} Minuten ab, seine Zeitprogramme laufen dadurch zur falschen Zeit.\n\nDrücke den Button *Uhrzeit mit Home Assistant synchronisieren*, um sie zu stellen."
+    },
+    "bus_source_missing": {
+      "title": "Bus-Quelle von {name} fehlt",
+      "description": "{entity} ist unter **Konfigurieren** als Quelle eines Bus-Eingangs eingestellt, existiert aber nicht mehr. Das Gerät bekommt für diesen Eingang keinen neuen Wert.\n\nWähle unter **Konfigurieren** der Integration eine andere Quelle, oder lass das Feld leer, um den Wert manuell einzustellen. Dieser Hinweis verschwindet, sobald die Quelle wieder existiert oder geändert wurde."
+    },
+    "bus_source_no_data": {
+      "title": "Bus-Quelle von {name} liefert keine Daten",
+      "description": "{entity} ist unter **Konfigurieren** als Quelle eines Bus-Eingangs eingestellt, hat aber seit mehr als 30 Minuten keinen Wert geliefert, der sich senden lässt ({reason}). Das Gerät bekommt für diesen Eingang keinen neuen Wert.\n\nPrüfe die Quelle: Sie muss eine Zahl im Bereich des Eingangs liefern, in °C, °F oder K für die Raumtemperatur, % für die Feuchte und ppm oder ppb für die Luftqualität. Dieser Hinweis verschwindet mit dem nächsten gesendeten Wert."
+    },
+    "bus_value_not_delivered": {
+      "title": "{name} bekommt keinen Bus-Wert",
+      "description": "Der Wert für den Bus-Eingang {register} (707 Raumtemperatur, 763 Feuchte, 764 Luftqualität) ließ sich seit 10 Minuten nicht schreiben: {error}.\n\nDas Gerät behält einen Bus-Wert nur 10 Minuten und nutzt danach wieder seinen internen Fühler. Die Integration versucht es weiter jede Minute. Prüfe die Verbindung zum Gerät. Dieser Hinweis verschwindet mit dem nächsten erfolgreichen Schreiben."
+    },
+    "unsupported_device": {
+      "title": "{name} sieht nicht wie eine Maico KWL aus",
+      "description": "Das Gerät unter der eingestellten Adresse meldet Werte, die eine Maico KWL nicht hat: {details}.\n\nVielleicht hat jetzt ein anderes Gerät diese IP-Adresse. Solange seine Werte nicht passen, wird nichts dorthin geschrieben. Prüfe die Adresse des Geräts oder korrigiere sie mit **Neu konfigurieren** in der Integration. Dieser Hinweis verschwindet, sobald die Werte wieder passen."
     }
   },
   "services": {
@@ -628,7 +654,7 @@
       "fields": {
         "duration": {
           "name": "Dauer",
-          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet. Ohne Dauer beendet das Gerät sie selbst."
+          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet, höchstens die Lüftungsstufe Dauer des Geräts. Ohne Dauer beendet das Gerät sie nach seiner Lüftungsstufe Dauer."
         }
       }
     }

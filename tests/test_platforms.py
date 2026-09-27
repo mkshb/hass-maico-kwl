@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from homeassistant.const import (
@@ -18,8 +18,11 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.maico_kwl.const import CONF_DISCOVERY
+from custom_components.maico_kwl.const import CONF_DISCOVERY, DOMAIN
+from custom_components.maico_kwl.entity import async_write_register
+from custom_components.maico_kwl.register_defs import REGISTERS_BY_KEY
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -238,6 +241,19 @@ async def test_failed_write_raises_home_assistant_error(
     assert str(err.value).startswith(f"Writing {boost} to the Maico KWL failed: ")
 
 
+async def test_value_the_register_cannot_hold_is_not_written(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """A write that fails in encode is a clear error, and nothing reaches the unit."""
+    reg = REGISTERS_BY_KEY["filter_dp_allowed"]
+    with pytest.raises(HomeAssistantError) as err:
+        await async_write_register(
+            loaded.runtime_data.coordinator, reg, 70000, "number.test"
+        )
+    assert err.value.translation_key == "value_out_of_range"
+    assert not device.writes
+
+
 async def test_problem_sensor_attributes(hass: HomeAssistant, loaded) -> None:
     """The problem sensor sits on the unit's device as a diagnostic entity."""
     ent_reg = er.async_get(hass)
@@ -315,10 +331,21 @@ async def test_rediscover_button(
     assert registry_entry.entity_category is EntityCategory.DIAGNOSTIC
 
 
-async def test_rediscover_removes_entities_of_missing_registers(
+async def _rediscover(hass: HomeAssistant, entry) -> None:
+    button = entity_id(hass, entry, "button", "rediscover")
+    await hass.services.async_call(
+        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+
+async def test_rediscover_disables_entities_of_missing_registers(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    """Entities of registers the unit no longer answers are removed."""
+    """Entities of registers the unit no longer answers are disabled, not removed.
+
+    They keep what the user set, and come back with it.
+    """
     device.registers[109] = 1  # room temperature from the external sensor
     loaded = config_entry
     await setup_entry(hass, loaded)
@@ -328,19 +355,54 @@ async def test_rediscover_removes_entities_of_missing_registers(
     # Disabled by default: in the registry without a state, and still wanted.
     external = entity_id(hass, loaded, "sensor", "temp_room_external")
     assert hass.states.get(external) is None
+    ent_reg.async_update_entity(humidity, name="Bad", area_id="bathroom")
 
     device.absent.add(750)  # humidity sensor removed from the unit
-    button = entity_id(hass, loaded, "button", "rediscover")
-    await hass.services.async_call(
-        "button", "press", {ATTR_ENTITY_ID: button}, blocking=True
-    )
-    await hass.async_block_till_done()
+    await _rediscover(hass, loaded)
 
     assert loaded.state is ConfigEntryState.LOADED
-    assert ent_reg.async_get(humidity) is None
-    assert ent_reg.async_get(dew_point) is None  # derived from it
-    assert ent_reg.async_get(external) is not None
-    assert ent_reg.async_get(entity_id(hass, loaded, "sensor", "temp_room"))
+    for eid in (humidity, dew_point):  # the dew point is derived from it
+        entry = ent_reg.async_get(eid)
+        assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        assert hass.states.get(eid) is None
+    assert ent_reg.async_get(humidity).name == "Bad"
+    assert ent_reg.async_get(external).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert ent_reg.async_get(entity_id(hass, loaded, "sensor", "temp_room")).disabled_by is None
+
+    device.absent.discard(750)  # the sensor is back
+    await _rediscover(hass, loaded)
+    entry = ent_reg.async_get(humidity)
+    assert entry.disabled_by is None
+    assert (entry.name, entry.area_id) == ("Bad", "bathroom")
+    assert DOMAIN not in entry.options
+    assert hass.states.get(humidity).state == "45"
+    assert hass.states.get(dew_point) is not None
+    # Enabling makes HA reload the entry once; the entities stay as they are.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
+    assert loaded.state is ConfigEntryState.LOADED
+    assert ent_reg.async_get(humidity).disabled_by is None
+    assert ent_reg.async_get(external).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_cleanup_leaves_entities_the_user_disabled(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """Only what the cleanup disabled itself is enabled again."""
+    ent_reg = er.async_get(hass)
+    humidity = entity_id(hass, loaded, "sensor", "humidity_exhaust")
+    ent_reg.async_update_entity(
+        humidity, disabled_by=er.RegistryEntryDisabler.USER
+    )
+    device.absent.add(750)
+    await _rediscover(hass, loaded)
+    assert DOMAIN not in ent_reg.async_get(humidity).options
+
+    device.absent.discard(750)
+    await _rediscover(hass, loaded)
+    assert ent_reg.async_get(humidity).disabled_by is er.RegistryEntryDisabler.USER
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
 
 
 async def test_filter_that_is_not_fitted_creates_no_entities(

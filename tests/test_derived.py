@@ -209,6 +209,102 @@ async def test_heat_recovery_energy_skips_gaps(
     assert _energy(hass, config_entry) == 0.0
 
 
+async def test_heat_recovery_energy_ignores_a_failed_poll(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """The old data of a failed poll is no reading; real ones are bridged.
+
+    1173 W before, 0 W after a 9 min outage: the mean of the two real
+    readings counts, not 5 min of the old power carried on.
+    """
+    await setup_entry(hass, config_entry)
+    device.online = False
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+
+    device.online = True
+    device.registers[704] = device.registers[703]  # supply = intake: 0 W
+    freezer.tick(timedelta(minutes=4))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == pytest.approx(
+        1173 / 2 * 9 / 60 / 1000, abs=0.001
+    )
+
+
+async def test_heat_recovery_energy_long_outage_is_a_gap(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    await setup_entry(hass, config_entry)
+    device.online = False
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    device.online = True
+    freezer.tick(timedelta(minutes=25))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0
+
+
+async def test_sensor_fault_value_makes_computed_values_unavailable(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """E.g. a supply air sensor fault read as 3276.7 degC: no values, no energy."""
+    await setup_entry(hass, config_entry)
+    device.registers[704] = 0x7FFF
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    for key in ("heat_recovery_power", "heat_recovery_efficiency", "heat_recovery_energy"):
+        assert hass.states.get(entity_id(hass, config_entry, "sensor", key)).state == (
+            STATE_UNAVAILABLE
+        )
+    # The raw sensor shows what the unit reports: that is the fault.
+    supply = entity_id(hass, config_entry, "sensor", "temp_supply_air")
+    assert hass.states.get(supply).state == "3276.7"
+
+    device.registers[704] = 180
+    freezer.tick(timedelta(minutes=5))
+    await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0  # the fault was a gap
+
+
+@pytest.mark.parametrize(
+    ("register", "raw", "keys"),
+    [
+        (653, 1500, ("heat_recovery_power", "airflow_imbalance")),
+        (750, 120, ("dew_point_extract", "absolute_humidity_extract")),
+        (705, 0x8000, ("heat_recovery_efficiency", "dew_point_extract")),
+    ],
+)
+async def test_invalid_inputs(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    register: int,
+    raw: int,
+    keys: tuple[str, ...],
+) -> None:
+    device.registers[register] = raw
+    await setup_entry(hass, config_entry)
+    for key in keys:
+        assert hass.states.get(entity_id(hass, config_entry, "sensor", key)).state == (
+            STATE_UNAVAILABLE
+        )
+
+
+async def test_heat_recovery_energy_skips_impossible_power(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """300 m3/h and 125 K give 12.75 kW: within the ranges, but no measurement."""
+    await setup_entry(hass, config_entry)
+    device.registers[653] = 300
+    device.registers[704] = 1200  # 120 degC
+    for _ in range(2):
+        freezer.tick(timedelta(minutes=5))
+        await _refresh(hass, config_entry)
+    assert _energy(hass, config_entry) == 0.0
+    power = hass.states.get(entity_id(hass, config_entry, "sensor", "heat_recovery_power"))
+    assert float(power.state) == 12750
+
+
 async def test_heat_recovery_energy_with_a_long_scan_interval(
     hass: HomeAssistant, device: FakeDevice, config_entry, freezer
 ) -> None:

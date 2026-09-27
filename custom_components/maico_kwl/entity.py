@@ -8,15 +8,21 @@ from datetime import datetime
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, Platform
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
+from .derived import valid_input
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef, RegisterValue
+
+# Entity registry option of an entity the integration disabled because this
+# setup no longer created it (see _async_disable_orphaned_entities).
+ORPHANED = "orphaned"
 
 
 async def async_write_register(
@@ -28,16 +34,32 @@ async def async_write_register(
     """Write a real-world value to a register on behalf of an entity.
 
     Raises HomeAssistantError so the UI shows a clear message instead of
-    an unexpected error with a traceback.
+    an unexpected error with a traceback. Nothing is written while the device
+    does not look like a Maico KWL (see MaicoCoordinator.identity_problem).
     """
+    if problem := coordinator.identity_problem:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="unsupported_device",
+            translation_placeholders={"details": problem},
+        )
     try:
-        await coordinator.hub.write(reg.address, reg.encode(value))
+        raw = reg.encode(value)
+    except ValueError as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="value_out_of_range",
+            translation_placeholders={"entity": entity_id, "error": str(err)},
+        ) from err
+    try:
+        await coordinator.hub.write(reg.address, raw)
     except MaicoModbusError as err:
         raise HomeAssistantError(
             translation_domain=DOMAIN,
             translation_key="write_failed",
             translation_placeholders={"entity": entity_id, "error": str(err)},
         ) from err
+    coordinator.async_notify_write(reg.key, value)
 
 
 def async_add_maico_entities(
@@ -52,11 +74,35 @@ def async_add_maico_entities(
     that the platform set up completely.
     """
     entities = list(entities)
-    entry.runtime_data.unique_ids.update(
-        entity.unique_id for entity in entities if entity.unique_id
-    )
+    unique_ids = {entity.unique_id for entity in entities if entity.unique_id}
+    _async_enable_returned_entities(entry, platform, unique_ids)
+    entry.runtime_data.unique_ids.update(unique_ids)
     entry.runtime_data.platforms.add(platform)
     async_add_entities(entities)
+
+
+def _async_enable_returned_entities(
+    entry: MaicoConfigEntry, platform: Platform, unique_ids: set[str]
+) -> None:
+    """Enable again what the cleanup disabled, now that it is created again.
+
+    Before the entities are added, so they come up enabled right away. HA
+    reloads the entry once about 30 s later, as for any entity that is enabled.
+    """
+    ent_reg = er.async_get(entry.runtime_data.coordinator.hass)
+    for unique_id in unique_ids:
+        entity_id = ent_reg.async_get_entity_id(platform, DOMAIN, unique_id)
+        if entity_id is None:
+            continue
+        reg_entry = ent_reg.entities[entity_id]
+        options = reg_entry.options.get(DOMAIN)
+        if (
+            options is not None
+            and options.get(ORPHANED)
+            and reg_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        ):
+            ent_reg.async_update_entity_options(entity_id, DOMAIN, None)
+            ent_reg.async_update_entity(entity_id, disabled_by=None)
 
 
 def maico_device_info(
@@ -138,17 +184,23 @@ class MaicoDerivedEntity(CoordinatorEntity[MaicoCoordinator]):
 
     @property
     def available(self) -> bool:
+        """Unavailable while a source is missing or no valid measurement."""
         return super().available and all(
-            key in self.coordinator.data for key in self._sources
+            key in self.coordinator.data
+            and (
+                not isinstance(value := self.coordinator.data[key], (int, float))
+                or valid_input(key, value)
+            )
+            for key in self._sources
         )
 
     @property
     def _numbers(self) -> list[float] | None:
-        """The source values in order, or None if one is missing."""
+        """The source values in order, or None if one is missing or invalid."""
         numbers: list[float] = []
         for key in self._sources:
             value = self.coordinator.data.get(key)
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, (int, float)) or not valid_input(key, value):
                 return None
             numbers.append(float(value))
         return numbers

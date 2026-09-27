@@ -88,16 +88,6 @@ def test_writable_flags_match_platform():
             assert r.writable, f"{r.key} should be writable"
 
 
-def test_clamp_limits_to_native_range():
-    reg = rd.REGISTERS_BY_KEY["room_temp_bus"]  # 0 .. 40 degC
-    assert reg.clamp(50) == 40.0
-    assert reg.clamp(-3.5) == 0.0
-    assert reg.clamp(21.5) == 21.5
-    assert isinstance(reg.clamp(50), float)
-    unbounded = rd.REGISTERS_BY_KEY["temp_room"]
-    assert unbounded.clamp(-12.5) == -12.5
-
-
 def test_probe_via_only_for_write_only_registers():
     """Registers that can't be read-probed are exactly the write-only ones."""
     for r in rd.REGISTERS:
@@ -140,6 +130,54 @@ def test_active_bits_of_bitfields():
 def test_bit_sensors_use_documented_bits():
     for reg_key, slug, _dev_class in rd.BIT_SENSORS:
         assert slug in rd.REGISTERS_BY_KEY[reg_key].bits.values(), slug
+
+
+def test_encode_refuses_what_the_register_cannot_hold() -> None:
+    """Rather than cutting it to the register width and writing another value."""
+    for key, value in (
+        ("filter_dp_allowed", -1),  # u16
+        ("filter_dp_allowed", 70000),
+        ("room_setpoint", 3276.8),  # s16, x10: raw 32768
+        ("room_setpoint", -3276.9),
+        ("op_hours_total", 1 << 32),  # u32
+    ):
+        try:
+            rd.REGISTERS_BY_KEY[key].encode(value)
+        except ValueError:
+            continue
+        raise AssertionError(f"{key}: {value} was encoded")
+
+
+def test_encode_at_the_limits_of_the_data_type() -> None:
+    assert rd.REGISTERS_BY_KEY["filter_dp_allowed"].encode(0) == [0]
+    assert rd.REGISTERS_BY_KEY["filter_dp_allowed"].encode(65535) == [0xFFFF]
+    assert rd.REGISTERS_BY_KEY["room_setpoint"].encode(3276.7) == [0x7FFF]
+    assert rd.REGISTERS_BY_KEY["room_setpoint"].encode(-3276.8) == [0x8000]
+    assert rd.REGISTERS_BY_KEY["op_hours_total"].encode((1 << 32) - 1) == [0xFFFF, 0xFFFF]
+
+
+def test_writable_ranges_fit_the_data_type() -> None:
+    """A register definition whose limits its type cannot hold fails here."""
+    for reg in rd.REGISTERS:
+        if not reg.writable or reg.data_type == rd.CLOCK:
+            continue
+        low, high = reg.raw_range
+        for limit in (reg.native_min, reg.native_max):
+            if limit is not None:
+                assert low <= round(limit / reg.scale) <= high, reg.key
+
+
+def test_encode_rounds_half_away_from_zero() -> None:
+    """As Home Assistant shows the source, so "(sent)" matches it."""
+    humidity = rd.REGISTERS_BY_KEY["humidity_bus"]
+    room = rd.REGISTERS_BY_KEY["room_temp_bus"]
+    offset = rd.REGISTERS_BY_KEY["room_temp_offset"]
+    assert humidity.encode(54.5) == [55]
+    assert humidity.encode(55.5) == [56]
+    assert humidity.encode(54.4) == [54]
+    assert room.encode(21.25) == [213]
+    assert room.encode(21.35) == [214]  # 21.35 / 0.1 is 213.4999... as a float
+    assert offset.encode(-0.05) == [0xFFFF]  # -0.1 degC
 
 
 if __name__ == "__main__":

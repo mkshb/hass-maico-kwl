@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -26,6 +27,7 @@ from homeassistant.helpers.selector import (
 from .const import (
     BUS_FEEDS,
     CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
     CONF_DISCOVERY,
     CONF_HOST,
     CONF_PORT,
@@ -39,6 +41,7 @@ from .const import (
 )
 from .discovery import (
     active_accessories,
+    async_check_identity,
     data_without_discovery,
     offered_accessories,
     present_from_cache,
@@ -48,18 +51,55 @@ from .register_defs import ACCESSORIES
 
 _LOGGER = logging.getLogger(__name__)
 
-# A holding register that every Maico KWL implements (current ventilation
-# level), used to confirm the target really answers FC 03.
-_VALIDATION_REGISTER = 650
+def _host(value: str) -> str:
+    """The host as stored and compared: without spaces, names in lower case.
+
+    DNS names are case-insensitive, so "KWL.local" and "kwl.local " are the
+    same unit and must not become two entries.
+    """
+    return value.strip().lower()
 
 
-async def _validate(host: str, port: int, slave: int) -> None:
-    """Raise MaicoModbusError if the device can't be reached / read."""
-    hub = MaicoModbusHub(host, port, slave)
+def _connection(data: Mapping[str, Any]) -> tuple[str, int, int]:
+    """Host, port and Modbus address of an entry, for finding duplicates."""
+    return (
+        _host(data.get(CONF_HOST, "")),
+        data.get(CONF_PORT, DEFAULT_PORT),
+        data.get(CONF_SLAVE, DEFAULT_SLAVE),
+    )
+
+
+def _running_hub(entry: ConfigEntry, host: str, port: int) -> MaicoModbusHub | None:
+    """The hub of a loaded entry, if it is connected to host and port."""
+    if entry.state is not ConfigEntryState.LOADED:
+        return None
+    if _connection(entry.data)[:2] != (host, port):
+        return None
+    hub: MaicoModbusHub = entry.runtime_data.hub
+    return hub
+
+
+class UnsupportedDevice(Exception):
+    """The device answers, but does not look like a Maico KWL."""
+
+
+async def _validate(
+    host: str, port: int, slave: int, running: MaicoModbusHub | None = None
+) -> None:
+    """Check that a Maico KWL answers at the address.
+
+    With the hub of a running entry for the same host and port, its connection
+    is used: the unit accepts only one Modbus TCP connection at a time and
+    ignores a second one. Raises MaicoModbusError if it cannot be reached,
+    UnsupportedDevice if the device there reports values a Maico KWL does not
+    have.
+    """
+    hub = running.with_slave(slave) if running else MaicoModbusHub(host, port, slave)
     try:
-        if not await hub.connect():
+        if running is None and not await hub.connect():
             raise MaicoModbusError(f"cannot connect to {host}:{port}")
-        await hub.read_block(_VALIDATION_REGISTER, 1)
+        if problem := await async_check_identity(hub):
+            raise UnsupportedDevice(problem)
     finally:
         await hub.close()
 
@@ -73,22 +113,29 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
-            host = user_input[CONF_HOST]
+            host = _host(user_input[CONF_HOST])
             port = user_input[CONF_PORT]
             slave = user_input[CONF_SLAVE]
+            user_input = {**user_input, CONF_HOST: host}
 
             # The unit has no serial number to use as unique_id, and an IP
             # address is not a stable one, so match on the connection instead.
-            self._async_abort_entries_match(
-                {CONF_HOST: host, CONF_PORT: port, CONF_SLAVE: slave}
-            )
+            if any(
+                _connection(other.data) == (host, port, slave)
+                for other in self._async_current_entries(include_ignore=False)
+            ):
+                return self.async_abort(reason="already_configured")
 
             try:
                 await _validate(host, port, slave)
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
+            except UnsupportedDevice as err:
+                errors["base"] = "unsupported_device"
+                placeholders["details"] = str(err)
             else:
                 return self.async_create_entry(
                     title=f"{DEFAULT_NAME} ({host})", data=user_input
@@ -111,7 +158,10 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
         )
 
     async def async_step_reconfigure(
@@ -120,26 +170,28 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
         """Change host, port or Modbus address of an existing entry."""
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
-            host = user_input[CONF_HOST]
+            host = _host(user_input[CONF_HOST])
             port = user_input[CONF_PORT]
             slave = user_input[CONF_SLAVE]
 
             # Keeping the current values must not match the entry itself.
             if any(
                 other.entry_id != entry.entry_id
-                and other.data.get(CONF_HOST) == host
-                and other.data.get(CONF_PORT) == port
-                and other.data.get(CONF_SLAVE) == slave
+                and _connection(other.data) == (host, port, slave)
                 for other in self._async_current_entries(include_ignore=False)
             ):
                 return self.async_abort(reason="already_configured")
 
             try:
-                await _validate(host, port, slave)
+                await _validate(host, port, slave, _running_hub(entry, host, port))
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
+            except UnsupportedDevice as err:
+                errors["base"] = "unsupported_device"
+                placeholders["details"] = str(err)
             else:
                 # Keep a custom title, follow the host in the default one.
                 title = entry.title
@@ -148,12 +200,9 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 # A new connection may lead to another unit: the accessories
                 # chosen for the old one no longer apply, detection decides.
                 options = dict(entry.options)
-                if (host, port, slave) != (
-                    entry.data[CONF_HOST],
-                    entry.data.get(CONF_PORT, DEFAULT_PORT),
-                    entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
-                ):
+                if (host, port, slave) != _connection(entry.data):
                     options.pop(CONF_ACCESSORIES, None)
+                    options.pop(CONF_ACCESSORIES_OFFERED, None)
                 # A loaded entry is reloaded by its update listener; reloading
                 # here as well would set the unit up twice. An entry that
                 # failed to set up (retrying, or in error) has no listener, so
@@ -192,7 +241,10 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(
-            step_id="reconfigure", data_schema=schema, errors=errors
+            step_id="reconfigure",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
         )
 
     @staticmethod
@@ -219,13 +271,17 @@ class MaicoOptionsFlow(OptionsFlow):
             data = dict(user_input)
             if not offered:
                 # No stored discovery to choose from: keep the last choice.
-                if CONF_ACCESSORIES in opts:
-                    data[CONF_ACCESSORIES] = opts[CONF_ACCESSORIES]
+                for key in (CONF_ACCESSORIES, CONF_ACCESSORIES_OFFERED):
+                    if key in opts:
+                        data[key] = opts[key]
             elif set(data.get(CONF_ACCESSORIES, [])) == set(
                 cache.get("accessories", [])
             ):
                 # Same as detected: store nothing, a rediscovery still applies.
                 data.pop(CONF_ACCESSORIES, None)
+            else:
+                # The choice covers what was offered; see active_accessories.
+                data[CONF_ACCESSORIES_OFFERED] = sorted(offered)
             return self.async_create_entry(title="", data=data)
 
         scan_current = opts.get(

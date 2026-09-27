@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import voluptuous as vol
@@ -21,6 +22,7 @@ from homeassistant.util.yaml import load_yaml_dict
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.maico_kwl.const import DOMAIN
+from custom_components.maico_kwl.services import MAX_BOOST_MINUTES
 
 from .conftest import FakeDevice
 from .helpers import entity_id, setup_entry
@@ -169,6 +171,47 @@ async def test_boost_timer_cancelled_on_unload(
     assert device.writes == [(551, [1])]
 
 
+async def test_boost_timer_ends_with_its_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    """A boost started after the timed one ended runs its full duration."""
+    switch = entity_id(hass, config_entry, "switch", "boost_ventilation")
+    await _boost(hass, fan, duration=20)
+    for service in ("turn_off", "turn_on"):
+        await hass.services.async_call(
+            "switch", service, {ATTR_ENTITY_ID: switch}, blocking=True
+        )
+        await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes[-1] == (551, [1])  # the old timer wrote nothing
+
+
+async def test_boost_timer_dropped_when_the_unit_ends_the_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    await _boost(hass, fan, duration=20)
+    device.registers[551] = 0  # the unit ended it
+    await config_entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes == [(551, [1])]
+
+
+async def test_boost_timer_kept_on_a_poll_from_before_the_boost(
+    hass: HomeAssistant, device: FakeDevice, fan: str, config_entry
+) -> None:
+    """A stale "off" right after the start is no end of the boost."""
+    coordinator = config_entry.runtime_data.coordinator
+    with patch.object(coordinator, "async_request_refresh"):
+        await _boost(hass, fan, duration=20)
+    # A poll that read 551 before the write finishes only now.
+    coordinator.async_set_updated_data({**coordinator.data, "boost_ventilation": 0})
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    await _after(hass, 21)
+    assert device.writes[-1] == (551, [0])
+
+
 async def test_boost_end_failure_is_logged(
     hass: HomeAssistant, device: FakeDevice, fan: str, caplog
 ) -> None:
@@ -189,6 +232,32 @@ async def test_boost_validation(
     assert err.value.translation_key == "boost_unavailable"
     with pytest.raises(vol.Invalid):
         await _boost(hass, eid, duration=0)
+    with pytest.raises(vol.Invalid):
+        await _boost(hass, eid, duration=91)  # longer than 153 can be set
+
+
+async def test_boost_longer_than_the_unit_keeps_it_is_refused(
+    hass: HomeAssistant, device: FakeDevice, fan: str
+) -> None:
+    """The unit ends a boost after its ventilation level duration (153: 30 min)."""
+    with pytest.raises(ServiceValidationError) as err:
+        await _boost(hass, fan, duration=31)
+    assert err.value.translation_key == "boost_too_long"
+    assert err.value.translation_placeholders == {"duration": "31", "unit_minutes": "30"}
+    assert (551, [1]) not in device.writes
+
+    await _boost(hass, fan, duration=30)
+    assert (551, [1]) in device.writes
+
+
+async def test_boost_duration_without_the_unit_duration(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """If 153 cannot be read, only the schema limit applies."""
+    device.absent.add(153)
+    await setup_entry(hass, config_entry)
+    await _boost(hass, entity_id(hass, config_entry, "fan", "ventilation"), duration=90)
+    assert (551, [1]) in device.writes
 
 
 
@@ -197,4 +266,5 @@ def test_boost_action_description() -> None:
     content = load_yaml_dict(str(COMPONENT / "services.yaml"))
     services = _SERVICES_SCHEMA(content)
     assert services["boost"]["target"]["entity"][0]["domain"] == ["fan"]
-    assert services["boost"]["fields"]["duration"]["selector"]["number"]["max"] == 720
+    assert services["boost"]["fields"]["duration"]["selector"]["number"]["max"] == 90
+    assert MAX_BOOST_MINUTES == 90

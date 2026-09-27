@@ -16,6 +16,7 @@ registers of a block the device rejects are probed one by one.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -36,6 +37,12 @@ _LOGGER = logging.getLogger(__name__)
 # Version of the stored discovery. A stored result of an older version is
 # discovered again: 2 adds the detected accessories.
 DISCOVERY_VERSION = 2
+
+# An unexpected exception response (e.g. 4, slave device failure) may be
+# temporary, e.g. from a gateway whose device did not answer in time. A single
+# register only counts as absent if it keeps coming.
+PROBE_ATTEMPTS = 3
+PROBE_RETRY_DELAY = 1.0  # seconds
 
 
 async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
@@ -135,22 +142,41 @@ async def _probe_group(hub: MaicoModbusHub, defs: list[RegisterDef]) -> set[str]
     if len(defs) > 1:
         start = defs[0].address
         count = defs[-1].address + defs[-1].word_count - start
-        if await _probe(hub, start, count):
+        if await _probe(hub, start, count, attempts=1):
             return {reg.key for reg in defs}
     return {
-        reg.key for reg in defs if await _probe(hub, reg.address, reg.word_count)
+        reg.key
+        for reg in defs
+        if await _probe(hub, reg.address, reg.word_count, PROBE_ATTEMPTS)
     }
 
 
-async def _probe(hub: MaicoModbusHub, address: int, count: int) -> bool:
-    try:
-        return await hub.probe(address, count)
-    except MaicoConnectionError:
-        raise
-    except MaicoModbusError as err:
-        # An unexpected exception code: handle it like a rejected read.
-        _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
-        return False
+async def _probe(
+    hub: MaicoModbusHub, address: int, count: int, attempts: int
+) -> bool:
+    """Whether the registers answer; 1 to 3 (e.g. Illegal Data Address) is no.
+
+    Any other exception response is asked again up to ``attempts`` times; one
+    that stays counts as absent, and is logged as a warning for a single
+    register, since its entities are then left out.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            return await hub.probe(address, count)
+        except MaicoConnectionError:
+            raise
+        except MaicoModbusError as err:
+            if attempt < attempts:
+                await asyncio.sleep(PROBE_RETRY_DELAY)
+                continue
+            if attempts > 1:
+                _LOGGER.warning(
+                    "Register %s did not answer in %d attempts and is left out: %s",
+                    address, attempts, err,
+                )
+            else:
+                _LOGGER.debug("Probe of %s+%s failed: %s", address, count, err)
+    return False
 
 
 async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str]:

@@ -63,13 +63,15 @@ async def test_discovery_write_only_registers_follow_sibling(
 
 
 async def test_discovery_unexpected_exception_code(
-    hub: MaicoModbusHub, device: FakeDevice
+    hub: MaicoModbusHub, device: FakeDevice, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Any other exception response marks just that register as absent."""
+    """An exception response that stays marks just that register as absent."""
     original = device.clients[0].read_holding_registers
+    asked: list[int] = []
 
     async def failure_at_700(*, address, count, device_id):
         if address == 700:
+            asked.append(count)
             return FakeExceptionResponse(4)  # slave device failure
         return await original(address=address, count=count, device_id=device_id)
 
@@ -77,6 +79,26 @@ async def test_discovery_unexpected_exception_code(
     present, _ = await async_discover(hub)
     assert "temp_room" not in present
     assert "temp_supply_air" in present
+    assert asked == [7, 1, 1, 1]  # the block, then the register three times
+    assert "Register 700 did not answer in 3 attempts" in caplog.text
+
+
+async def test_discovery_asks_again_after_a_temporary_exception(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """A gateway that fails once must not cost the register its entities."""
+    original = device.clients[0].read_holding_registers
+    failures = {700: 2}  # the block and the first single probe fail
+
+    async def flaky(*, address, count, device_id):
+        if failures.get(address):
+            failures[address] -= 1
+            return FakeExceptionResponse(4)
+        return await original(address=address, count=count, device_id=device_id)
+
+    device.clients[0].read_holding_registers = flaky
+    present, _ = await async_discover(hub)
+    assert "temp_room" in present
 
 
 @pytest.mark.parametrize("code", [5, 6, 10, 11])

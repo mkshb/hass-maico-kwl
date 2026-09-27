@@ -200,9 +200,10 @@ async def test_options_flow_accessories(
     present = config_entry.runtime_data.coordinator.present
     assert "filter_remaining_outdoor" not in present
     ent_reg = er.async_get(hass)
-    assert not ent_reg.async_get_entity_id(
+    button = ent_reg.async_get_entity_id(
         "button", DOMAIN, f"{config_entry.entry_id}_filter_reset_outdoor"
     )
+    assert ent_reg.async_get(button).disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
 async def test_options_flow_without_discovery_keeps_accessories(

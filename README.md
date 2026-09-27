@@ -165,7 +165,9 @@ registers* once it is set up on the unit.
 >
 > If the unit is busy or a gateway reports its target as unreachable (exception 5, 6, 10 or 11), or
 > the connection drops, discovery stops and Home Assistant retries the setup instead of storing an
-> incomplete result.
+> incomplete result. A register that answers with any other exception (e.g. 4, *Slave Device
+> Failure*) is asked three times; if the exception stays, it is left out and a warning names it
+> in the log.
 
 The discovery result is stored in the config entry. The unit is probed again when you press
 *Rediscover registers*, after **Reconfigure**, and after an update that knows registers the stored
@@ -303,9 +305,12 @@ stale from 10 minutes on.
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
   after a firmware update or after adding sensors or filters to the unit, see
   [Discovery and its limits](#discovery-and-its-limits).
-- **Cleanup**: after every setup, entities the integration no longer creates are removed from the
-  entity registry, e.g. registers a rediscovery did not find again, accessories that are no longer
-  selected, or the *(sent)* sensor of a bus input without a source.
+- **Cleanup**: after every setup, entities the integration no longer creates are disabled, e.g.
+  registers a rediscovery did not find again, accessories that are no longer selected, or the
+  *(sent)* sensor of a bus input without a source. They keep their names, areas and entity IDs:
+  once they are created again, the integration enables them again and Home Assistant reloads the
+  integration once about 30 seconds later. Entities you disabled yourself stay disabled. Delete
+  entities you no longer need under *Settings > Devices & Services > Entities*.
 
 ## Dashboard card
 

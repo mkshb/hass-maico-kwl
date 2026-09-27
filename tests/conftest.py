@@ -201,6 +201,13 @@ class FakeModbusClient:
 
 
 @pytest.fixture(autouse=True)
+def no_probe_retry_delay() -> Generator[None]:
+    """Ask a register again at once instead of after a second."""
+    with patch("custom_components.maico_kwl.discovery.PROBE_RETRY_DELAY", 0):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Allow loading the integration from custom_components."""
     return

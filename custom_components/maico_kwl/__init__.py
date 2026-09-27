@@ -10,6 +10,7 @@ from homeassistant.components.frontend import add_extra_js_url
 # Defined in http/__init__ up to HA 2026.7 and re-exported there from
 # http/server since 2026.8, without marking it as exported for mypy.
 from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
+from homeassistant.const import ATTR_RESTORED
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, entity_registry as er
@@ -38,6 +39,7 @@ from .discovery import (
     present_from_cache,
     registers_in_use,
 )
+from .entity import ORPHANED
 from .issues import async_delete_issues, async_update_issues
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
@@ -129,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
         await hub.close()
         raise
 
-    _async_remove_orphaned_entities(hass, entry)
+    _async_disable_orphaned_entities(hass, entry)
 
     async_update_issues(hass, entry)
     entry.async_on_unload(
@@ -201,15 +203,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bo
 
 
 @callback
-def _async_remove_orphaned_entities(
+def _async_disable_orphaned_entities(
     hass: HomeAssistant, entry: MaicoConfigEntry
 ) -> None:
-    """Remove entities this setup no longer creates.
+    """Disable the entities this setup no longer creates.
 
-    E.g. registers a rediscovery did not find again, or the "sent" sensor of a
-    bus input whose source entity was removed. They would stay unavailable.
-    A platform whose setup failed recorded nothing, so its entities are kept
-    rather than removed with their names and areas.
+    E.g. registers a rediscovery did not find, accessories no longer selected,
+    or the "sent" sensor of a bus input without a source. They would stay
+    unavailable. Disabled rather than removed, so their names, areas and
+    entity ids are still there when they come back (see
+    async_add_maico_entities); only entities that were enabled are marked, so
+    ones the user or the defaults disabled stay as they are.
+    A platform whose setup failed recorded nothing, so its entities are kept.
     """
     runtime = entry.runtime_data
     ent_reg = er.async_get(hass)
@@ -217,8 +222,20 @@ def _async_remove_orphaned_entities(
         if (
             reg_entry.domain in runtime.platforms
             and reg_entry.unique_id not in runtime.unique_ids
+            and reg_entry.disabled_by is None
         ):
-            ent_reg.async_remove(reg_entry.entity_id)
+            ent_reg.async_update_entity_options(
+                reg_entry.entity_id, DOMAIN, {ORPHANED: True}
+            )
+            ent_reg.async_update_entity(
+                reg_entry.entity_id,
+                disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+            )
+            # The placeholder HA leaves when an entity is removed would show
+            # it as unavailable until the next restart.
+            state = hass.states.get(reg_entry.entity_id)
+            if state is not None and state.attributes.get(ATTR_RESTORED):
+                hass.states.async_remove(reg_entry.entity_id)
 
 
 async def _async_update_listener(

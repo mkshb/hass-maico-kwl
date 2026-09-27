@@ -8,6 +8,7 @@ from datetime import datetime
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, Platform
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -17,6 +18,10 @@ from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef, RegisterValue
+
+# Entity registry option of an entity the integration disabled because this
+# setup no longer created it (see _async_disable_orphaned_entities).
+ORPHANED = "orphaned"
 
 
 async def async_write_register(
@@ -52,11 +57,35 @@ def async_add_maico_entities(
     that the platform set up completely.
     """
     entities = list(entities)
-    entry.runtime_data.unique_ids.update(
-        entity.unique_id for entity in entities if entity.unique_id
-    )
+    unique_ids = {entity.unique_id for entity in entities if entity.unique_id}
+    _async_enable_returned_entities(entry, platform, unique_ids)
+    entry.runtime_data.unique_ids.update(unique_ids)
     entry.runtime_data.platforms.add(platform)
     async_add_entities(entities)
+
+
+def _async_enable_returned_entities(
+    entry: MaicoConfigEntry, platform: Platform, unique_ids: set[str]
+) -> None:
+    """Enable again what the cleanup disabled, now that it is created again.
+
+    Before the entities are added, so they come up enabled right away. HA
+    reloads the entry once about 30 s later, as for any entity that is enabled.
+    """
+    ent_reg = er.async_get(entry.runtime_data.coordinator.hass)
+    for unique_id in unique_ids:
+        entity_id = ent_reg.async_get_entity_id(platform, DOMAIN, unique_id)
+        if entity_id is None:
+            continue
+        reg_entry = ent_reg.entities[entity_id]
+        options = reg_entry.options.get(DOMAIN)
+        if (
+            options is not None
+            and options.get(ORPHANED)
+            and reg_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        ):
+            ent_reg.async_update_entity_options(entity_id, DOMAIN, None)
+            ent_reg.async_update_entity(entity_id, disabled_by=None)
 
 
 def maico_device_info(

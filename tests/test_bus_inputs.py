@@ -529,44 +529,50 @@ async def test_sent_sensor_stops_listening_on_unload(
     assert feeder._listeners["room_temp_bus"] == []
 
 
-async def test_manual_number_removed_and_restored_with_source(
+async def test_manual_number_disabled_and_restored_with_source(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    """Configuring a source removes the manual number, clearing it restores it."""
+    """Configuring a source disables the manual number, clearing it restores it."""
     await setup_entry(hass, config_entry)
     unique_id = f"{config_entry.entry_id}_room_temp_bus"
     ent_reg = er.async_get(hass)
-    assert ent_reg.async_get_entity_id("number", DOMAIN, unique_id)
+    eid = ent_reg.async_get_entity_id("number", DOMAIN, unique_id)
+    ent_reg.async_update_entity(eid, name="Room bus")
 
     hass.config_entries.async_update_entry(
         config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}
     )
     await hass.async_block_till_done()  # options change reloads the entry
-    assert ent_reg.async_get_entity_id("number", DOMAIN, unique_id) is None
+    assert ent_reg.async_get(eid).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get(eid) is None
     # The other bus inputs keep their manual number.
-    assert entity_id(hass, config_entry, "number", "humidity_bus")
+    assert hass.states.get(entity_id(hass, config_entry, "number", "humidity_bus"))
 
     hass.config_entries.async_update_entry(config_entry, options={})
     await hass.async_block_till_done()
-    eid = ent_reg.async_get_entity_id("number", DOMAIN, unique_id)
-    assert eid is not None
+    assert ent_reg.async_get(eid).disabled_by is None
+    assert ent_reg.async_get(eid).name == "Room bus"
     assert hass.states.get(eid).state == STATE_UNKNOWN
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
 
 
-async def test_sent_sensor_removed_with_source(
+async def test_sent_sensor_disabled_with_source(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    """Clearing a source removes its "sent" sensor instead of orphaning it."""
+    """Clearing a source disables its "sent" sensor instead of orphaning it."""
     await _setup_with_feeds(hass, config_entry)
     ent_reg = er.async_get(hass)
-    unique_id = f"{config_entry.entry_id}_humidity_bus_sent"
-    assert ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{config_entry.entry_id}_humidity_bus_sent"
+    )
 
     hass.config_entries.async_update_entry(
         config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}
     )
     await hass.async_block_till_done()
-    assert ent_reg.async_get_entity_id("sensor", DOMAIN, unique_id) is None
-    assert ent_reg.async_get_entity_id(
+    assert ent_reg.async_get(eid).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    room = ent_reg.async_get_entity_id(
         "sensor", DOMAIN, f"{config_entry.entry_id}_room_temp_bus_sent"
     )
+    assert ent_reg.async_get(room).disabled_by is None

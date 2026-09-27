@@ -20,6 +20,12 @@ kept informed until a fix is released.
   change its settings, with or without this integration. Keep the unit (or its Modbus gateway) in
   a network that only trusted devices reach, and do not forward the port to the internet. This is
   a property of the protocol, not a vulnerability of the integration.
+- **The Modbus proxy as well.** A Modbus TCP proxy, recommended since the unit accepts only one
+  connection, has no authentication either. Its port belongs in the same protected network as the
+  unit's.
+- **No writes to another device.** Before setup and on every poll, the integration checks that the
+  device at the configured address looks like a Maico KWL. If it does not (e.g. another Modbus
+  device got the unit's IP address), nothing is written to it.
 - **Local only.** The integration talks to the unit on your network and sends nothing to any cloud
   service.
 - **Diagnostics** leave out the host of the unit, so they can be attached to public issues.

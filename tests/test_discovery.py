@@ -179,6 +179,25 @@ async def test_discovery_detects_filters_that_are_not_fitted(
     assert not {"outdoor_filter", "room_filter"} & accessories
 
 
+async def test_discovery_with_short_block_answers(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """Short answers are probed singly and cannot mark an accessory as missing.
+
+    With 0 days left the filters would count as not fitted, but the notice
+    code (two registers) cannot be read, so the check cannot tell.
+    """
+    expected, _ = await async_discover(hub)
+    device.registers[656] = 0
+    device.registers[657] = 0
+    device.short_blocks = True
+    present, accessories = await async_discover(hub)
+    assert present == expected - {
+        reg.key for reg in REGISTERS if reg.word_count > 1 and reg.probe_via is None
+    } - {"error_reset", "clock_sync"}
+    assert {"outdoor_filter", "room_filter"} <= accessories
+
+
 async def test_discovery_keeps_filters_that_ran_out(
     hub: MaicoModbusHub, device: FakeDevice
 ) -> None:

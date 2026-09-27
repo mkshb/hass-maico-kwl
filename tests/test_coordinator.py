@@ -72,6 +72,29 @@ async def test_rejected_block_falls_back_to_single_reads(
     assert hass.states.get(entity_id(hass, config_entry, "sensor", "temp_room")).state == "23.0"
 
 
+async def test_short_block_answer_falls_back_to_single_reads(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A gateway that cuts blocks short must not produce zeros."""
+    await setup_entry(hass, config_entry)
+    coordinator = config_entry.runtime_data.coordinator
+
+    device.short_blocks = True
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert coordinator.last_update_success
+    # Single registers are read in full; u32 values need two and stay missing.
+    assert coordinator.data["filter_remaining_device"] == 120
+    assert coordinator.data["operating_mode"] == 3
+    assert coordinator.data["temp_exhaust_air"] == 1.0
+    assert "fault_code" not in coordinator.data
+    assert (
+        hass.states.get(entity_id(hass, config_entry, "sensor", "fault_code")).state
+        == STATE_UNAVAILABLE
+    )
+
+
 async def test_connection_loss_fails_update_without_single_reads(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

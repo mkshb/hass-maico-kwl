@@ -135,6 +135,9 @@ class FakeDevice:
     fail_after_reads: int | None = None
     # Exception code returned for writes (None: writes succeed).
     write_exception: int | None = None
+    # Answer reads of more than one register with the last one missing, like
+    # a faulty gateway.
+    short_blocks: bool = False
     reads: int = 0
     writes: list[tuple[int, list[int]]] = field(default_factory=list)
     clients: list[FakeModbusClient] = field(default_factory=list)
@@ -173,7 +176,10 @@ class FakeModbusClient:
         span = range(address, address + count)
         if any(addr in self._device.absent for addr in span):
             return FakeExceptionResponse(2)
-        return FakeResponse([self._device.registers.get(addr, 0) for addr in span])
+        registers = [self._device.registers.get(addr, 0) for addr in span]
+        if self._device.short_blocks and count > 1:
+            registers = registers[:-1]
+        return FakeResponse(registers)
 
     async def write_register(
         self, *, address: int, value: int, device_id: int

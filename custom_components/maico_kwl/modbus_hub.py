@@ -39,6 +39,22 @@ class MaicoConnectionError(MaicoModbusError):
     """
 
 
+def _checked_registers(result: ModbusPDU, address: int, count: int) -> list[int]:
+    """The registers of a response, if it holds exactly the ones requested.
+
+    pymodbus takes the length from the response, so a short answer (e.g. from a
+    gateway) would otherwise decode the missing registers as 0. Raised as a
+    rejected read: polling falls back to single reads, discovery to single
+    probes.
+    """
+    registers = list(result.registers)
+    if len(registers) != count:
+        raise MaicoModbusError(
+            f"read at {address} returned {len(registers)} of {count} registers"
+        )
+    return registers
+
+
 class MaicoModbusHub:
     """Owns the pymodbus client and serializes access to it."""
 
@@ -97,7 +113,7 @@ class MaicoModbusHub:
         result = await self._read(address, count)
         if result.isError():
             raise MaicoModbusError(f"read at {address} returned {result}")
-        return list(result.registers)
+        return _checked_registers(result, address, count)
 
     async def probe(self, address: int, count: int = 1) -> bool:
         """Return True if the register exists on this device.
@@ -116,6 +132,7 @@ class MaicoModbusHub:
             if code in _TRANSIENT_CODES:
                 raise MaicoConnectionError(f"probe at {address} returned {result}")
             raise MaicoModbusError(f"probe at {address} returned {result}")
+        _checked_registers(result, address, count)
         return True
 
     async def write(self, address: int, values: list[int]) -> None:

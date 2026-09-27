@@ -619,6 +619,14 @@
     "clock_drift": {
       "title": "Clock of {name} is off",
       "description": "The clock of the ventilation unit is off by about {minutes} minutes, so its time programs run at the wrong time.\n\nPress the *Sync clock with Home Assistant* button to set it to the time of Home Assistant."
+    },
+    "bus_source_missing": {
+      "title": "Bus source of {name} is missing",
+      "description": "{entity} is set as the source of a bus input under **Configure**, but it no longer exists. The unit gets no new value for this input.\n\nChoose another source under **Configure** on the integration, or leave it empty to set the value manually. This message disappears once the source exists again or is changed."
+    },
+    "bus_source_no_data": {
+      "title": "Bus source of {name} sends no data",
+      "description": "{entity} is set as the source of a bus input under **Configure**, but has given no value that can be sent for more than 30 minutes ({reason}). The unit gets no new value for this input.\n\nCheck the source: it needs a number within the range of the input, in °C, °F or K for the room temperature, % for the humidity and ppm or ppb for the air quality. This message disappears with the next value that is sent."
     }
   },
   "services": {

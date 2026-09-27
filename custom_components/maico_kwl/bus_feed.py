@@ -8,6 +8,9 @@ A value is only sent when it is a finite number in a unit the register takes
 (converted where that is unambiguous) and within the register's range. Anything
 else is skipped rather than sent as a limit, so a faulty or unsuitable source
 does not reach the unit as a plausible looking value.
+
+A source that is renamed is followed (the options are updated). One that is
+gone, or gives nothing usable for a while, gets a repair issue.
 """
 
 from __future__ import annotations
@@ -17,26 +20,29 @@ import logging
 import math
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
 from homeassistant.core import (
     CALLBACK_TYPE,
+    CoreState,
     Event,
     EventStateChangedData,
     HomeAssistant,
     State,
     callback,
 )
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.event import (
+    async_track_entity_registry_updated_event,
     async_track_state_change_event,
     async_track_time_interval,
 )
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
 
-from .const import BUS_REWRITE_INTERVAL
+from .const import BUS_FEEDS, BUS_REWRITE_INTERVAL, DOMAIN
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import PPM, RegisterDef, RegisterValue
 
@@ -44,7 +50,18 @@ _LOGGER = logging.getLogger(__name__)
 
 _INVALID = {None, "", "unknown", "unavailable"}
 
+# Repair issues (translation keys) of a configured source.
+_MISSING = "bus_source_missing"
+_NO_DATA = "bus_source_no_data"
+
 PPB = "ppb"
+
+# A source that gives nothing usable for this long gets a repair issue. Shorter
+# gaps are normal, e.g. a radio sensor that is quiet for a while or a restart.
+SOURCE_NO_DATA_AFTER = timedelta(minutes=30)
+
+# Option keys that hold a source entity.
+_SOURCE_OPTIONS = {conf_key for _reg_key, conf_key, _device_class in BUS_FEEDS}
 
 
 def source_raw(reg: RegisterDef, state: State) -> tuple[list[int] | None, str]:
@@ -114,6 +131,9 @@ class BusFeeder:
         self._written: dict[str, list[int]] = {}
         self._sent: dict[str, SentValue] = {}
         self._listeners: dict[str, list[Callable[[], None]]] = {}
+        # When each source last gave a value that could be sent.
+        self._usable_at: dict[str, datetime] = {}
+        self._started_at = dt_util.utcnow()
 
     def sent(self, key: str) -> SentValue | None:
         """Return what was last written successfully to a bus input."""
@@ -131,12 +151,18 @@ class BusFeeder:
     async def async_start(self) -> None:
         if not self._feeds:
             return
+        self._started_at = dt_util.utcnow()
         for reg, entity_id in self._feeds:
             await self._async_write(reg, self.hass.states.get(entity_id), force=True)
         entity_ids = [entity_id for _reg, entity_id in self._feeds]
         self._unsubs.append(
             async_track_state_change_event(
                 self.hass, entity_ids, self._handle_state_event
+            )
+        )
+        self._unsubs.append(
+            async_track_entity_registry_updated_event(
+                self.hass, entity_ids, self._handle_registry_event
             )
         )
         self._unsubs.append(
@@ -154,6 +180,9 @@ class BusFeeder:
         for task in self._tasks:
             task.cancel()
         self._tasks.clear()
+        for reg, _entity_id in self._feeds:
+            for issue in (_MISSING, _NO_DATA):
+                ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(reg, issue))
 
     @callback
     def _schedule_write(
@@ -176,10 +205,82 @@ class BusFeeder:
                 self._schedule_write(reg, new_state)
 
     @callback
-    def _handle_interval(self, _now: datetime) -> None:
+    def _handle_registry_event(
+        self, event: Event[er.EventEntityRegistryUpdatedData]
+    ) -> None:
+        data = event.data
+        if data["action"] == "update" and "old_entity_id" in data:
+            # Renamed: follow it. The options change reloads the entry.
+            old, new = data["old_entity_id"], data["entity_id"]
+            options = {
+                key: new if key in _SOURCE_OPTIONS and value == old else value
+                for key, value in self._entry.options.items()
+            }
+            self.hass.config_entries.async_update_entry(self._entry, options=options)
+        elif data["action"] == "remove":
+            for reg, entity_id in self._feeds:
+                if entity_id == data["entity_id"]:
+                    self._set_issue(reg, _MISSING, True, entity_id)
+
+    @callback
+    def _handle_interval(self, now: datetime) -> None:
+        self._check_sources(now)
         # Always write here: the unit needs the value refreshed periodically.
         for reg, entity_id in self._feeds:
             self._schedule_write(reg, self.hass.states.get(entity_id), force=True)
+
+    @callback
+    def _check_sources(self, now: datetime) -> None:
+        """Raise or clear the issues of sources that are gone or give nothing.
+
+        Only once HA has started: until then a source may just not be loaded.
+        """
+        if self.hass.state is not CoreState.running:
+            return
+        ent_reg = er.async_get(self.hass)
+        for reg, entity_id in self._feeds:
+            state = self.hass.states.get(entity_id)
+            missing = state is None and ent_reg.async_get(entity_id) is None
+            self._set_issue(reg, _MISSING, missing, entity_id)
+            since = self._usable_at.get(reg.key, self._started_at)
+            stale = not missing and now - since > SOURCE_NO_DATA_AFTER
+            if state is None:
+                reason = "no state"
+            elif state.state in _INVALID:
+                reason = f"state {state.state!r}"
+            else:
+                reason = self._skipped.get(reg.key, "no usable value")
+            self._set_issue(reg, _NO_DATA, stale, entity_id, reason)
+
+    def _issue_id(self, reg: RegisterDef, issue: str) -> str:
+        return f"{self._entry.entry_id}_{reg.key}_{issue}"
+
+    @callback
+    def _set_issue(
+        self,
+        reg: RegisterDef,
+        issue: str,
+        active: bool,
+        entity_id: str,
+        reason: str = "",
+    ) -> None:
+        issue_id = self._issue_id(reg, issue)
+        if not active:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=issue,
+            translation_placeholders={
+                "name": self._entry.title,
+                "entity": entity_id,
+                "reason": reason,
+            },
+        )
 
     def _source_raw(self, reg: RegisterDef, state: State | None) -> list[int] | None:
         """The raw words to send, or None; logs when a source starts and stops being skipped."""
@@ -195,6 +296,9 @@ class BusFeeder:
             return None
         if self._skipped.pop(reg.key, None) is not None:
             _LOGGER.info("Bus feed %s: %s is sent again", reg.key, state.entity_id)
+        self._usable_at[reg.key] = dt_util.utcnow()
+        for issue in (_MISSING, _NO_DATA):
+            self._set_issue(reg, issue, False, state.entity_id)
         return raw
 
     async def _async_write(

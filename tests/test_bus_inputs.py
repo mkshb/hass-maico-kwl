@@ -7,9 +7,9 @@ import logging
 
 import pytest
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, State
+from homeassistant.core import CoreState, HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
@@ -576,3 +576,128 @@ async def test_sent_sensor_disabled_with_source(
         "sensor", DOMAIN, f"{config_entry.entry_id}_room_temp_bus_sent"
     )
     assert ent_reg.async_get(room).disabled_by is None
+
+
+# --- Source renamed, gone or without data ----------------------------------
+
+
+def _issue(hass: HomeAssistant, entry, key: str, issue: str):
+    return ir.async_get(hass).async_get_issue(
+        DOMAIN, f"{entry.entry_id}_{key}_{issue}"
+    )
+
+
+async def _tick(hass: HomeAssistant, freezer, delta: timedelta = REWRITE) -> None:
+    freezer.tick(delta)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+
+async def test_feed_follows_a_renamed_source(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create("sensor", "test", "room", suggested_object_id="room")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+
+    ent_reg.async_update_entity("sensor.room", new_entity_id="sensor.living_room")
+    await hass.async_block_till_done()  # options change reloads the entry
+    assert config_entry.options[CONF_ROOM_TEMP_SOURCE_ENTITY] == "sensor.living_room"
+    assert config_entry.options[CONF_HUMIDITY_SOURCE_ENTITY] == "sensor.humidity"
+
+    hass.states.async_set("sensor.living_room", "23.0", CELSIUS)
+    await hass.async_block_till_done()
+    assert device.writes[-1] == (707, [230])
+
+
+async def test_issue_when_the_source_is_removed(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create("sensor", "test", "room", suggested_object_id="room")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None
+
+    ent_reg.async_remove("sensor.room")
+    hass.states.async_remove("sensor.room")
+    await hass.async_block_till_done()
+    issue = _issue(hass, config_entry, "room_temp_bus", "bus_source_missing")
+    assert issue.translation_placeholders["entity"] == "sensor.room"
+
+    hass.states.async_set("sensor.room", "22.0", CELSIUS)  # back again
+    await hass.async_block_till_done()
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None
+
+
+async def test_issue_when_a_source_without_registry_entry_is_gone(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """E.g. a YAML template sensor that was deleted."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    hass.states.async_remove("sensor.room")
+    await _tick(hass, freezer)
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing")
+    # A missing source does not also count as one without data.
+    await _tick(hass, freezer, timedelta(minutes=40))
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data") is None
+
+    hass.config_entries.async_update_entry(config_entry, options={})
+    await hass.async_block_till_done()
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None
+
+
+async def test_no_issue_while_home_assistant_starts(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """A source may just not be loaded yet."""
+    await _setup_with_feeds(hass, config_entry)
+    hass.set_state(CoreState.starting)
+    await _tick(hass, freezer, timedelta(minutes=40))
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data") is None
+    hass.set_state(CoreState.running)
+
+
+async def test_issue_when_the_source_sends_no_data(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """Only after 30 minutes without a usable value; it clears with the next one."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    hass.states.async_set("sensor.room", "70", CELSIUS)  # out of range
+    await _tick(hass, freezer, timedelta(minutes=20))
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data") is None
+
+    await _tick(hass, freezer, timedelta(minutes=15))
+    issue = _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data")
+    assert "outside" in issue.translation_placeholders["reason"]
+    # Humidity has no source state at all but a registry-less id: missing.
+    assert _issue(hass, config_entry, "humidity_bus", "bus_source_missing")
+
+    hass.states.async_set("sensor.room", "22.0", CELSIUS)
+    await hass.async_block_till_done()
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data") is None
+
+
+async def test_issue_names_an_unavailable_source(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    hass.states.async_set("sensor.room", "unavailable", CELSIUS)
+    await _setup_with_feeds(hass, config_entry)
+    await _tick(hass, freezer, timedelta(minutes=35))
+    issue = _issue(hass, config_entry, "room_temp_bus", "bus_source_no_data")
+    assert issue.translation_placeholders["reason"] == "state 'unavailable'"
+
+
+async def test_source_issues_removed_on_unload(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    await _setup_with_feeds(hass, config_entry)
+    await _tick(hass, freezer)
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing")
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert _issue(hass, config_entry, "room_temp_bus", "bus_source_missing") is None

@@ -281,6 +281,12 @@ writes every 9 minutes. Whether the unit also limits how often it may be written
 > - **Skipped values are logged.** While nothing is sent, no new value reaches the unit; what it
 >   does with the last one after 10 minutes is not documented. The log says once why a source is
 >   not sent, and again when it is sent again.
+> - **Renamed sources are followed.** If you change the entity ID of a source, the option is
+>   updated and the integration reloads once.
+> - **Repair issues for a configured source**: one when the source no longer exists, and one when
+>   it has given no value that can be sent for more than 30 minutes (e.g. it stays unavailable,
+>   has the wrong unit or is out of range). They are checked every 9 minutes once Home Assistant
+>   has started, and disappear with the next value sent. Inputs without a source get no issue.
 > - **The unit has to use the bus value.** For room temperature set the *Room temperature source*
 >   select to **"Bus"**. Humidity and air quality have no such register in the Maico map; how the
 >   unit selects the bus for them is not documented there.

@@ -3,6 +3,11 @@
 If the user picks a source entity in the options, its value is written to the
 matching register on every state change and re-written periodically so it stays
 valid for the device (write cycle >= 10 min).
+
+A value is only sent when it is a finite number in a unit the register takes
+(converted where that is unambiguous) and within the register's range. Anything
+else is skipped rather than sent as a limit, so a faulty or unsuitable source
+does not reach the unit as a plausible looking value.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT
 from homeassistant.core import (
     CALLBACK_TYPE,
     Event,
@@ -28,14 +34,51 @@ from homeassistant.helpers.event import (
     async_track_time_interval,
 )
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import BUS_REWRITE_INTERVAL
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
-from .register_defs import RegisterDef, RegisterValue
+from .register_defs import PPM, RegisterDef, RegisterValue
 
 _LOGGER = logging.getLogger(__name__)
 
 _INVALID = {None, "", "unknown", "unavailable"}
+
+PPB = "ppb"
+
+
+def source_raw(reg: RegisterDef, state: State) -> tuple[list[int] | None, str]:
+    """The raw words to send for a source state, or None and why it is skipped.
+
+    Temperatures are converted from any unit HA knows, ppb to ppm; other units
+    and sources without a unit are skipped. The value is rounded to the
+    register's resolution first, so e.g. 100.4 % still counts as 100 %.
+    """
+    try:
+        value = float(state.state)
+    except (TypeError, ValueError):
+        value = math.nan
+    if not math.isfinite(value):
+        return None, f"state {state.state!r} is no number"
+    unit = state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+    if unit != reg.unit:
+        if (
+            reg.unit in TemperatureConverter.VALID_UNITS
+            and unit in TemperatureConverter.VALID_UNITS
+        ):
+            value = TemperatureConverter.convert(value, unit, reg.unit)
+        elif reg.unit == PPM and unit == PPB:
+            value /= 1000
+        else:
+            return None, f"unit {unit!r} is not {reg.unit}"
+    raw = round(value / reg.scale)
+    low = None if reg.native_min is None else round(reg.native_min / reg.scale)
+    high = None if reg.native_max is None else round(reg.native_max / reg.scale)
+    if (low is not None and raw < low) or (high is not None and raw > high):
+        return None, (
+            f"{value:g} {reg.unit} is outside {reg.native_min} to {reg.native_max}"
+        )
+    return reg.encode(raw * reg.scale), ""
 
 
 @dataclass(frozen=True)
@@ -64,8 +107,9 @@ class BusFeeder:
         self._tasks: set[asyncio.Task[None]] = set()
         # Registers whose last write failed, so a lasting outage is logged once.
         self._failing: set[str] = set()
-        # Registers whose source reports no number, so that is logged once.
-        self._no_number: set[str] = set()
+        # Registers whose source value is skipped, and why, so that is logged
+        # once (see source_raw).
+        self._skipped: dict[str, str] = {}
         # Last raw words written per register, to skip unchanged values.
         self._written: dict[str, list[int]] = {}
         self._sent: dict[str, SentValue] = {}
@@ -137,40 +181,28 @@ class BusFeeder:
         for reg, entity_id in self._feeds:
             self._schedule_write(reg, self.hass.states.get(entity_id), force=True)
 
-    def _source_value(self, reg: RegisterDef, state: State | None) -> float | None:
-        """The source state as a finite number, or None if it must not be sent.
-
-        "nan" and "inf" convert to a float, but NaN passes the clamp and cannot
-        be encoded, and infinity would be sent as the register's limit.
-        """
+    def _source_raw(self, reg: RegisterDef, state: State | None) -> list[int] | None:
+        """The raw words to send, or None; logs when a source starts and stops being skipped."""
         if state is None or state.state in _INVALID:
             return None
-        try:
-            value = float(state.state)
-        except (TypeError, ValueError):
-            value = math.nan
-        if not math.isfinite(value):
-            if reg.key not in self._no_number:
-                self._no_number.add(reg.key)
+        raw, reason = source_raw(reg, state)
+        if raw is None:
+            if reg.key not in self._skipped:
                 _LOGGER.info(
-                    "Bus feed %s: %s reports %r, which is not sent",
-                    reg.key, state.entity_id, state.state,
+                    "Bus feed %s: %s is not sent, %s", reg.key, state.entity_id, reason
                 )
+            self._skipped[reg.key] = reason
             return None
-        if reg.key in self._no_number:
-            self._no_number.discard(reg.key)
-            _LOGGER.info(
-                "Bus feed %s: %s reports numbers again", reg.key, state.entity_id
-            )
-        return value
+        if self._skipped.pop(reg.key, None) is not None:
+            _LOGGER.info("Bus feed %s: %s is sent again", reg.key, state.entity_id)
+        return raw
 
     async def _async_write(
         self, reg: RegisterDef, state: State | None, force: bool = False
     ) -> None:
-        value = self._source_value(reg, state)
-        if value is None:
+        raw = self._source_raw(reg, state)
+        if raw is None:
             return
-        raw = reg.encode(reg.clamp(value))
         if not force and self._written.get(reg.key) == raw:
             return  # e.g. a source reporting 21.52 after 21.5
         try:

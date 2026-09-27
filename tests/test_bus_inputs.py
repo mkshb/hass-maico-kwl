@@ -17,13 +17,14 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.maico_kwl.const import (
+    CONF_AIR_QUALITY_SOURCE_ENTITY,
     CONF_HUMIDITY_SOURCE_ENTITY,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
     DOMAIN,
 )
 
 from .conftest import FakeDevice
-from .helpers import entity_id, setup_entry
+from .helpers import CELSIUS, PERCENT, PPM, entity_id, setup_entry
 
 REWRITE = timedelta(minutes=9, seconds=1)
 
@@ -35,6 +36,19 @@ async def _setup_with_feeds(hass: HomeAssistant, entry) -> None:
         options={
             CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room",
             CONF_HUMIDITY_SOURCE_ENTITY: "sensor.humidity",
+        },
+    )
+    await setup_entry(hass, entry)
+
+
+async def _setup_with_air_quality(hass: HomeAssistant, entry) -> None:
+    entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room",
+            CONF_HUMIDITY_SOURCE_ENTITY: "sensor.humidity",
+            CONF_AIR_QUALITY_SOURCE_ENTITY: "sensor.air",
         },
     )
     await setup_entry(hass, entry)
@@ -53,15 +67,15 @@ def _sent_state(hass: HomeAssistant, entry, key: str) -> str:
 async def test_feed_writes_on_setup_and_on_change(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    hass.states.async_set("sensor.room", "21.5")
-    hass.states.async_set("sensor.humidity", "55")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    hass.states.async_set("sensor.humidity", "55", PERCENT)
     await _setup_with_feeds(hass, config_entry)
 
     assert (707, [215]) in device.writes
     assert (763, [55]) in device.writes
     assert _sent_state(hass, config_entry, "room_temp_bus") == "21.5"
 
-    hass.states.async_set("sensor.room", "22.0")
+    hass.states.async_set("sensor.room", "22.0", CELSIUS)
     await hass.async_block_till_done()
     assert device.writes[-1] == (707, [220])
     assert _sent_state(hass, config_entry, "room_temp_bus") == "22.0"
@@ -77,13 +91,59 @@ async def test_feed_replaces_manual_number(
     assert entity_id(hass, config_entry, "number", "air_quality_bus")
 
 
-async def test_feed_clamps_to_register_range(
-    hass: HomeAssistant, device: FakeDevice, config_entry
+@pytest.mark.parametrize(
+    ("source", "state", "attributes", "register", "raw"),
+    [
+        ("sensor.room", "21.5", {"unit_of_measurement": "°C"}, 707, [215]),
+        ("sensor.room", "70.7", {"unit_of_measurement": "°F"}, 707, [215]),
+        ("sensor.room", "294.65", {"unit_of_measurement": "K"}, 707, [215]),
+        ("sensor.humidity", "100.4", {"unit_of_measurement": "%"}, 763, [100]),
+        ("sensor.air", "650", {"unit_of_measurement": "ppm"}, 764, [650]),
+        ("sensor.air", "1500", {"unit_of_measurement": "ppb"}, 764, [2]),
+    ],
+)
+async def test_feed_converts_units(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    source: str,
+    state: str,
+    attributes: dict[str, str],
+    register: int,
+    raw: list[int],
 ) -> None:
-    hass.states.async_set("sensor.room", "50")
-    await _setup_with_feeds(hass, config_entry)
-    assert (707, [400]) in device.writes
-    assert float(_sent_state(hass, config_entry, "room_temp_bus")) == 40.0
+    """Units HA can convert unambiguously reach the unit in its own unit."""
+    hass.states.async_set(source, state, attributes)
+    await _setup_with_air_quality(hass, config_entry)
+    assert (register, raw) in device.writes
+
+
+@pytest.mark.parametrize(
+    ("source", "state", "attributes"),
+    [
+        ("sensor.room", "21.5", {}),  # no unit
+        ("sensor.room", "50", CELSIUS),  # above 40
+        ("sensor.room", "-0.1", CELSIUS),  # below 0
+        ("sensor.humidity", "55", {}),
+        ("sensor.humidity", "100.6", PERCENT),
+        ("sensor.air", "42", {"device_class": "aqi"}),  # AQI has no unit
+        ("sensor.air", "12", {"unit_of_measurement": "µg/m³"}),
+        ("sensor.air", "55", PERCENT),
+        ("sensor.air", "5001", PPM),
+    ],
+)
+async def test_feed_skips_unsuitable_values(
+    hass: HomeAssistant,
+    device: FakeDevice,
+    config_entry,
+    source: str,
+    state: str,
+    attributes: dict[str, str],
+) -> None:
+    """Nothing is sent rather than a wrong value or a limit."""
+    hass.states.async_set(source, state, attributes)
+    await _setup_with_air_quality(hass, config_entry)
+    assert device.writes == []
 
 
 @pytest.mark.parametrize(
@@ -92,7 +152,7 @@ async def test_feed_clamps_to_register_range(
 async def test_feed_ignores_invalid_states(
     hass: HomeAssistant, device: FakeDevice, config_entry, value: str
 ) -> None:
-    hass.states.async_set("sensor.room", value)
+    hass.states.async_set("sensor.room", value, CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     assert not [w for w in device.writes if w[0] == 707]
     assert _sent_state(hass, config_entry, "room_temp_bus") == STATE_UNKNOWN
@@ -105,23 +165,23 @@ async def test_feed_skips_non_finite_values_and_logs_once(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """NaN would stop the feed, infinity would be sent as the register limit."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     writes = len(device.writes)
 
     with caplog.at_level(logging.INFO):
         for value in ("nan", "inf", "nan"):
-            hass.states.async_set("sensor.room", value)
+            hass.states.async_set("sensor.room", value, CELSIUS)
             await hass.async_block_till_done()
         async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
         await hass.async_block_till_done()
         assert len(device.writes) == writes
         assert _sent_state(hass, config_entry, "room_temp_bus") == "21.5"
-        assert caplog.text.count("which is not sent") == 1
+        assert caplog.text.count("sensor.room is not sent") == 1
 
-        hass.states.async_set("sensor.room", "22.0")
+        hass.states.async_set("sensor.room", "22.0", CELSIUS)
         await hass.async_block_till_done()
-    assert "sensor.room reports numbers again" in caplog.text
+    assert "sensor.room is sent again" in caplog.text
     assert device.writes[-1] == (707, [220])
 
 
@@ -132,7 +192,7 @@ async def test_feed_waits_for_missing_source(
     await _setup_with_feeds(hass, config_entry)
     assert not device.writes
 
-    hass.states.async_set("sensor.room", "20.0")
+    hass.states.async_set("sensor.room", "20.0", CELSIUS)
     await hass.async_block_till_done()
     assert device.writes == [(707, [200])]
 
@@ -140,7 +200,7 @@ async def test_feed_waits_for_missing_source(
 async def test_feed_rewrites_periodically(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     device.writes.clear()
 
@@ -155,12 +215,12 @@ async def test_feed_write_failure_is_logged(
     config_entry,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
 
     device.write_exception = 4
     with caplog.at_level(logging.INFO):
-        hass.states.async_set("sensor.room", "22.5")
+        hass.states.async_set("sensor.room", "22.5", CELSIUS)
         await hass.async_block_till_done()
     assert "Bus feed room_temp_bus write failed" in caplog.text
 
@@ -169,13 +229,13 @@ async def test_feed_stops_after_unload(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """After unload nothing is written and no connection is reopened."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     assert await hass.config_entries.async_unload(config_entry.entry_id)
     await hass.async_block_till_done()
     device.writes.clear()
 
-    hass.states.async_set("sensor.room", "23.0")
+    hass.states.async_set("sensor.room", "23.0", CELSIUS)
     async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
     await hass.async_block_till_done()
     assert device.writes == []
@@ -186,13 +246,13 @@ async def test_feed_cancels_pending_writes_on_stop(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """Writes still pending when the feeder stops are cancelled."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     feeder = config_entry.runtime_data.feeder
     hub = config_entry.runtime_data.hub
 
     async with hub._lock:  # keep the write waiting for the hub
-        hass.states.async_set("sensor.room", "24.0")
+        hass.states.async_set("sensor.room", "24.0", CELSIUS)
         await hass.async_block_till_done(wait_background_tasks=False)
         assert feeder._tasks
         feeder.async_stop()
@@ -316,18 +376,18 @@ async def test_feed_logs_outage_once_and_recovery(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A lasting outage is logged once, and once more when writes work again."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
 
     device.write_exception = 4
     with caplog.at_level(logging.INFO):
         for value in ("22.0", "22.5", "23.0"):
-            hass.states.async_set("sensor.room", value)
+            hass.states.async_set("sensor.room", value, CELSIUS)
             await hass.async_block_till_done()
         assert caplog.text.count("Bus feed room_temp_bus write failed") == 1
 
         device.write_exception = None
-        hass.states.async_set("sensor.room", "23.5")
+        hass.states.async_set("sensor.room", "23.5", CELSIUS)
         await hass.async_block_till_done()
     assert "Bus feed room_temp_bus writes succeed again" in caplog.text
     assert device.writes[-1] == (707, [235])
@@ -363,11 +423,11 @@ async def test_feed_skips_unchanged_values(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """Changes that encode to the same raw value are not written again."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     device.writes.clear()
 
-    hass.states.async_set("sensor.room", "21.52")  # still 215 on the wire
+    hass.states.async_set("sensor.room", "21.52", CELSIUS)  # still 215 on the wire
     await hass.async_block_till_done()
     assert device.writes == []
 
@@ -381,15 +441,15 @@ async def test_feed_retries_value_after_failed_write(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """A value that could not be written is not treated as sent."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
 
     device.write_exception = 4
-    hass.states.async_set("sensor.room", "22.0")
+    hass.states.async_set("sensor.room", "22.0", CELSIUS)
     await hass.async_block_till_done()
 
     device.write_exception = None
-    hass.states.async_set("sensor.room", "22.01")  # same raw value 220
+    hass.states.async_set("sensor.room", "22.01", CELSIUS)  # same raw value 220
     await hass.async_block_till_done()
     assert device.writes[-1] == (707, [220])
 
@@ -408,7 +468,7 @@ async def test_sent_sensor_shows_value_as_written(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """The sensor shows the value on the wire, not the raw source value."""
-    hass.states.async_set("sensor.humidity", "55.4")
+    hass.states.async_set("sensor.humidity", "55.4", PERCENT)
     await _setup_with_feeds(hass, config_entry)
 
     state = _sent(hass, config_entry, "humidity_bus")
@@ -422,11 +482,11 @@ async def test_sent_sensor_keeps_value_when_write_fails(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
     """A failed write does not show up as sent."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
 
     device.write_exception = 4
-    hass.states.async_set("sensor.room", "23.0")
+    hass.states.async_set("sensor.room", "23.0", CELSIUS)
     await hass.async_block_till_done()
     assert _sent(hass, config_entry, "room_temp_bus").state == "21.5"
 
@@ -444,7 +504,7 @@ async def test_sent_sensor_updates_time_on_rewrite(
     hass: HomeAssistant, device: FakeDevice, config_entry, freezer
 ) -> None:
     """The periodic refresh updates the time of the last write."""
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     first = _sent(hass, config_entry, "room_temp_bus").attributes["last_written"]
 
@@ -459,7 +519,7 @@ async def test_sent_sensor_updates_time_on_rewrite(
 async def test_sent_sensor_stops_listening_on_unload(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    hass.states.async_set("sensor.room", "21.5")
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     feeder = config_entry.runtime_data.feeder
     assert feeder._listeners["room_temp_bus"]

@@ -41,8 +41,8 @@ profile of the unit is derived from the registers it finds.
 - **Feed external values over Modbus**: optionally push a Home Assistant source entity (room
   temperature, humidity or air quality) into the unit's write-only "bus" input registers. It is written
   on every change and refreshed every 9 minutes to satisfy the device's write-cycle requirement.
-  No automation needed. Values are clamped and rounded, not unit converted, see
-  [Bus inputs](#bus-inputs).
+  No automation needed. Values in an unsuitable unit or outside the register's range are not
+  sent, see [Bus inputs](#bus-inputs).
 - **Decoding** based on the Maico Modbus map: ÷10 scaling, signed values, 32-bit counters via
   High-/Low-word pairs, enum states. A few registers deliberately differ from the documentation
   after checks on a real unit, see [Scaling and deviations](#scaling-and-deviations-from-the-maico-documentation).
@@ -254,11 +254,11 @@ own sensors. These three registers are **write-only**. The Maico documentation n
 of "min. 10 min" for them; the integration reads this as "refresh at least every 10 minutes" and
 writes every 9 minutes. Whether the unit also limits how often it may be written is not documented.
 
-| Register | Number entity (manual) | Source entity in the options | Range written | Resolution |
-|---|---|---|---|---|
-| 707 room temperature | *Room temperature (bus)* | `sensor` with device class `temperature` | 0 to 40 °C | 0.1 °C |
-| 763 humidity | *Humidity (bus)* | `sensor` with device class `humidity` | 0 to 100 % | 1 % |
-| 764 air quality | *Air quality (bus)* | any `sensor` | 0 to 5000 ppm | 1 ppm |
+| Register | Number entity (manual) | Source entity in the options | Source units accepted | Range | Resolution |
+|---|---|---|---|---|---|
+| 707 room temperature | *Room temperature (bus)* | `sensor` with device class `temperature` | °C, °F, K (converted to °C) | 0 to 40 °C | 0.1 °C |
+| 763 humidity | *Humidity (bus)* | `sensor` with device class `humidity` | % | 0 to 100 % | 1 % |
+| 764 air quality | *Air quality (bus)* | any `sensor` | ppm, ppb (converted to ppm) | 0 to 5000 ppm | 1 ppm |
 
 > [!IMPORTANT]
 > - **Source has priority.** With a source entity configured, its value is written right after
@@ -266,12 +266,16 @@ writes every 9 minutes. Whether the unit also limits how often it may be written
 >   not created then; leave the option empty to set the value manually instead.
 > - **Manual numbers** keep their value across restarts, write it again after a restart and every
 >   9 minutes.
-> - **Values are clamped and rounded** to the range and resolution above, e.g. 55.4 % is sent as
->   55 %. A room temperature below 0 °C is sent as 0 °C.
-> - **No unit conversion.** The state is sent as a number as it is. Use a source in °C, % and ppm;
->   a sensor in °F, ppb or µg/m³ gives wrong values on the unit.
-> - **Invalid states are skipped.** `unknown`, `unavailable`, empty and non-numeric states are not
->   written.
+> - **Only suitable values are sent.** The source needs one of the units above; a source without
+>   a unit (e.g. an air quality index) or in another unit (e.g. µg/m³) is not sent. Values are
+>   rounded to the resolution above, e.g. 55.4 % is sent as 55 %. A value outside the range is
+>   not sent either, instead of sending the limit: a faulty sensor must not look like a real
+>   reading to the unit.
+> - **Invalid states are skipped.** `unknown`, `unavailable`, empty, non-numeric, `nan` and
+>   `inf` states are not written.
+> - **Skipped values are logged.** While nothing is sent, no new value reaches the unit; what it
+>   does with the last one after 10 minutes is not documented. The log says once why a source is
+>   not sent, and again when it is sent again.
 > - **The unit has to use the bus value.** For room temperature set the *Room temperature source*
 >   select to **"Bus"**. Humidity and air quality have no such register in the Maico map; how the
 >   unit selects the bus for them is not documented there.
@@ -424,7 +428,8 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
   time minus Home Assistant's time in seconds (positive: the unit is ahead); changes below 2 s are
   not shown. *Sync clock* writes Home Assistant's local time to registers 100 to 105 in one request.
   A repair issue appears at a deviation of more than 5 minutes.
-- **Bus feed units**: see [Bus inputs](#bus-inputs); values are not converted.
+- **Bus feed units**: see [Bus inputs](#bus-inputs); °F, K and ppb are converted, other units are
+  not sent.
 
 ### Scaling and deviations from the Maico documentation
 

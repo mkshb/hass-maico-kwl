@@ -88,16 +88,6 @@ def test_writable_flags_match_platform():
             assert r.writable, f"{r.key} should be writable"
 
 
-def test_clamp_limits_to_native_range():
-    reg = rd.REGISTERS_BY_KEY["room_temp_bus"]  # 0 .. 40 degC
-    assert reg.clamp(50) == 40.0
-    assert reg.clamp(-3.5) == 0.0
-    assert reg.clamp(21.5) == 21.5
-    assert isinstance(reg.clamp(50), float)
-    unbounded = rd.REGISTERS_BY_KEY["temp_room"]
-    assert unbounded.clamp(-12.5) == -12.5
-
-
 def test_probe_via_only_for_write_only_registers():
     """Registers that can't be read-probed are exactly the write-only ones."""
     for r in rd.REGISTERS:

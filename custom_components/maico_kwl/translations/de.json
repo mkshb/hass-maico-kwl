@@ -601,6 +601,9 @@
     },
     "unsupported_device": {
       "message": "Das Gerät unter der eingestellten Adresse sieht nicht wie eine Maico KWL aus: {details}"
+    },
+    "boost_too_long": {
+      "message": "Das Gerät beendet die Stoßlüftung nach {unit_minutes} Minuten (Lüftungsstufe Dauer), {duration} Minuten lassen sich also nicht einhalten: wähle eine kürzere Dauer oder erhöhe Lüftungsstufe Dauer"
     }
   },
   "issues": {
@@ -648,7 +651,7 @@
       "fields": {
         "duration": {
           "name": "Dauer",
-          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet. Ohne Dauer beendet das Gerät sie selbst."
+          "description": "Minuten, nach denen Home Assistant die Stoßlüftung beendet, höchstens die Lüftungsstufe Dauer des Geräts. Ohne Dauer beendet das Gerät sie nach seiner Lüftungsstufe Dauer."
         }
       }
     }

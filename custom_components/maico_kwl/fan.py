@@ -40,6 +40,7 @@ MODE = "operating_mode"
 LEVEL = "ventilation_level"
 BOOST = "boost_ventilation"
 CURRENT_LEVEL = "current_vent_level"
+LEVEL_DURATION = "vent_level_duration"
 
 # Speeds from low to high; "off" is the fan being off, not a speed.
 SPEEDS = [slug for raw, slug in sorted(VENT_LEVEL.items()) if raw > 0]
@@ -90,13 +91,29 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
     async def async_boost(self, duration: int | None = None) -> None:
         """Start the boost ventilation (551), optionally for a number of minutes.
 
-        Without a duration the unit ends the boost on its own terms. With one,
-        Home Assistant switches it off again when the time is up; a new call
-        replaces the running timer.
+        The unit ends a boost itself after its ventilation level duration
+        (153). A shorter duration makes Home Assistant switch it off earlier; a
+        new call replaces the running timer. A longer one could not be kept,
+        so it is refused. The timer does not survive a reload: the unit then
+        ends the boost after its own duration.
         """
         if BOOST not in self.coordinator.present:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="boost_unavailable"
+            )
+        unit_minutes = self.coordinator.data.get(LEVEL_DURATION)
+        if (
+            duration is not None
+            and isinstance(unit_minutes, (int, float))
+            and duration > unit_minutes
+        ):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="boost_too_long",
+                translation_placeholders={
+                    "duration": str(duration),
+                    "unit_minutes": f"{unit_minutes:g}",
+                },
             )
         reg = REGISTERS_BY_KEY[BOOST]
         self._cancel_boost_timer()

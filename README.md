@@ -398,10 +398,12 @@ since the auto modes pick the level themselves. The percentage shows the level t
 running (*Current ventilation level*). `fan.turn_on` without arguments returns to the last mode.
 
 **Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button
-in the bathroom. Its target is the *Ventilation* fan of the unit. With `duration` (1 to 720 minutes),
-Home Assistant ends the boost when the time is up; without it, the unit ends it on its own terms. A
-new call replaces a running timer. The timer does not survive a restart of Home Assistant. On a unit
-without the boost register the action fails with an error.
+in the bathroom. Its target is the *Ventilation* fan of the unit. The unit ends a boost itself after
+its *Ventilation level duration* (5 to 90 minutes). With `duration`, Home Assistant ends it earlier;
+a `duration` longer than the unit's *Ventilation level duration* is refused with an error, since it
+could not be kept. A new call replaces a running timer. The timer does not survive a reload or
+restart of Home Assistant; the unit then ends the boost after its own duration. On a unit without
+the boost register the action fails with an error.
 
 ```yaml
 action: maico_kwl.boost

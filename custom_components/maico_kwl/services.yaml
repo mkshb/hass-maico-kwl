@@ -8,6 +8,6 @@ boost:
       selector:
         number:
           min: 1
-          max: 720
+          max: 90
           unit_of_measurement: min
           mode: box

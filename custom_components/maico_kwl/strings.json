@@ -601,6 +601,9 @@
     },
     "unsupported_device": {
       "message": "The device at the configured address does not look like a Maico KWL: {details}"
+    },
+    "boost_too_long": {
+      "message": "The unit ends the boost after {unit_minutes} minutes (Ventilation level duration), so {duration} minutes cannot be kept: choose a shorter duration or raise the Ventilation level duration"
     }
   },
   "issues": {
@@ -648,7 +651,7 @@
       "fields": {
         "duration": {
           "name": "Duration",
-          "description": "Minutes after which Home Assistant ends the boost. Without a duration the unit ends it on its own terms."
+          "description": "Minutes after which Home Assistant ends the boost, at most the unit's Ventilation level duration. Without a duration the unit ends it after its Ventilation level duration."
         }
       }
     }

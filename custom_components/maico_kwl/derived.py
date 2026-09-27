@@ -19,6 +19,30 @@ AIR_HEAT_CAPACITY = 0.34
 # sensor tolerance (e.g. on mild days), so it is not reported.
 MIN_EFFICIENCY_SPREAD = 5.0
 
+# Values a computation accepts as a measurement; outside, the input counts as
+# missing (e.g. a sensor fault reported as 3276.7 degC). Temperatures: the
+# measuring range of the Maico documentation. Airflow: the documented 300 m3/h
+# depends on the unit type, so only a sanity limit.
+INPUT_RANGES: dict[str, tuple[float, float]] = {
+    "temp_air_intake": (-30.0, 120.0),
+    "temp_supply_air": (-30.0, 120.0),
+    "temp_extract_air": (-30.0, 120.0),
+    "humidity_exhaust": (0.0, 100.0),
+    "airflow_supply": (0.0, 1000.0),
+    "airflow_exhaust": (0.0, 1000.0),
+}
+
+# More heat recovery power than this is no measurement: 300 m3/h and 60 K give
+# about 6 kW. Such a reading is not added to the recovered energy.
+MAX_RECOVERY_POWER = 10000.0  # W
+
+
+def valid_input(key: str, value: float) -> bool:
+    """Whether a register value can be used in a computation."""
+    low, high = INPUT_RANGES.get(key, (-math.inf, math.inf))
+    return low <= value <= high
+
+
 # Magnus formula constants over water (Sonntag 1990), for -45 to 60 degC.
 MAGNUS_A = 17.62
 MAGNUS_B = 243.12  # degC

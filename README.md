@@ -93,12 +93,15 @@ stay available as long as the connection works.
 
 Some useful values have no register of their own. They are calculated from the registers that are
 there, and each is only created when the unit has all the registers it needs. A calculated value is
-unavailable while one of its inputs is missing from the last poll.
+unavailable while one of its inputs is missing from the last poll, or is no valid measurement: a
+temperature outside the documented measuring range of −30 to 120 °C (e.g. a sensor fault), a
+humidity outside 0 to 100 % or an airflow above 1000 m³/h. The sensors of the registers themselves
+still show what the unit reports.
 
 | Sensor | Calculation |
 |--------|-------------|
 | *Heat recovery power* (W) | Supply airflow (653) × 0.34 Wh/(m³·K) × (supply air (704) − air intake temperature (703)). Negative while the exchanger cools the supply air; the value is not clamped. Since the supply air is measured after the fan and any heater, their heat is included. The *Heat recovery energy* sensor below adds it up. |
-| *Heat recovery energy* (kWh) | The heat recovery power integrated between polls (trapezoidal rule), as a total that only increases: negative power counts as 0. The total is restored after a restart. A gap between two readings longer than 10 minutes, or two scan intervals if that is longer, is not counted. Long-term statistics give daily, monthly and yearly values. |
+| *Heat recovery energy* (kWh) | The heat recovery power integrated between polls (trapezoidal rule), as a total that only increases: negative power counts as 0. The total is restored after a restart. A gap between two readings longer than 10 minutes, or two scan intervals if that is longer, is not counted, and neither is a reading above 10 kW, which no residential unit reaches. Long-term statistics give daily, monthly and yearly values. |
 | *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air (705) − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; fan heat can push it slightly above 100. A slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
 | *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (653 − 654, diagnostic). Positive: more air goes in. A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
 | *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature (705) and humidity (750), Magnus formula (Sonntag 1990). The dew point is unknown at 0 % humidity. The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |

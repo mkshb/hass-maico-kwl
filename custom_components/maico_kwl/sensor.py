@@ -23,6 +23,7 @@ from .derived import (
     DERIVED_SENSORS,
     FILTER_DUE,
     HEAT_RECOVERY_SOURCES,
+    MAX_RECOVERY_POWER,
     DerivedDef,
     heat_recovery_power,
 )
@@ -280,6 +281,9 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
             return
         now = dt_util.utcnow()
         power = max(0.0, heat_recovery_power(*numbers))
+        if power > MAX_RECOVERY_POWER:
+            self._last = None  # no measurement: a gap, as for a missing one
+            return
         if self._last is not None:
             last_time, last_power = self._last
             elapsed = now - last_time

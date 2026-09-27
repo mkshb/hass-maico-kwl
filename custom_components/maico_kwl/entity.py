@@ -15,6 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
+from .derived import valid_input
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .modbus_hub import MaicoModbusError
 from .register_defs import BUTTON, RegisterDef, RegisterValue
@@ -175,17 +176,23 @@ class MaicoDerivedEntity(CoordinatorEntity[MaicoCoordinator]):
 
     @property
     def available(self) -> bool:
+        """Unavailable while a source is missing or no valid measurement."""
         return super().available and all(
-            key in self.coordinator.data for key in self._sources
+            key in self.coordinator.data
+            and (
+                not isinstance(value := self.coordinator.data[key], (int, float))
+                or valid_input(key, value)
+            )
+            for key in self._sources
         )
 
     @property
     def _numbers(self) -> list[float] | None:
-        """The source values in order, or None if one is missing."""
+        """The source values in order, or None if one is missing or invalid."""
         numbers: list[float] = []
         for key in self._sources:
             value = self.coordinator.data.get(key)
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, (int, float)) or not valid_input(key, value):
                 return None
             numbers.append(float(value))
         return numbers

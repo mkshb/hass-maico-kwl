@@ -410,6 +410,23 @@ async def test_reconfigure_drops_the_accessory_choice_of_another_unit(
     assert CONF_ACCESSORIES_OFFERED not in config_entry.options
 
 
+async def test_reconfigure_keeps_a_detected_filter_of_the_same_unit_only(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A filter at 0 days stays fitted for the same unit, not for another."""
+    await setup_entry(hass, config_entry)
+    device.registers[656] = 0
+
+    for host, fitted in ((HOST, True), (NEW_HOST, False)):
+        result = await config_entry.start_reconfigure_flow(hass)
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: host, CONF_PORT: PORT, CONF_SLAVE: SLAVE}
+        )
+        await hass.async_block_till_done()
+        accessories = config_entry.data[CONF_DISCOVERY]["accessories"]
+        assert ("outdoor_filter" in accessories) is fitted
+
+
 async def test_reconfigure_with_the_same_connection_keeps_the_accessories(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

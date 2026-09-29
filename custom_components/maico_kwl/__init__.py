@@ -34,6 +34,7 @@ from .discovery import (
     async_discover,
     cache_data,
     derive_profile,
+    detected_accessories,
     present_from_cache,
     registers_in_use,
 )
@@ -198,10 +199,13 @@ async def _async_discover_and_refresh(
             translation_placeholders={"details": problem},
         )
 
-    present = present_from_cache(entry.data.get(CONF_DISCOVERY))
+    cache = entry.data.get(CONF_DISCOVERY)
+    present = present_from_cache(cache)
     if present is None:
         try:
-            present, accessories = await async_discover(hub)
+            present, accessories = await async_discover(
+                hub, detected_accessories(cache)
+            )
         except MaicoModbusError as err:
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,

@@ -583,7 +583,9 @@ def _filter_fitted(remaining: str, notice_bit: str) -> Callable[[Values], bool |
     """A monitored filter has days left, or has run out and sets its notice bit.
 
     Without the filter the unit keeps the days at 0, never sets the bit and
-    ignores a filter change.
+    ignores a filter change. The bit stays off on some units, so a filter that
+    ran out looks the same; a filter detected before is therefore kept
+    (Accessory.kept_once_detected).
     """
 
     def detect(values: Values) -> bool | None:
@@ -627,6 +629,9 @@ class Accessory:
     # values: True/False, or None if it cannot tell (the part is kept then).
     sources: tuple[str, ...] = ()
     detect: Callable[[Values], bool | None] | None = None
+    # Once detected, a later detection keeps it: its values cannot tell a part
+    # that is not fitted from one that ran out (a filter at 0 days).
+    kept_once_detected: bool = False
 
 
 _WIRED_SENSORS = tuple(
@@ -642,12 +647,14 @@ ACCESSORIES: list[Accessory] = [
         ("filter_runtime_outdoor", "filter_reset_outdoor", "filter_remaining_outdoor"),
         ("filter_remaining_outdoor", "notice_code"),
         _filter_fitted("filter_remaining_outdoor", "outdoor_filter_dirty"),
+        kept_once_detected=True,
     ),
     Accessory(
         "room_filter",
         ("filter_runtime_room", "filter_reset_room", "filter_remaining_room"),
         ("filter_remaining_room", "notice_code"),
         _filter_fitted("filter_remaining_room", "room_filter_dirty"),
+        kept_once_detected=True,
     ),
     Accessory("wired_sensors", _WIRED_SENSORS, _WIRED_SENSORS, _any_reading(_WIRED_SENSORS)),
     Accessory("enocean", _ENOCEAN, _ENOCEAN, _any_reading(_ENOCEAN)),

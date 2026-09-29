@@ -130,7 +130,7 @@ decides from those:
 
 | Accessory | Entities | Detected as fitted when |
 |---|---|---|
-| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. |
+| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. Some units do not report a filter that ran out as dirty either, so a filter detected before stays fitted when *Rediscover registers* or a reconfigure with the same connection finds it at 0 days. |
 | Wired sensors | Humidity, CO2 and VOC sensor 1 to 4 | At least one of them reports a value other than 0. |
 | EnOcean wireless sensors | CO2, humidity and VOC of the 8 EnOcean IDs | At least one of them reports a value other than 0. |
 | External room temperature sensor | *Temperature room external* | The *Room temperature source* is set to "External". |

@@ -427,3 +427,14 @@ async def test_filter_that_is_not_fitted_creates_no_entities(
         assert f"{prefix}_{key}" not in unique_ids
     for key in ("filter_reset_room", "room_filter_dirty", "filter_due_room"):
         assert f"{prefix}_{key}" in unique_ids
+
+
+async def test_rediscover_keeps_a_filter_that_ran_out(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """At 0 days without a notice bit, a filter detected before stays."""
+    due = entity_id(hass, loaded, "binary_sensor", "filter_due_outdoor")
+    device.registers[656] = 0
+    await _rediscover(hass, loaded)
+    assert "outdoor_filter" in loaded.data[CONF_DISCOVERY]["accessories"]
+    assert hass.states.get(due).state == "on"

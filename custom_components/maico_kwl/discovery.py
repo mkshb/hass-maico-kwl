@@ -52,8 +52,13 @@ PROBE_ATTEMPTS = 3
 PROBE_RETRY_DELAY = 1.0  # seconds
 
 
-async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
+async def async_discover(
+    hub: MaicoModbusHub, detected_before: set[str] | None = None
+) -> tuple[set[str], set[str]]:
     """Probe the device and return (present register keys, fitted accessories).
+
+    detected_before are the accessories the last discovery of this unit found
+    fitted; see Accessory.kept_once_detected.
 
     Raises MaicoConnectionError if the device becomes unreachable while probing,
     so setup is retried instead of continuing with an incomplete register set.
@@ -69,7 +74,7 @@ async def async_discover(hub: MaicoModbusHub) -> tuple[set[str], set[str]]:
     present = _resolve_probe_via(present)
 
     # Third pass: which of the accessories that answer are fitted.
-    accessories = await _detect_accessories(hub, present)
+    accessories = await _detect_accessories(hub, present, detected_before or set())
 
     _LOGGER.info(
         "Maico discovery: %d/%d registers present, accessories fitted: %s, "
@@ -110,9 +115,27 @@ def cache_data(present: set[str], accessories: set[str]) -> dict[str, Any]:
     }
 
 
-def data_without_discovery(data: Mapping[str, Any]) -> dict[str, Any]:
-    """Entry data without the stored discovery, so the next setup probes again."""
-    return {key: value for key, value in data.items() if key != CONF_DISCOVERY}
+def data_without_discovery(
+    data: Mapping[str, Any], same_unit: bool = True
+) -> dict[str, Any]:
+    """Entry data without the stored discovery, so the next setup probes again.
+
+    For the same unit, the detected accessories stay for the next discovery
+    (detected_accessories); a stored discovery of just these is not valid, so
+    it probes again all the same.
+    """
+    result = {key: value for key, value in data.items() if key != CONF_DISCOVERY}
+    if same_unit and (accessories := detected_accessories(data.get(CONF_DISCOVERY))):
+        result[CONF_DISCOVERY] = {"accessories": sorted(accessories)}
+    return result
+
+
+def detected_accessories(cache: Any) -> set[str]:
+    """The accessories a stored discovery found fitted, of any version."""
+    stored = cache.get("accessories") if isinstance(cache, Mapping) else None
+    if not isinstance(stored, list):
+        return set()
+    return {item for item in stored if isinstance(item, str)}
 
 
 def _valid_cache(cache: Any) -> bool:
@@ -175,8 +198,7 @@ def active_accessories(
     unit answers to only later (fitted afterwards, or new in a later version)
     is decided by detection, instead of counting as not fitted.
     """
-    stored = cache.get("accessories") if isinstance(cache, Mapping) else None
-    detected = set(stored) if isinstance(stored, list) else set()
+    detected = detected_accessories(cache)
     chosen = options.get(CONF_ACCESSORIES)
     if chosen is None:
         return detected
@@ -239,10 +261,13 @@ async def _probe(
     return False
 
 
-async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str]:
+async def _detect_accessories(
+    hub: MaicoModbusHub, present: set[str], detected_before: set[str]
+) -> set[str]:
     """Keys of the accessories that answer and are fitted.
 
-    An accessory whose values cannot be read or do not tell counts as fitted.
+    An accessory whose values cannot be read or do not tell counts as fitted,
+    and so does one kept_once_detected that was detected before.
     """
     offered = [acc for acc in ACCESSORIES if acc.key in offered_accessories(present)]
     sources = {
@@ -252,7 +277,9 @@ async def _detect_accessories(hub: MaicoModbusHub, present: set[str]) -> set[str
     return {
         acc.key
         for acc in offered
-        if acc.detect is None or acc.detect(values) is not False
+        if acc.detect is None
+        or acc.detect(values) is not False
+        or (acc.kept_once_detected and acc.key in detected_before)
     }
 
 

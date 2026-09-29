@@ -200,7 +200,8 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 # A new connection may lead to another unit: the accessories
                 # chosen for the old one no longer apply, detection decides.
                 options = dict(entry.options)
-                if (host, port, slave) != _connection(entry.data):
+                same_unit = (host, port, slave) == _connection(entry.data)
+                if not same_unit:
                     options.pop(CONF_ACCESSORIES, None)
                     options.pop(CONF_ACCESSORIES_OFFERED, None)
                 # A loaded entry is reloaded by its update listener; reloading
@@ -214,7 +215,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                     unique_id=None,
                     # A new connection may lead to another unit: discover again.
                     data={
-                        **data_without_discovery(entry.data),
+                        **data_without_discovery(entry.data, same_unit),
                         CONF_HOST: host,
                         CONF_PORT: port,
                         CONF_SLAVE: slave,

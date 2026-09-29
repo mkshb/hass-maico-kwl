@@ -5,13 +5,20 @@ from __future__ import annotations
 import pytest
 
 from custom_components.maico_kwl.coordinator import build_blocks
-from custom_components.maico_kwl.const import CONF_ACCESSORIES, CONF_ACCESSORIES_OFFERED
+from custom_components.maico_kwl.const import (
+    CONF_ACCESSORIES,
+    CONF_ACCESSORIES_OFFERED,
+    CONF_DISCOVERY,
+)
 from custom_components.maico_kwl.discovery import (
     ACCESSORIES_UNTIL_0_4_0,
     active_accessories,
     async_discover,
+    data_without_discovery,
     derive_profile,
+    detected_accessories,
     offered_accessories,
+    present_from_cache,
     registers_in_use,
 )
 from custom_components.maico_kwl.modbus_hub import MaicoConnectionError, MaicoModbusHub
@@ -230,6 +237,39 @@ async def test_discovery_keeps_filters_that_ran_out(
     device.registers[404] = (1 << 10) | (1 << 11)  # outdoor and room filter dirty
     _, accessories = await async_discover(hub)
     assert {"outdoor_filter", "room_filter"} <= accessories
+
+
+async def test_discovery_keeps_filters_detected_before(
+    hub: MaicoModbusHub, device: FakeDevice
+) -> None:
+    """0 days without a notice bit: a filter detected before has run out.
+
+    Sensors reading 0 are not kept: a reading tells them apart.
+    """
+    device.registers[656] = 0
+    device.registers[657] = 0
+    before = {"outdoor_filter", "room_filter", "wired_sensors"}
+    _, accessories = await async_discover(hub, {"outdoor_filter", "wired_sensors"})
+    assert "outdoor_filter" in accessories
+    assert "room_filter" not in accessories
+    assert "wired_sensors" not in accessories  # its registers answer, all 0
+    _, accessories = await async_discover(hub, before)
+    assert {"outdoor_filter", "room_filter"} <= accessories
+
+
+def test_data_without_discovery_keeps_the_detected_accessories() -> None:
+    """For the same unit only; what stays is no valid discovery."""
+    data = {
+        "host": HOST,
+        CONF_DISCOVERY: {"version": 2, "present": ["temp_room"], "accessories": ["room_filter"]},
+    }
+    kept = data_without_discovery(data)
+    assert kept == {"host": HOST, CONF_DISCOVERY: {"accessories": ["room_filter"]}}
+    assert present_from_cache(kept[CONF_DISCOVERY]) is None
+    assert detected_accessories(kept[CONF_DISCOVERY]) == {"room_filter"}
+    assert data_without_discovery(data, same_unit=False) == {"host": HOST}
+    assert data_without_discovery({"host": HOST}) == {"host": HOST}
+    assert detected_accessories({"accessories": "room_filter"}) == set()
 
 
 async def test_discovery_detects_sensors_and_room_temp_source(

@@ -52,11 +52,23 @@ async def test_fan_state(hass: HomeAssistant, fan: str) -> None:
     assert "off" not in state.attributes[ATTR_PRESET_MODES]
 
 
-async def test_fan_percentage_switches_to_manual(
+async def test_fan_percentage_keeps_auto_sensor(
     hass: HomeAssistant, device: FakeDevice, fan: str
 ) -> None:
+    """auto_sensor runs a written level at once and keeps its sensor control."""
     await _call(hass, "set_percentage", fan, percentage=100)
-    assert device.writes[-2:] == [(550, [1]), (554, [4])]  # manual, intensive
+    assert device.writes == [(554, [4])]  # intensive, mode untouched
+    assert hass.states.get(fan).attributes[ATTR_PRESET_MODE] == "auto_sensor"
+
+
+async def test_fan_percentage_switches_to_manual(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    device.registers[550] = 2  # auto_time
+    await setup_entry(hass, config_entry)
+    fan = entity_id(hass, config_entry, "fan", "ventilation")
+    await _call(hass, "set_percentage", fan, percentage=100)
+    assert device.writes == [(550, [1]), (554, [4])]  # manual, intensive
 
     device.writes.clear()
     await _call(hass, "set_percentage", fan, percentage=40)

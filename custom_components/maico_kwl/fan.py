@@ -46,6 +46,8 @@ LEVEL_DURATION = "vent_level_duration"
 SPEEDS = [slug for raw, slug in sorted(VENT_LEVEL.items()) if raw > 0]
 # Every operating mode except "off" is a preset.
 PRESETS = [slug for raw, slug in sorted(OPERATING_MODE.items()) if raw > 0]
+# Modes in which the unit runs a written ventilation level (554) at once.
+LEVEL_MODES = frozenset({"manual", "auto_sensor"})
 
 
 async def async_setup_entry(
@@ -213,8 +215,10 @@ class MaicoFan(MaicoDerivedEntity, FanEntity):
         if percentage == 0:
             await self.async_turn_off()
             return
-        # A speed only sticks in manual mode; the auto modes pick their own.
-        if self._slug(MODE) != "manual":
+        # A speed sticks in manual mode and in auto_sensor, which keeps its
+        # sensor control. The other modes switch to manual: off must turn on,
+        # and whether the time and eco modes keep a speed is not known.
+        if self._slug(MODE) not in LEVEL_MODES:
             await self._async_write(MODE, "manual")
         level = percentage_to_ordered_list_item(SPEEDS, percentage)
         await self._async_write(LEVEL, level)

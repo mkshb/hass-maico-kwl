@@ -405,8 +405,9 @@ ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
 
 The fan has four speeds (humidity protection, reduced, nominal, intensive; 25 % steps) and the
-operating modes except *off* as presets. Setting a speed switches the unit to manual mode first,
-since the auto modes pick the level themselves. The percentage shows the level that is actually
+operating modes except *off* as presets. In *Manual* and *Auto-Sensor* a speed is set as it is, and
+*Auto-Sensor* keeps its sensor control. In the other modes setting a speed switches the unit to
+manual mode first. The percentage shows the level that is actually
 running (*Current ventilation level*). `fan.turn_on` without arguments returns to the last mode.
 
 **Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button

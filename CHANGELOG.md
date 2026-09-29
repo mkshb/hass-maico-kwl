@@ -3,6 +3,36 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
+## 0.4.2 (2026-09-29)
+
+Bus values only go to the unit when you chose a source for them, and two fixes for the fan and the
+filters.
+
+### What changed
+
+- **Bus inputs need a source.** Room temperature, humidity and air quality are only sent to the
+  unit when a source entity is set for them under **Configure**. Without a source, nothing is sent
+  and the unit uses its own sensor. The manual *Room temperature (bus)*, *Humidity (bus)* and
+  *Air quality (bus)* numbers are gone: once set, they kept sending their stored value every
+  8 minutes, also from a second Home Assistant instance (e.g. a test instance) on the same unit.
+  In our case such a stored 80 % humidity switched the unit's over-humidity protection on and off
+  every 8 minutes. Existing manual numbers are disabled and send nothing.
+- **A fan speed in Auto-Sensor mode.** Setting a speed on the *Ventilation* fan no longer switches
+  the unit from *Auto-Sensor* to manual mode. The unit runs the new level at once and keeps its
+  sensor control, so it may choose another level later. In the other automatic and eco modes the
+  unit still switches to manual mode first.
+- **A filter that ran out stays.** *Rediscover registers* or a reconfigure with the same
+  connection no longer takes an outdoor or room filter at 0 days for a filter that is not fitted,
+  if it was detected before. Its entities, the *Filter due* sensor and the repair issue stay.
+
+### Do I need to do anything?
+
+- **Update and restart.**
+- **Used the manual bus numbers?** Set a source entity for that input under **Configure**. For a
+  fixed value, use a template sensor with the matching device class and unit.
+- **A second Home Assistant instance on the same unit?** Update it as well, or remove its bus
+  sources, so it does not send its own values.
+
 ## 0.4.1 (2026-09-27)
 
 A careful look at everything that can go wrong: bus values that reach the unit reliably, no writes

@@ -291,8 +291,9 @@ on how often the values may be written.
 
 > [!IMPORTANT]
 > - **Only with a source.** With a source entity configured, its value is written right after
->   setup, on every state change and every **8 minutes**. Without a source, nothing is sent to
->   that input. For a fixed value, use a template sensor with the device class and unit above.
+>   setup, on every state change and every **8 minutes**. Without a source, nothing is sent and
+>   the unit uses its own sensor. For a fixed value, use a template sensor with the device class
+>   and unit above as the source.
 > - **Only suitable values are sent.** The source needs one of the units above; a source without
 >   a unit (e.g. an air quality index) or in another unit (e.g. µg/m³) is not sent. Values are
 >   rounded to the resolution above, e.g. 55.4 % is sent as 55 %. A value outside the range is
@@ -332,7 +333,7 @@ stale from 10 minutes on.
   the new state shows up without waiting for the next poll.
 - **Bus inputs**: a configured source entity is written on every change and at least every
   8 minutes, and every minute after a failed write, see [Bus inputs](#bus-inputs). Inputs without
-  a source get nothing.
+  a source are not written; the unit uses its own sensor.
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
   after a firmware update or after adding sensors or filters to the unit, see

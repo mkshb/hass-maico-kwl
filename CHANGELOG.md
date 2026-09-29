@@ -5,8 +5,16 @@ What changed in each version of the Maico KWL integration, newest first. The tex
 
 ## 0.4.2 (2026-09-29)
 
-Bus values only go to the unit when you chose a source for them, and two fixes for the fan and the
-filters.
+Bus values only go to the unit when you chose a source for them, and you can see what was sent.
+Plus two fixes for the fan and the filters.
+
+### What's new
+
+- **Bus activity on the device page.** What is sent to the bus inputs shows up under **Activity**
+  on the device page: the first value after a start and every changed value (at most one entry
+  per input every 8 minutes), a source whose value is not sent and why, failed writes, writes
+  that work again, and a unit that has had no valid value for 10 minutes. The event
+  `maico_kwl_bus_input` behind it can also trigger automations.
 
 ### What changed
 

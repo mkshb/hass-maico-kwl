@@ -113,8 +113,7 @@ class BusDelivery:
     After a failed write, ``retry`` is called every BUS_RETRY_INTERVAL until a
     write succeeds. Once the last successful write is older than
     BUS_VALUE_VALID, the unit uses its own sensor again, and a repair issue
-    says so until the next write succeeds. Used by the bus feed and by the
-    manual bus numbers.
+    says so until the next write succeeds.
     """
 
     def __init__(

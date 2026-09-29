@@ -45,7 +45,7 @@
     "step": {
       "init": {
         "title": "Maico-KWL-Optionen",
-        "description": "Wähle das Zubehör, das an deinem Gerät verbaut ist, und optional Quell-Entitäten, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Eine Quelle leer lassen, um den Wert manuell zu steuern.",
+        "description": "Wähle das Zubehör, das an deinem Gerät verbaut ist, und optional Quell-Entitäten, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Ohne Quelle wird an diesen Eingang nichts gesendet.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
           "accessories": "Verbautes Zubehör",
@@ -168,15 +168,6 @@
       },
       "room_setpoint": {
         "name": "Raumtemperatur Sollwert"
-      },
-      "room_temp_bus": {
-        "name": "Raumtemperatur Bus"
-      },
-      "humidity_bus": {
-        "name": "Feuchte Bus"
-      },
-      "air_quality_bus": {
-        "name": "Luftgüte Bus"
       },
       "room_temp_max": {
         "name": "Raumtemperatur Max."
@@ -632,7 +623,7 @@
     },
     "bus_source_missing": {
       "title": "Bus-Quelle von {name} fehlt",
-      "description": "{entity} ist unter **Konfigurieren** als Quelle eines Bus-Eingangs eingestellt, existiert aber nicht mehr. Das Gerät bekommt für diesen Eingang keinen neuen Wert.\n\nWähle unter **Konfigurieren** der Integration eine andere Quelle, oder lass das Feld leer, um den Wert manuell einzustellen. Dieser Hinweis verschwindet, sobald die Quelle wieder existiert oder geändert wurde."
+      "description": "{entity} ist unter **Konfigurieren** als Quelle eines Bus-Eingangs eingestellt, existiert aber nicht mehr. Das Gerät bekommt für diesen Eingang keinen neuen Wert.\n\nWähle unter **Konfigurieren** der Integration eine andere Quelle, oder leere das Feld, damit an diesen Eingang nichts gesendet wird. Dieser Hinweis verschwindet, sobald die Quelle wieder existiert oder geändert wurde."
     },
     "bus_source_no_data": {
       "title": "Bus-Quelle von {name} liefert keine Daten",

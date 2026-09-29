@@ -11,6 +11,9 @@ does not reach the unit as a plausible looking value.
 
 A source that is renamed is followed (the options are updated). One that is
 gone, or gives nothing usable for a while, gets a repair issue.
+
+What reaches the unit, and what does not, is shown in the device's logbook
+(BusLog, logbook.py).
 """
 
 from __future__ import annotations
@@ -33,7 +36,11 @@ from homeassistant.core import (
     State,
     callback,
 )
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_entity_registry_updated_event,
@@ -44,11 +51,17 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import TemperatureConverter
 
 from .const import (
+    BUS_EXPIRED,
+    BUS_FAILED,
     BUS_FEEDS,
+    BUS_RECOVERED,
     BUS_RETRY_INTERVAL,
     BUS_REWRITE_INTERVAL,
+    BUS_SENT,
+    BUS_SKIPPED,
     BUS_VALUE_VALID,
     DOMAIN,
+    EVENT_BUS_INPUT,
 )
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import PPM, RegisterDef, RegisterValue, to_raw
@@ -107,13 +120,99 @@ def source_raw(reg: RegisterDef, state: State) -> tuple[list[int] | None, str]:
     return reg.encode(raw * reg.scale), ""
 
 
+class BusLog:
+    """Bus input activity for the device's logbook (EVENT_BUS_INPUT).
+
+    A sent value is logged the first time, then only when it changed, and at
+    most once per BUS_REWRITE_INTERVAL and input: a change within that time is
+    logged with the latest value once it has passed. The regular refresh of an
+    unchanged value is not logged, so the logbook is not flooded by a source
+    that changes often.
+    """
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._logged: dict[str, RegisterValue | None] = {}
+        self._logged_at: dict[str, datetime] = {}
+        # Latest value per input not logged yet because of the throttle.
+        self._pending: dict[str, tuple[RegisterDef, RegisterValue | None, str]] = {}
+        self._timers: dict[str, CALLBACK_TYPE] = {}
+
+    @callback
+    def sent(self, reg: RegisterDef, value: RegisterValue | None, source: str) -> None:
+        key = reg.key
+        if key in self._logged and self._logged[key] == value:
+            self._pending.pop(key, None)  # back at the value logged last
+            return
+        now = dt_util.utcnow()
+        last = self._logged_at.get(key)
+        if last is None or now - last >= BUS_REWRITE_INTERVAL:
+            self._log_sent(reg, value, source)
+            return
+        self._pending[key] = (reg, value, source)
+        if key not in self._timers:
+            self._timers[key] = async_call_later(
+                self._hass,
+                last + BUS_REWRITE_INTERVAL - now,
+                callback(lambda _now: self._flush(key)),
+            )
+
+    @callback
+    def forget(self, key: str) -> None:
+        """Log the next sent value even if it equals the last one logged."""
+        self._logged.pop(key, None)
+
+    @callback
+    def fire(self, kind: str, reg: RegisterDef, **data: object) -> None:
+        # The entry has one device (entity.maico_device_info).
+        devices = dr.async_entries_for_config_entry(
+            dr.async_get(self._hass), self._entry.entry_id
+        )
+        self._hass.bus.async_fire(
+            EVENT_BUS_INPUT,
+            {
+                "device_id": devices[0].id if devices else None,
+                "entry_id": self._entry.entry_id,
+                "input": reg.key,
+                "kind": kind,
+                **data,
+            },
+        )
+
+    @callback
+    def stop(self) -> None:
+        for unsub in self._timers.values():
+            unsub()
+        self._timers.clear()
+        self._pending.clear()
+
+    @callback
+    def _flush(self, key: str) -> None:
+        self._timers.pop(key, None)
+        if (pending := self._pending.pop(key, None)) is not None:
+            self._log_sent(*pending)
+
+    def _log_sent(
+        self, reg: RegisterDef, value: RegisterValue | None, source: str
+    ) -> None:
+        # A value waiting for the throttle is replaced by this one.
+        self._pending.pop(reg.key, None)
+        if (unsub := self._timers.pop(reg.key, None)) is not None:
+            unsub()
+        self._logged[reg.key] = value
+        self._logged_at[reg.key] = dt_util.utcnow()
+        self.fire(BUS_SENT, reg, value=value, unit=reg.unit, source=source)
+
+
 class BusDelivery:
     """Keeps a bus input valid on the unit: retries, logging and its issue.
 
     After a failed write, ``retry`` is called every BUS_RETRY_INTERVAL until a
     write succeeds. Once the last successful write is older than
     BUS_VALUE_VALID, the unit uses its own sensor again, and a repair issue
-    says so until the next write succeeds.
+    says so until the next write succeeds. The start and end of an outage go
+    to the logbook.
     """
 
     def __init__(
@@ -122,14 +221,17 @@ class BusDelivery:
         entry: ConfigEntry,
         reg: RegisterDef,
         retry: Callable[[], object],
+        log: BusLog,
     ) -> None:
         self._hass = hass
         self._entry = entry
         self._reg = reg
         self._retry = retry
+        self._log = log
         self._last_success = dt_util.utcnow()
         self._retry_unsub: CALLBACK_TYPE | None = None
         self._failing = False
+        self._expired = False
 
     @property
     def _issue_id(self) -> str:
@@ -140,9 +242,11 @@ class BusDelivery:
         self._last_success = dt_util.utcnow()
         self._cancel_retry()
         ir.async_delete_issue(self._hass, DOMAIN, self._issue_id)
+        self._expired = False
         if self._failing:
             self._failing = False
             _LOGGER.info("Bus input %s: writes succeed again", self._reg.key)
+            self._log.fire(BUS_RECOVERED, self._reg)
 
     @callback
     def failed(self, err: Exception) -> None:
@@ -150,7 +254,11 @@ class BusDelivery:
             # A lasting outage is logged once.
             self._failing = True
             _LOGGER.info("Bus input %s: write failed: %s", self._reg.key, err)
+            self._log.fire(BUS_FAILED, self._reg, error=str(err))
         if dt_util.utcnow() - self._last_success >= BUS_VALUE_VALID:
+            if not self._expired:
+                self._expired = True
+                self._log.fire(BUS_EXPIRED, self._reg)
             ir.async_create_issue(
                 self._hass,
                 DOMAIN,
@@ -212,9 +320,10 @@ class BusFeeder:
         self._feeds = feeds
         self._unsubs: list[CALLBACK_TYPE] = []
         self._tasks: set[asyncio.Task[None]] = set()
+        self._log = BusLog(hass, entry)
         self._delivery = {
             reg.key: BusDelivery(
-                hass, entry, reg, self._retry_callback(reg, entity_id)
+                hass, entry, reg, self._retry_callback(reg, entity_id), self._log
             )
             for reg, entity_id in feeds
         }
@@ -284,6 +393,7 @@ class BusFeeder:
                 ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(reg, issue))
         for delivery in self._delivery.values():
             delivery.stop()
+        self._log.stop()
 
     @callback
     def _schedule_write(
@@ -393,6 +503,10 @@ class BusFeeder:
                 _LOGGER.info(
                     "Bus feed %s: %s is not sent, %s", reg.key, state.entity_id, reason
                 )
+                self._log.fire(
+                    BUS_SKIPPED, reg, source=state.entity_id, reason=reason
+                )
+                self._log.forget(reg.key)
             self._skipped[reg.key] = reason
             return None
         if self._skipped.pop(reg.key, None) is not None:
@@ -423,6 +537,8 @@ class BusFeeder:
         self._written[reg.key] = raw
         # Decode the raw words so the value shows what the unit received.
         self._sent[reg.key] = SentValue(reg.decode(raw), dt_util.utcnow())
+        assert state is not None  # raw came from it
+        self._log.sent(reg, self._sent[reg.key].value, state.entity_id)
         for listener in list(self._listeners.get(reg.key, [])):
             listener()
         self._delivery[reg.key].succeeded()

@@ -316,6 +316,17 @@ on how often the values may be written.
 > - **Failed writes are retried every minute** and logged once. If a bus input has had no valid
 >   value for 10 minutes, a repair issue says so until the next write succeeds.
 
+**Activity on the device page.** What is sent to the bus shows up under **Activity** on the
+device page and in the logbook, e.g. *"Maico KWL sent humidity 49 % to the bus (source
+sensor.bathroom_humidity)"*: the first value after a start, then a changed value, at most one
+entry per input every 8 minutes (with the latest value). The regular refresh of an unchanged value
+is not listed. Also listed: a source whose value is not sent (with the reason), a write that
+failed, writes that succeed again, and a unit that has had no valid value for 10 minutes. The
+entries are the event `maico_kwl_bus_input` (data: `device_id`, `input`, `kind` = `sent`,
+`skipped`, `failed`, `recovered` or `expired`, plus `value`, `unit`, `source`, `reason` or
+`error`), which can also trigger automations. They are in German or English, following the
+language of Home Assistant.
+
 With a source entity configured, a sensor *Room temperature bus (sent)*, *Humidity bus (sent)* or
 *Air quality bus (sent)* shows the value the unit last received, as encoded on the wire. It is
 unknown until the first successful write and keeps the previous value while writes fail. Its

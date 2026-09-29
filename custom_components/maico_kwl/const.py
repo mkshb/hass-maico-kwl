@@ -43,6 +43,17 @@ BUS_VALUE_VALID = timedelta(minutes=10)
 BUS_REWRITE_INTERVAL = timedelta(minutes=8)
 BUS_RETRY_INTERVAL = timedelta(minutes=1)
 
+# Fired on bus input activity, shown in the device's logbook (logbook.py).
+# Data: device_id, entry_id, input (register key), kind (one of BUS_EVENT_KINDS),
+# plus value/unit/source, reason or error depending on the kind.
+EVENT_BUS_INPUT = f"{DOMAIN}_bus_input"
+BUS_SENT = "sent"  # a new value reached the unit
+BUS_SKIPPED = "skipped"  # the source gives no value that can be sent
+BUS_FAILED = "failed"  # a write failed (retried every minute)
+BUS_RECOVERED = "recovered"  # writes succeed again after a failure
+BUS_EXPIRED = "expired"  # no valid value for BUS_VALUE_VALID: the unit uses its own sensor
+BUS_EVENT_KINDS = (BUS_SENT, BUS_SKIPPED, BUS_FAILED, BUS_RECOVERED, BUS_EXPIRED)
+
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 10
 DEFAULT_SCAN_INTERVAL = 30  # seconds

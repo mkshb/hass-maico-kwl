@@ -1,4 +1,4 @@
-"""Tests for the write-only bus inputs (bus feed and manual bus numbers)."""
+"""Tests for the write-only bus inputs (bus feed from a source entity)."""
 
 from __future__ import annotations
 
@@ -6,9 +6,8 @@ from datetime import timedelta
 import logging
 
 import pytest
-from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN
+from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import CoreState, HomeAssistant, State
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
@@ -81,14 +80,18 @@ async def test_feed_writes_on_setup_and_on_change(
     assert _sent_state(hass, config_entry, "room_temp_bus") == "22.0"
 
 
-async def test_feed_replaces_manual_number(
+async def test_nothing_is_sent_without_a_source(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    """A fed bus input has no manual number, the others keep theirs."""
+    """Only inputs with a source are written; there is no manual number."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
-    with pytest.raises(AssertionError):
-        entity_id(hass, config_entry, "number", "room_temp_bus")
-    assert entity_id(hass, config_entry, "number", "air_quality_bus")
+    async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
+    await hass.async_block_till_done()
+    assert {reg for reg, _ in device.writes} == {707}
+    for key in ("room_temp_bus", "humidity_bus", "air_quality_bus"):
+        with pytest.raises(AssertionError):
+            entity_id(hass, config_entry, "number", key)
 
 
 @pytest.mark.parametrize(
@@ -271,102 +274,36 @@ async def test_hub_does_not_reconnect_after_close(
     assert device.open_connections == 0
 
 
-# --- Manual bus number (no source entity) --------------------------------
+# --- Manual bus numbers of earlier versions ------------------------------
 
 
-async def test_bus_number_writes_value(
+async def test_old_manual_number_sends_nothing(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
-    await setup_entry(hass, config_entry)
-    number = entity_id(hass, config_entry, "number", "room_temp_bus")
-    assert hass.states.get(number).state == STATE_UNKNOWN
+    """A restored manual value is no longer written, and its entity disabled.
 
-    await hass.services.async_call(
-        "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0}, blocking=True
-    )
-    assert device.writes[-1] == (707, [210])
-    assert hass.states.get(number).state == "21.0"
-
-    device.writes.clear()
-    async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
-    await hass.async_block_till_done()
-    assert device.writes == [(707, [210])]
-
-
-async def test_bus_number_keeps_value_when_write_fails(
-    hass: HomeAssistant, device: FakeDevice, config_entry
-) -> None:
-    await setup_entry(hass, config_entry)
-    number = entity_id(hass, config_entry, "number", "room_temp_bus")
-
-    device.write_exception = 4
-    with pytest.raises(HomeAssistantError):
-        await hass.services.async_call(
-            "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0},
-            blocking=True,
-        )
-    assert hass.states.get(number).state == STATE_UNKNOWN
-
-
-async def test_bus_number_skips_rewrite_without_value(
-    hass: HomeAssistant, device: FakeDevice, config_entry
-) -> None:
-    await setup_entry(hass, config_entry)
-    async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
-    await hass.async_block_till_done()
-    assert device.writes == []
-
-
-def _restore(hass: HomeAssistant, entry, value: float) -> str:
-    """Pre-register the bus number and give it a restored value."""
-    entry.add_to_hass(hass)
-    eid = er.async_get(hass).async_get_or_create(
+    Before 0.4.2 a manual number kept writing the value once set, e.g. an old
+    test value from a second Home Assistant instance.
+    """
+    config_entry.add_to_hass(hass)
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_or_create(
         "number",
         DOMAIN,
-        f"{entry.entry_id}_room_temp_bus",
-        suggested_object_id="maico_room_temp_bus",
-        config_entry=entry,
+        f"{config_entry.entry_id}_humidity_bus",
+        suggested_object_id="maico_humidity_bus",
+        config_entry=config_entry,
     ).entity_id
     mock_restore_cache_with_extra_data(
-        hass,
-        [
-            (
-                State(eid, str(value)),
-                {
-                    "native_max_value": 40.0,
-                    "native_min_value": 0.0,
-                    "native_step": 0.1,
-                    "native_unit_of_measurement": "°C",
-                    "native_value": value,
-                },
-            )
-        ],
+        hass, [(State(eid, "80.0"), {"native_value": 80.0})]
     )
-    return eid
-
-
-async def test_bus_number_restores_and_rewrites_after_restart(
-    hass: HomeAssistant, device: FakeDevice, config_entry
-) -> None:
-    eid = _restore(hass, config_entry, 19.5)
     await setup_entry(hass, config_entry)
-    assert hass.states.get(eid).state == "19.5"
-    assert (707, [195]) in device.writes
+    async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
+    await hass.async_block_till_done()
 
-
-async def test_bus_number_restore_survives_failed_write(
-    hass: HomeAssistant,
-    device: FakeDevice,
-    config_entry,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """A rejected write after a restart is only logged."""
-    eid = _restore(hass, config_entry, 19.5)
-    device.write_exception = 4
-    with caplog.at_level(logging.INFO):
-        await setup_entry(hass, config_entry)
-    assert hass.states.get(eid).state == "19.5"
-    assert "Bus input room_temp_bus: write failed" in caplog.text
+    assert not device.writes
+    assert ent_reg.async_get(eid).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get(eid) is None
 
 
 async def test_feed_logs_outage_once_and_recovery(
@@ -391,32 +328,6 @@ async def test_feed_logs_outage_once_and_recovery(
         await hass.async_block_till_done()
     assert "Bus input room_temp_bus: writes succeed again" in caplog.text
     assert device.writes[-1] == (707, [235])
-
-
-async def test_bus_number_logs_rewrite_outage_once_and_recovery(
-    hass: HomeAssistant,
-    device: FakeDevice,
-    config_entry,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    await setup_entry(hass, config_entry)
-    number = entity_id(hass, config_entry, "number", "room_temp_bus")
-    await hass.services.async_call(
-        "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0}, blocking=True
-    )
-
-    device.write_exception = 4
-    now = dt_util.utcnow()
-    with caplog.at_level(logging.INFO):
-        for step in (1, 2, 3):
-            async_fire_time_changed(hass, now + REWRITE * step)
-            await hass.async_block_till_done()
-        assert caplog.text.count("Bus input room_temp_bus: write failed") == 1
-
-        device.write_exception = None
-        async_fire_time_changed(hass, now + REWRITE * 4)
-        await hass.async_block_till_done()
-    assert "Bus input room_temp_bus: writes succeed again" in caplog.text
 
 
 async def test_feed_skips_unchanged_values(
@@ -527,34 +438,6 @@ async def test_sent_sensor_stops_listening_on_unload(
     assert await hass.config_entries.async_unload(config_entry.entry_id)
     await hass.async_block_till_done()
     assert feeder._listeners["room_temp_bus"] == []
-
-
-async def test_manual_number_disabled_and_restored_with_source(
-    hass: HomeAssistant, device: FakeDevice, config_entry
-) -> None:
-    """Configuring a source disables the manual number, clearing it restores it."""
-    await setup_entry(hass, config_entry)
-    unique_id = f"{config_entry.entry_id}_room_temp_bus"
-    ent_reg = er.async_get(hass)
-    eid = ent_reg.async_get_entity_id("number", DOMAIN, unique_id)
-    ent_reg.async_update_entity(eid, name="Room bus")
-
-    hass.config_entries.async_update_entry(
-        config_entry, options={CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"}
-    )
-    await hass.async_block_till_done()  # options change reloads the entry
-    assert ent_reg.async_get(eid).disabled_by is er.RegistryEntryDisabler.INTEGRATION
-    assert hass.states.get(eid) is None
-    # The other bus inputs keep their manual number.
-    assert hass.states.get(entity_id(hass, config_entry, "number", "humidity_bus"))
-
-    hass.config_entries.async_update_entry(config_entry, options={})
-    await hass.async_block_till_done()
-    assert ent_reg.async_get(eid).disabled_by is None
-    assert ent_reg.async_get(eid).name == "Room bus"
-    assert hass.states.get(eid).state == STATE_UNKNOWN
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
-    await hass.async_block_till_done()
 
 
 async def test_sent_sensor_disabled_with_source(
@@ -734,27 +617,6 @@ async def test_feed_retries_every_minute_until_a_write_succeeds(
     assert device.writes == [(707, [215])]
 
 
-async def test_bus_number_retries_every_minute(
-    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
-) -> None:
-    await setup_entry(hass, config_entry)
-    number = entity_id(hass, config_entry, "number", "room_temp_bus")
-    await hass.services.async_call(
-        "number", "set_value", {ATTR_ENTITY_ID: number, "value": 21.0}, blocking=True
-    )
-    device.writes.clear()
-
-    device.write_exception = 4
-    for delta in (REWRITE, timedelta(seconds=61), timedelta(seconds=61)):
-        await _tick(hass, freezer, delta)  # 8, 9 and 10 minutes
-    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered")
-
-    device.write_exception = None
-    await _tick(hass, freezer, timedelta(seconds=61))
-    assert device.writes == [(707, [210])]
-    assert _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered") is None
-
-
 async def test_retry_and_issue_end_with_unload(
     hass: HomeAssistant, device: FakeDevice, config_entry, freezer
 ) -> None:
@@ -799,13 +661,6 @@ async def test_nothing_is_written_while_the_device_is_no_maico(
     hass.states.async_set("sensor.room", "22.0", CELSIUS)
     await _tick(hass, freezer)
     assert not device.writes  # neither the change nor the refresh
-    number = entity_id(hass, config_entry, "number", "air_quality_bus")
-    with pytest.raises(HomeAssistantError) as err:
-        await hass.services.async_call(
-            "number", "set_value", {ATTR_ENTITY_ID: number, "value": 600}, blocking=True
-        )
-    assert err.value.translation_key == "unsupported_device"
-    assert not device.writes
 
     device.registers[650] = 3  # the unit is back
     await coordinator.async_refresh()

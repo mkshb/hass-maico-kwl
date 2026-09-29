@@ -26,9 +26,6 @@
       }
     },
     "number": {
-      "air_quality_bus": {
-        "default": "mdi:air-filter"
-      },
       "filter_dp_allowed": {
         "default": "mdi:gauge"
       },
@@ -40,12 +37,6 @@
       },
       "filter_runtime_room": {
         "default": "mdi:air-filter"
-      },
-      "humidity_bus": {
-        "default": "mdi:water-percent"
-      },
-      "room_temp_bus": {
-        "default": "mdi:thermometer"
       }
     },
     "select": {

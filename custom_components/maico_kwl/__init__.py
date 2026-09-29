@@ -10,7 +10,11 @@ from typing import Any
 from homeassistant.const import ATTR_RESTORED
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.typing import ConfigType
 
 from .bus_feed import BusFeeder
@@ -34,10 +38,11 @@ from .discovery import (
     async_discover,
     cache_data,
     derive_profile,
+    detected_accessories,
     present_from_cache,
     registers_in_use,
 )
-from .entity import ORPHANED
+from .entity import ORPHANED, maico_device_info
 from .issues import async_delete_issues, async_update_issues
 from .modbus_hub import MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
@@ -126,6 +131,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
             hass, entry, hub, scan_interval
         )
 
+        # Before the feeder starts: its logbook entries name the device.
+        dr.async_get(hass).async_get_or_create(
+            config_entry_id=entry.entry_id, **maico_device_info(entry, coordinator)
+        )
+
         feeds = [
             (REGISTERS_BY_KEY[reg_key], entity_id)
             for reg_key, conf_key, _device_class in BUS_FEEDS
@@ -198,10 +208,13 @@ async def _async_discover_and_refresh(
             translation_placeholders={"details": problem},
         )
 
-    present = present_from_cache(entry.data.get(CONF_DISCOVERY))
+    cache = entry.data.get(CONF_DISCOVERY)
+    present = present_from_cache(cache)
     if present is None:
         try:
-            present, accessories = await async_discover(hub)
+            present, accessories = await async_discover(
+                hub, detected_accessories(cache)
+            )
         except MaicoModbusError as err:
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,

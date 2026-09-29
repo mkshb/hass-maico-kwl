@@ -45,7 +45,7 @@
     "step": {
       "init": {
         "title": "Maico KWL options",
-        "description": "Choose the accessories fitted to your unit and, optionally, source entities whose values are sent to the unit cyclically (the matching source, e.g. room temperature, must be set to \"Bus\"). Leave a source empty to control the value manually.",
+        "description": "Choose the accessories fitted to your unit and, optionally, source entities whose values are sent to the unit cyclically (the matching source, e.g. room temperature, must be set to \"Bus\"). Without a source, the unit uses its own sensor for that value.",
         "data": {
           "scan_interval": "Scan interval (seconds)",
           "accessories": "Fitted accessories",
@@ -168,15 +168,6 @@
       },
       "room_setpoint": {
         "name": "Room temperature setpoint"
-      },
-      "room_temp_bus": {
-        "name": "Room temperature (bus)"
-      },
-      "humidity_bus": {
-        "name": "Humidity (bus)"
-      },
-      "air_quality_bus": {
-        "name": "Air quality (bus)"
       },
       "room_temp_max": {
         "name": "Room temperature max"
@@ -632,7 +623,7 @@
     },
     "bus_source_missing": {
       "title": "Bus source of {name} is missing",
-      "description": "{entity} is set as the source of a bus input under **Configure**, but it no longer exists. The unit gets no new value for this input.\n\nChoose another source under **Configure** on the integration, or leave it empty to set the value manually. This message disappears once the source exists again or is changed."
+      "description": "{entity} is set as the source of a bus input under **Configure**, but it no longer exists. The unit gets no new value for this input and uses its own sensor again after 10 minutes.\n\nChoose another source under **Configure** on the integration, or clear it to let the unit use its own sensor. This message disappears once the source exists again or is changed."
     },
     "bus_source_no_data": {
       "title": "Bus source of {name} sends no data",

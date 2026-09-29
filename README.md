@@ -72,7 +72,7 @@ profile of the unit is derived from the registers it finds.
 | `sensor`         | Temperatures (room, supply, extract, exhaust, intake, etc.), humidity, CO2, VOC, fan speeds, airflow rates, filter remaining time, operating hours, fault/notice code (with the active bits as the `active` attribute), current ventilation level, states (brine pump, dampers), EnOcean wireless sensors, deviation of the unit clock from Home Assistant, the [calculated values](#calculated-values), and per fed bus input a *(sent)* sensor with the value last written (see [Bus inputs](#bus-inputs)) |
 | `binary_sensor`  | Supply/exhaust fan active, summer bypass, PTC heater, relays, switch contact, derived "Problem" sensor (from fault code), device/outdoor/room filter dirty and frost protection (from notice code bits), *Filter due* per fitted filter |
 | `fan`            | *Ventilation*: operating mode and ventilation level as one fan (levels as speeds, operating modes as presets), for voice assistants, HomeKit and fan cards. Only created when both registers are present. |
-| `number`         | Filter intervals, ventilation level duration, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature for cooling, allowed filter delta-p, plus write-only **bus inputs** (room temperature / humidity / air quality fed over Modbus) |
+| `number`         | Filter intervals, ventilation level duration, airflow rates (reduced/nominal/intensive), room temperature setpoint/max/offset, min. supply temperature for cooling, allowed filter delta-p. The write-only **bus inputs** have no `number`; they are fed from a source entity, see [Bus inputs](#bus-inputs) |
 | `select`         | Operating mode, ventilation level, season, language, room temperature source |
 | `switch`         | Disable off level, lock control panel, boost ventilation |
 | `button`         | Reset filter (device/outdoor/room), reset errors, sync the unit clock with Home Assistant, rediscover registers |
@@ -86,8 +86,8 @@ Entity IDs therefore contain the host, e.g. `fan.maico_kwl_192_168_1_50_ventilat
 `192.168.1.50`. Rename the device before you write automations if you want shorter IDs.
 
 **Availability**: an entity is unavailable while its register could not be read in the last poll,
-and all entities are unavailable while the unit is not reachable. Buttons and write-only bus inputs
-stay available as long as the connection works.
+and all entities are unavailable while the unit is not reachable. Buttons stay available as long as
+the connection works.
 
 ### Calculated values
 
@@ -130,7 +130,7 @@ decides from those:
 
 | Accessory | Entities | Detected as fitted when |
 |---|---|---|
-| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. |
+| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. Some units do not report a filter that ran out as dirty either, so a filter detected before stays fitted when *Rediscover registers* or a reconfigure with the same connection finds it at 0 days. |
 | Wired sensors | Humidity, CO2 and VOC sensor 1 to 4 | At least one of them reports a value other than 0. |
 | EnOcean wireless sensors | CO2, humidity and VOC of the 8 EnOcean IDs | At least one of them reports a value other than 0. |
 | External room temperature sensor | *Temperature room external* | The *Room temperature source* is set to "External". |
@@ -283,18 +283,17 @@ writes every 8 minutes, and after a failed write it tries again every minute unt
 the retries at 9 and 10 minutes still come before the value expires. The unit sets no upper limit
 on how often the values may be written.
 
-| Register | Number entity (manual) | Source entity in the options | Source units accepted | Range | Resolution |
-|---|---|---|---|---|---|
-| 707 room temperature | *Room temperature (bus)* | `sensor` with device class `temperature` | °C, °F, K (converted to °C) | 0 to 40 °C | 0.1 °C |
-| 763 humidity | *Humidity (bus)* | `sensor` with device class `humidity` | % | 0 to 100 % | 1 % |
-| 764 air quality | *Air quality (bus)* | any `sensor` | ppm, ppb (converted to ppm) | 0 to 5000 ppm | 1 ppm |
+| Register | Source entity in the options | Source units accepted | Range | Resolution |
+|---|---|---|---|---|
+| 707 room temperature | `sensor` with device class `temperature` | °C, °F, K (converted to °C) | 0 to 40 °C | 0.1 °C |
+| 763 humidity | `sensor` with device class `humidity` | % | 0 to 100 % | 1 % |
+| 764 air quality | any `sensor` | ppm, ppb (converted to ppm) | 0 to 5000 ppm | 1 ppm |
 
 > [!IMPORTANT]
-> - **Source has priority.** With a source entity configured, its value is written right after
->   setup, on every state change and every **8 minutes**. The manual `number` for that input is
->   not created then; leave the option empty to set the value manually instead.
-> - **Manual numbers** keep their value across restarts, write it again after a restart and every
->   8 minutes.
+> - **Only with a source.** With a source entity configured, its value is written right after
+>   setup, on every state change and every **8 minutes**. Without a source, nothing is sent and
+>   the unit uses its own sensor. For a fixed value, use a template sensor with the device class
+>   and unit above as the source.
 > - **Only suitable values are sent.** The source needs one of the units above; a source without
 >   a unit (e.g. an air quality index) or in another unit (e.g. µg/m³) is not sent. Values are
 >   rounded to the resolution above, e.g. 55.4 % is sent as 55 %. A value outside the range is
@@ -315,8 +314,18 @@ on how often the values may be written.
 >   select to **"Bus"**. Humidity and air quality have no such register in the Maico map; how the
 >   unit selects the bus for them is not documented there.
 > - **Failed writes are retried every minute** and logged once. If a bus input has had no valid
->   value for 10 minutes, a repair issue says so until the next write succeeds; this applies to
->   manual numbers as well.
+>   value for 10 minutes, a repair issue says so until the next write succeeds.
+
+**Activity on the device page.** What is sent to the bus shows up under **Activity** on the
+device page and in the logbook, e.g. *"Maico KWL sent humidity 49 % to the bus (source
+sensor.bathroom_humidity)"*: the first value after a start, then a changed value, at most one
+entry per input every 8 minutes (with the latest value). The regular refresh of an unchanged value
+is not listed. Also listed: a source whose value is not sent (with the reason), a write that
+failed, writes that succeed again, and a unit that has had no valid value for 10 minutes. The
+entries are the event `maico_kwl_bus_input` (data: `device_id`, `input`, `kind` = `sent`,
+`skipped`, `failed`, `recovered` or `expired`, plus `value`, `unit`, `source`, `reason` or
+`error`), which can also trigger automations. They are in German or English, following the
+language of Home Assistant.
 
 With a source entity configured, a sensor *Room temperature bus (sent)*, *Humidity bus (sent)* or
 *Air quality bus (sent)* shows the value the unit last received, as encoded on the wire. It is
@@ -334,8 +343,8 @@ stale from 10 minutes on.
 - **Writes**: changing a control writes the register right away and then refreshes all values, so
   the new state shows up without waiting for the next poll.
 - **Bus inputs**: a configured source entity is written on every change and at least every
-  8 minutes, and every minute after a failed write. Manual bus numbers are rewritten the same way,
-  see [Bus inputs](#bus-inputs).
+  8 minutes, and every minute after a failed write, see [Bus inputs](#bus-inputs). Inputs without
+  a source are not written; the unit uses its own sensor.
 - **Discovery**: the register probe runs once at the first setup and its result is stored in the
   config entry, so restarts are fast. Press the *Rediscover registers* button to probe again, e.g.
   after a firmware update or after adding sensors or filters to the unit, see
@@ -405,8 +414,9 @@ ventilation*, `number` *Room temperature setpoint* / *Ventilation level duration
 Set them with `select.select_option`, `switch.turn_on`, `number.set_value`.
 
 The fan has four speeds (humidity protection, reduced, nominal, intensive; 25 % steps) and the
-operating modes except *off* as presets. Setting a speed switches the unit to manual mode first,
-since the auto modes pick the level themselves. The percentage shows the level that is actually
+operating modes except *off* as presets. In *Manual* and *Auto-Sensor* a speed is set as it is, and
+*Auto-Sensor* keeps its sensor control. In the other modes setting a speed switches the unit to
+manual mode first. The percentage shows the level that is actually
 running (*Current ventilation level*). `fan.turn_on` without arguments returns to the last mode.
 
 **Boost for a while:** the action `maico_kwl.boost` starts the boost ventilation, e.g. from a button

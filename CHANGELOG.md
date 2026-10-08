@@ -5,7 +5,7 @@ What changed in each version of the Maico KWL integration, newest first. The tex
 
 ## 0.5.0 (2026-10-08)
 
-One connection to the unit, shared with the rest of Home Assistant. Tested on Home Assistant
+One connection to the unit, shared with the rest of Home Assistant. Needs Home Assistant
 2026.10.
 
 ### What's new
@@ -16,15 +16,15 @@ One connection to the unit, shared with the rest of Home Assistant. Tested on Ho
   it accepts only one Modbus TCP connection at a time and silently ignores a second one. A second
   entry on the same host and port (a second unit behind one gateway), another integration that
   also asks the Modbus integration, and the connection check in the setup and reconfigure dialog
-  now all go through that one connection instead of competing for it. From Home Assistant 2026.10
-  the **Modbus** panel under **Settings** > **Connectivity** shows the connection and which
-  entries are using it.
+  now all go through that one connection instead of competing for it. The **Modbus** panel under
+  **Settings** > **Connectivity** shows the connection and which entries are using it.
 
 ### What changed
 
-- **Home Assistant 2026.9 or newer** is required, up from 2025.10, because the shared connection
-  does not exist in older releases. HACS does not offer the update while your Home Assistant is
-  older.
+- **Home Assistant 2026.10 or newer** is required, up from 2025.10. The shared connection does
+  not exist before 2026.9, and 2026.10 is where the Modbus and validation interfaces this
+  release builds on have settled, so it is the oldest release it is built and tested against.
+  HACS does not offer the update while your Home Assistant is older.
 - **No pymodbus any more.** The integration installs nothing of its own. Opening the connection,
   reopening it after a drop and closing it behind the last user are the Modbus integration's job
   now, which also means this integration no longer closes a connection another one is still using.
@@ -42,8 +42,8 @@ What is read, discovered and written did not change, and neither did your entiti
 
 ### Do I need to do anything?
 
-- **Make sure Home Assistant is 2026.9 or newer, then update and restart.** Entities, settings and
-  the stored discovery result stay as they are.
+- **Make sure Home Assistant is 2026.10 or newer, then update and restart.** Entities, settings
+  and the stored discovery result stay as they are.
 - **Running a `modbus:` hub in YAML for the same unit?** It does not share the connection, see
   above.
 - **Connected directly, without a proxy?** A diagnostic tool or a second Home Assistant on the

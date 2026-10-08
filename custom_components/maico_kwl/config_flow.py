@@ -92,7 +92,9 @@ async def _validate(hass: HomeAssistant, host: str, port: int, slave: int) -> No
             if problem := await async_check_identity(MaicoModbusHub(unit)):
                 raise UnsupportedDevice(problem)
     except HomeAssistantError as err:
-        # In use over other link settings, e.g. a Modbus hub in YAML.
+        # In use with other link settings, e.g. another integration that asked
+        # for the same host and port with an explicit framer. A `modbus:` hub
+        # in YAML cannot collide here: it keeps a connection of its own.
         raise MaicoModbusError(str(err)) from err
 
 

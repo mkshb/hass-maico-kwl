@@ -57,9 +57,9 @@ profile of the unit is derived from the registers it finds.
   during discovery, Home Assistant retries the setup instead of starting with an incomplete set of
   entities. Failed write actions show an error message in the UI.
 - **Shared connection**: the unit is reached through the Modbus integration of Home Assistant.
-  Integrations and entries for the same host and port share one connection, which the unit needs
-  as it accepts only one. From Home Assistant 2026.10 it shows up in the **Modbus** panel under
-  **Settings** > **Connectivity**.
+  Entries of this integration and other integrations that take their connection from there share one
+  connection for the same host and port, which the unit needs as it accepts only one. From Home
+  Assistant 2026.10 it shows up in the **Modbus** panel under **Settings** > **Connectivity**.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
 - **Repair issues** under *Settings > System > Repairs* while the unit reports a fault (listing the
@@ -200,11 +200,12 @@ result does not cover or that stores the result in a newer format.
 > [!IMPORTANT]
 > **A Modbus TCP proxy is strongly recommended.** The Maico KWL accepts only **one** Modbus TCP
 > connection at a time; it silently ignores a second one (checked on a live unit). Connected
-> directly, Home Assistant holds that one connection. Within Home Assistant it is shared, but any
-> other Modbus program (a diagnostic tool, a second Home Assistant, a script) cannot connect, or
-> blocks Home Assistant while it is connected. A Modbus TCP proxy between the unit and its clients keeps the one connection to the
-> unit and lets several clients share it. The integration is developed and tested behind such a
-> proxy.
+> directly, Home Assistant holds that one connection. Integrations that take their connection from
+> the Modbus integration share it, a `modbus:` hub in `configuration.yaml` and an integration with
+> a Modbus client of its own do not. Any other Modbus program (a diagnostic tool, a second Home
+> Assistant, a script) cannot connect at all, or blocks Home Assistant while it is connected. A
+> Modbus TCP proxy between the unit and its clients keeps the one connection to the unit and lets
+> several clients share it. The integration is developed and tested behind such a proxy.
 - The connection is made by the Modbus integration of Home Assistant (a dependency in
   `manifest.json`). It comes with Home Assistant; nothing to install and no `modbus:` entry in
   `configuration.yaml` is needed.
@@ -514,10 +515,11 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
   integration.
 - Make sure Modbus TCP is enabled on the unit (firmware V1.1.1 or newer) and that no firewall
   blocks the port.
-- The unit accepts only one Modbus TCP connection at a time and ignores further ones: check that
-  no other program is connected to it. Integrations in Home Assistant share the connection; the
-  **Modbus** panel under **Settings** > **Connectivity** (Home Assistant 2026.10 or newer) shows
-  which ones use it. A Modbus TCP proxy lets several clients share the one connection, see
+- The unit accepts only one Modbus TCP connection at a time and ignores further ones: check that no
+  other program is connected to it. Integrations that take their connection from the Modbus
+  integration share one, a `modbus:` hub in `configuration.yaml` opens its own. The **Modbus** panel
+  under **Settings** > **Connectivity** (Home Assistant 2026.10 or newer) lists both, a hub as a
+  connection of its own. A Modbus TCP proxy lets several clients share the one connection, see
   [Requirements](#requirements).
 
 **"The device does not look like a Maico KWL"**

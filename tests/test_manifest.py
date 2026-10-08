@@ -17,7 +17,8 @@ def test_manifest_fields() -> None:
     assert MANIFEST["integration_type"] == "device"
     assert MANIFEST["iot_class"] == "local_polling"
     assert MANIFEST["config_flow"] is True
-    assert MANIFEST["loggers"] == ["pymodbus"]
+    assert MANIFEST["loggers"] == ["modbus_connection", "tmodbus"]
+    assert MANIFEST["dependencies"] == ["modbus"]
     assert "version" in MANIFEST  # required for custom integrations
 
 

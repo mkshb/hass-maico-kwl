@@ -1,7 +1,8 @@
-"""Shared fixtures: a simulated Maico unit behind a fake pymodbus client.
+"""Shared fixtures: a simulated Maico unit behind a fake Modbus connection.
 
-Only the pymodbus client is replaced, so the real hub, discovery, coordinator
-and entities run against it.
+Only the connection the HA modbus integration builds is replaced, so its
+connection sharing and the real hub, discovery, coordinator and entities run
+against it.
 """
 
 from __future__ import annotations
@@ -11,7 +12,13 @@ from dataclasses import dataclass, field
 from unittest.mock import patch
 
 import pytest
-from pymodbus.exceptions import ConnectionException
+from modbus_connection import (
+    ClientClosedError,
+    ModbusConnectionError,
+    ModbusExceptionError,
+    ModbusTcpParams,
+    ModbusTimeoutError,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.maico_kwl.const import (
@@ -21,6 +28,7 @@ from custom_components.maico_kwl.const import (
     CONF_SLAVE,
     DOMAIN,
 )
+from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
 
 HOST = "192.0.2.10"
 PORT = 502
@@ -107,7 +115,7 @@ class FakeResponse:
     def __init__(self, registers: list[int] | None = None) -> None:
         self.registers = registers or []
 
-    def isError(self) -> bool:  # noqa: N802 (pymodbus API)
+    def isError(self) -> bool:  # noqa: N802
         return False
 
 
@@ -117,7 +125,7 @@ class FakeExceptionResponse:
     def __init__(self, code: int) -> None:
         self.exception_code = code
 
-    def isError(self) -> bool:  # noqa: N802 (pymodbus API)
+    def isError(self) -> bool:  # noqa: N802
         return True
 
     def __repr__(self) -> str:
@@ -126,7 +134,7 @@ class FakeExceptionResponse:
 
 @dataclass
 class FakeDevice:
-    """State of the simulated unit, shared by all fake clients."""
+    """State of the simulated unit, shared by all fake connections."""
 
     registers: dict[int, int] = field(default_factory=lambda: dict(DEFAULT_REGISTERS))
     absent: set[int] = field(default_factory=lambda: set(DEFAULT_ABSENT))
@@ -143,40 +151,61 @@ class FakeDevice:
     short_blocks: bool = False
     reads: int = 0
     writes: list[tuple[int, list[int]]] = field(default_factory=list)
-    clients: list[FakeModbusClient] = field(default_factory=list)
+    clients: list[FakeConnection] = field(default_factory=list)
 
     def check_online(self) -> None:
         if self.fail_after_reads is not None and self.reads >= self.fail_after_reads:
             self.online = False
         if not self.online:
-            raise ConnectionException("simulated connection loss")
+            raise ModbusConnectionError("simulated connection loss")
 
     @property
     def open_connections(self) -> int:
         return sum(1 for client in self.clients if client.connected)
 
 
-class FakeModbusClient:
-    """Stand-in for pymodbus.client.AsyncModbusTcpClient."""
+class FakeConnection:
+    """Stand-in for the ModbusConnection of the HA modbus integration.
 
-    def __init__(self, device: FakeDevice, **_kwargs) -> None:
+    Its read and write methods answer like the device, with a response or an
+    exception response; FakeUnit turns that into what a ModbusUnit returns or
+    raises. Like the real one, it opens on the first request and reopens after
+    a drop.
+    """
+
+    def __init__(self, device: FakeDevice, params: ModbusTcpParams | None = None) -> None:
         self._device = device
+        self.params = params
         self.connected = False
+        self.closed = False
         device.clients.append(self)
 
-    async def connect(self) -> bool:
+    async def connect(self) -> None:
+        if self.closed:
+            raise ClientClosedError("connection is closed")
+        if self.connected:
+            return
         limit = self._device.max_connections
-        if (
-            not self.connected
-            and limit is not None
-            and self._device.open_connections >= limit
-        ):
-            return False  # ignored, like the unit does
-        self.connected = self._device.online
-        return self.connected
+        if limit is not None and self._device.open_connections >= limit:
+            # Ignored, like the unit does.
+            raise ModbusTimeoutError("simulated: connection ignored")
+        if not self._device.online:
+            raise ModbusConnectionError("simulated: cannot connect")
+        self.connected = True
 
-    def close(self) -> None:
+    def drop(self) -> None:
+        """Lose the link; the next request opens it again."""
         self.connected = False
+
+    async def disconnect(self) -> None:
+        self.drop()
+
+    async def close(self) -> None:
+        self.closed = True
+        self.connected = False
+
+    def for_unit(self, unit_id: int) -> FakeUnit:
+        return FakeUnit(self, unit_id)
 
     async def read_holding_registers(
         self, *, address: int, count: int, device_id: int
@@ -210,6 +239,49 @@ class FakeModbusClient:
         return FakeResponse()
 
 
+class FakeUnit:
+    """Stand-in for a ModbusUnit on a FakeConnection."""
+
+    def __init__(self, connection: FakeConnection, unit_id: int) -> None:
+        self._connection = connection
+        self._unit_id = unit_id
+
+    @property
+    def connected(self) -> bool:
+        return self._connection.connected
+
+    async def read_holding_registers(self, address: int, count: int) -> list[int]:
+        result = await self._request(
+            "read_holding_registers", address=address, count=count
+        )
+        return list(result.registers)
+
+    async def write_register(self, address: int, value: int) -> None:
+        await self._request("write_register", address=address, value=value)
+
+    async def write_registers(self, address: int, values: list[int]) -> None:
+        await self._request("write_registers", address=address, values=values)
+
+    async def _request(self, method: str, **kwargs) -> FakeResponse:
+        await self._connection.connect()
+        try:
+            # Looked up per call, so a test can replace it on the connection.
+            result = await getattr(self._connection, method)(
+                device_id=self._unit_id, **kwargs
+            )
+        except ModbusConnectionError:
+            self._connection.drop()
+            raise
+        if result.isError():
+            raise ModbusExceptionError.from_code(result.exception_code)
+        return result
+
+
+def fake_hub(device: FakeDevice) -> MaicoModbusHub:
+    """A hub on a connection of its own to the simulated unit."""
+    return MaicoModbusHub(FakeConnection(device).for_unit(SLAVE))
+
+
 @pytest.fixture(autouse=True)
 def no_probe_retry_delay() -> Generator[None]:
     """Ask a register again at once instead of after a second."""
@@ -225,11 +297,11 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 @pytest.fixture
 def device() -> Generator[FakeDevice]:
-    """Replace the pymodbus client with a simulated Maico unit."""
+    """Replace the Modbus connections of HA with a simulated Maico unit."""
     fake = FakeDevice()
     with patch(
-        "custom_components.maico_kwl.modbus_hub.AsyncModbusTcpClient",
-        side_effect=lambda **kwargs: FakeModbusClient(fake, **kwargs),
+        "homeassistant.components.modbus.connection.ModbusConnection",
+        side_effect=lambda params: FakeConnection(fake, params),
     ):
         yield fake
 

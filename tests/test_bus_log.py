@@ -148,7 +148,7 @@ async def test_outage_is_logged_at_start_expiry_and_end(
     kinds = _kinds(events, "room_temp_bus")
     assert kinds == [("failed", None), ("expired", None)]
     failed = next(e for e in events if e.data["kind"] == "failed")
-    assert "code=4" in failed.data["error"]
+    assert "exception code 4" in failed.data["error"]
 
     device.write_exception = None
     await _tick(hass, freezer, timedelta(seconds=61))

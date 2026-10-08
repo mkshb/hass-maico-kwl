@@ -7,7 +7,9 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
+from modbus_connection import ModbusTcpParams
 
+from homeassistant.components.modbus import async_get_temporary_unit
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,
@@ -15,7 +17,8 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -69,39 +72,28 @@ def _connection(data: Mapping[str, Any]) -> tuple[str, int, int]:
     )
 
 
-def _running_hub(entry: ConfigEntry, host: str, port: int) -> MaicoModbusHub | None:
-    """The hub of a loaded entry, if it is connected to host and port."""
-    if entry.state is not ConfigEntryState.LOADED:
-        return None
-    if _connection(entry.data)[:2] != (host, port):
-        return None
-    hub: MaicoModbusHub = entry.runtime_data.hub
-    return hub
-
-
 class UnsupportedDevice(Exception):
     """The device answers, but does not look like a Maico KWL."""
 
 
-async def _validate(
-    host: str, port: int, slave: int, running: MaicoModbusHub | None = None
-) -> None:
+async def _validate(hass: HomeAssistant, host: str, port: int, slave: int) -> None:
     """Check that a Maico KWL answers at the address.
 
-    With the hub of a running entry for the same host and port, its connection
-    is used: the unit accepts only one Modbus TCP connection at a time and
-    ignores a second one. Raises MaicoModbusError if it cannot be reached,
-    UnsupportedDevice if the device there reports values a Maico KWL does not
-    have.
+    The unit accepts only one Modbus TCP connection at a time and ignores a
+    second one; the temporary unit shares the connection of a running entry
+    (or another integration) for the same host and port. Raises
+    MaicoModbusError if it cannot be reached, UnsupportedDevice if the device
+    there reports values a Maico KWL does not have.
     """
-    hub = running.with_slave(slave) if running else MaicoModbusHub(host, port, slave)
     try:
-        if running is None and not await hub.connect():
-            raise MaicoModbusError(f"cannot connect to {host}:{port}")
-        if problem := await async_check_identity(hub):
-            raise UnsupportedDevice(problem)
-    finally:
-        await hub.close()
+        async with async_get_temporary_unit(
+            hass, ModbusTcpParams(host=host, port=port), slave
+        ) as unit:
+            if problem := await async_check_identity(MaicoModbusHub(unit)):
+                raise UnsupportedDevice(problem)
+    except HomeAssistantError as err:
+        # In use over other link settings, e.g. a Modbus hub in YAML.
+        raise MaicoModbusError(str(err)) from err
 
 
 class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -129,7 +121,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="already_configured")
 
             try:
-                await _validate(host, port, slave)
+                await _validate(self.hass, host, port, slave)
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
@@ -185,7 +177,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="already_configured")
 
             try:
-                await _validate(host, port, slave, _running_hub(entry, host, port))
+                await _validate(self.hass, host, port, slave)
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"

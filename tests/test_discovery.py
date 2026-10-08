@@ -28,14 +28,12 @@ from custom_components.maico_kwl.register_defs import (
     REGISTERS_BY_KEY,
 )
 
-from .conftest import HOST, PORT, SLAVE, FakeDevice, FakeExceptionResponse
+from .conftest import HOST, FakeDevice, FakeExceptionResponse, fake_hub
 
 
 @pytest.fixture
 async def hub(device: FakeDevice) -> MaicoModbusHub:
-    hub = MaicoModbusHub(HOST, PORT, SLAVE)
-    assert await hub.connect()
-    return hub
+    return fake_hub(device)
 
 
 async def test_discovery_skips_absent_registers(

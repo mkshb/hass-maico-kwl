@@ -6,8 +6,10 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import voluptuous as vol
+import probatio
+from modbus_connection import ModbusTcpParams
 
+from homeassistant.components.modbus import async_get_temporary_unit
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,
@@ -15,7 +17,8 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -69,39 +72,30 @@ def _connection(data: Mapping[str, Any]) -> tuple[str, int, int]:
     )
 
 
-def _running_hub(entry: ConfigEntry, host: str, port: int) -> MaicoModbusHub | None:
-    """The hub of a loaded entry, if it is connected to host and port."""
-    if entry.state is not ConfigEntryState.LOADED:
-        return None
-    if _connection(entry.data)[:2] != (host, port):
-        return None
-    hub: MaicoModbusHub = entry.runtime_data.hub
-    return hub
-
-
 class UnsupportedDevice(Exception):
     """The device answers, but does not look like a Maico KWL."""
 
 
-async def _validate(
-    host: str, port: int, slave: int, running: MaicoModbusHub | None = None
-) -> None:
+async def _validate(hass: HomeAssistant, host: str, port: int, slave: int) -> None:
     """Check that a Maico KWL answers at the address.
 
-    With the hub of a running entry for the same host and port, its connection
-    is used: the unit accepts only one Modbus TCP connection at a time and
-    ignores a second one. Raises MaicoModbusError if it cannot be reached,
-    UnsupportedDevice if the device there reports values a Maico KWL does not
-    have.
+    The unit accepts only one Modbus TCP connection at a time and ignores a
+    second one; the temporary unit shares the connection of a running entry
+    (or another integration) for the same host and port. Raises
+    MaicoModbusError if it cannot be reached, UnsupportedDevice if the device
+    there reports values a Maico KWL does not have.
     """
-    hub = running.with_slave(slave) if running else MaicoModbusHub(host, port, slave)
     try:
-        if running is None and not await hub.connect():
-            raise MaicoModbusError(f"cannot connect to {host}:{port}")
-        if problem := await async_check_identity(hub):
-            raise UnsupportedDevice(problem)
-    finally:
-        await hub.close()
+        async with async_get_temporary_unit(
+            hass, ModbusTcpParams(host=host, port=port), slave
+        ) as unit:
+            if problem := await async_check_identity(MaicoModbusHub(unit)):
+                raise UnsupportedDevice(problem)
+    except HomeAssistantError as err:
+        # In use with other link settings, e.g. another integration that asked
+        # for the same host and port with an explicit framer. A `modbus:` hub
+        # in YAML cannot collide here: it keeps a connection of its own.
+        raise MaicoModbusError(str(err)) from err
 
 
 class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -129,7 +123,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="already_configured")
 
             try:
-                await _validate(host, port, slave)
+                await _validate(self.hass, host, port, slave)
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
@@ -141,20 +135,20 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                     title=f"{DEFAULT_NAME} ({host})", data=user_input
                 )
 
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(
+                probatio.Required(
                     CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")
                 ): str,
-                vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=65535)
+                probatio.Optional(CONF_PORT, default=DEFAULT_PORT): probatio.All(
+                    probatio.Coerce(int), probatio.Range(min=1, max=65535)
                 ),
-                vol.Optional(CONF_SLAVE, default=DEFAULT_SLAVE): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=247)
+                probatio.Optional(CONF_SLAVE, default=DEFAULT_SLAVE): probatio.All(
+                    probatio.Coerce(int), probatio.Range(min=1, max=247)
                 ),
-                vol.Optional(
+                probatio.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=3600)),
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=5, max=3600)),
             }
         )
         return self.async_show_form(
@@ -185,7 +179,7 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="already_configured")
 
             try:
-                await _validate(host, port, slave, _running_hub(entry, host, port))
+                await _validate(self.hass, host, port, slave)
             except MaicoModbusError as err:
                 _LOGGER.debug("Validation failed: %s", err)
                 errors["base"] = "cannot_connect"
@@ -230,15 +224,15 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="reconfigure_successful")
 
         current = user_input or entry.data
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(CONF_HOST, default=current[CONF_HOST]): str,
-                vol.Required(
+                probatio.Required(CONF_HOST, default=current[CONF_HOST]): str,
+                probatio.Required(
                     CONF_PORT, default=current.get(CONF_PORT, DEFAULT_PORT)
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
-                vol.Required(
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=65535)),
+                probatio.Required(
                     CONF_SLAVE, default=current.get(CONF_SLAVE, DEFAULT_SLAVE)
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=247)),
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=247)),
             }
         )
         return self.async_show_form(
@@ -289,14 +283,14 @@ class MaicoOptionsFlow(OptionsFlow):
             CONF_SCAN_INTERVAL,
             self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        fields: dict[vol.Marker, Any] = {
-            vol.Optional(CONF_SCAN_INTERVAL, default=scan_current): vol.All(
-                vol.Coerce(int), vol.Range(min=5, max=3600)
+        fields: dict[probatio.Marker, Any] = {
+            probatio.Optional(CONF_SCAN_INTERVAL, default=scan_current): probatio.All(
+                probatio.Coerce(int), probatio.Range(min=5, max=3600)
             )
         }
         if offered:
             fields[
-                vol.Optional(
+                probatio.Optional(
                     CONF_ACCESSORIES,
                     default=sorted(active_accessories(cache, opts) & offered),
                 )
@@ -316,12 +310,12 @@ class MaicoOptionsFlow(OptionsFlow):
             )
             current = opts.get(conf_key)
             marker = (
-                vol.Optional(conf_key, description={"suggested_value": current})
+                probatio.Optional(conf_key, description={"suggested_value": current})
                 if current
-                else vol.Optional(conf_key)
+                else probatio.Optional(conf_key)
             )
             fields[marker] = EntitySelector(config)
 
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(fields)
+            step_id="init", data_schema=probatio.Schema(fields)
         )

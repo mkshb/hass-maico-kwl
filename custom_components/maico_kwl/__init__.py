@@ -7,9 +7,16 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from modbus_connection import ModbusTcpParams
+
+from homeassistant.components.modbus import async_get_unit
 from homeassistant.const import ATTR_RESTORED
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import (
+    ConfigEntryError,
+    ConfigEntryNotReady,
+    HomeAssistantError,
+)
 from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
@@ -44,7 +51,7 @@ from .discovery import (
 )
 from .entity import ORPHANED, maico_device_info
 from .issues import async_delete_issues, async_update_issues
-from .modbus_hub import MaicoModbusError, MaicoModbusHub
+from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 from .services import async_setup_services
 
@@ -124,11 +131,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
         entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
 
-    hub = MaicoModbusHub(host, port, slave)
+    try:
+        # Shared with every integration that uses the same host and port; the
+        # unit accepts only one Modbus TCP connection. Released on unload,
+        # also after a failed setup.
+        unit = async_get_unit(
+            hass, entry, ModbusTcpParams(host=host, port=port), slave
+        )
+    except HomeAssistantError as err:
+        raise ConfigEntryError(
+            translation_domain=DOMAIN,
+            translation_key="connection_in_use",
+            translation_placeholders={"error": str(err)},
+        ) from err
+    hub = MaicoModbusHub(unit)
     feeder: BusFeeder | None = None
     try:
         coordinator = await _async_discover_and_refresh(
-            hass, entry, hub, scan_interval
+            hass, entry, hub, host, port, scan_interval
         )
 
         # Before the feeder starts: its logbook entries name the device.
@@ -153,13 +173,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
 
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except BaseException:
-        # Close on any failure, including cancellation. pymodbus reconnects in
-        # the background, so an unclosed client would keep a connection open
-        # for every retry of the setup. HA does not unload an entry whose
-        # setup failed, so a started feeder would keep writing as well.
+        # Stop on any failure, including cancellation. HA does not unload an
+        # entry whose setup failed, so a started feeder would keep writing.
+        # The connection is released with the entry's unload callbacks.
         if feeder is not None:
             feeder.async_stop()
-        await hub.close()
+        hub.close()
         raise
 
     _async_disable_orphaned_entities(hass, entry)
@@ -177,24 +196,27 @@ async def _async_discover_and_refresh(
     hass: HomeAssistant,
     entry: MaicoConfigEntry,
     hub: MaicoModbusHub,
+    host: str,
+    port: int,
     scan_interval: int,
 ) -> MaicoCoordinator:
-    """Connect, find the present registers and run the first poll.
+    """Check the unit, find the present registers and run the first poll.
 
     The registers come from the discovery stored in the entry; the unit is
     only probed when there is none (first setup, after reconfigure or a
     rediscovery request) or when this version knows registers it lacks.
     Registers of accessories that are not in use are left out.
     """
-    if not await hub.connect():
+    # Before anything is probed, stored or written: is it a Maico KWL at all?
+    # The first read also opens the connection.
+    try:
+        problem = await async_check_identity(hub)
+    except MaicoConnectionError as err:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
-            translation_placeholders={"host": hub.host, "port": str(hub.port)},
-        )
-    # Before anything is probed, stored or written: is it a Maico KWL at all?
-    try:
-        problem = await async_check_identity(hub)
+            translation_placeholders={"host": host, "port": str(port)},
+        ) from err
     except MaicoModbusError as err:
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
@@ -247,7 +269,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> bo
     if unload_ok:
         runtime = entry.runtime_data
         runtime.feeder.async_stop()
-        await runtime.hub.close()
+        runtime.hub.close()
     return unload_ok
 
 

@@ -9,29 +9,34 @@ import pytest
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.maico_kwl.const import (
     CONF_DISCOVERY,
+    CONF_HOST,
+    CONF_PORT,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
+    CONF_SLAVE,
+    DOMAIN,
 )
 from custom_components.maico_kwl.coordinator import build_blocks
 from custom_components.maico_kwl.discovery import async_discover
-from custom_components.maico_kwl.modbus_hub import MaicoModbusHub
 from custom_components.maico_kwl.register_defs import IDENTITY_RANGES, REGISTERS_BY_KEY
 
-from .conftest import HOST, PORT, SLAVE, FakeDevice
+from .conftest import HOST, PORT, FakeDevice, fake_hub
 from .helpers import CELSIUS, setup_entry
 
 
 async def _discovery_reads(device: FakeDevice) -> int:
     """Number of requests a discovery of the simulated unit takes."""
-    hub = MaicoModbusHub(HOST, PORT, SLAVE)
-    await hub.connect()
-    await async_discover(hub)
-    await hub.close()
+    await async_discover(fake_hub(device))
+    await device.clients.pop().close()
     reads, device.reads = device.reads, 0
     return reads
 
@@ -116,6 +121,47 @@ async def test_setup_recovers_after_retry(
     await hass.async_block_till_done()
     assert config_entry.state is ConfigEntryState.LOADED
     assert device.open_connections == 1
+
+
+async def test_entries_of_one_unit_share_the_connection(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The unit accepts one connection: a second Modbus address uses the same."""
+    device.max_connections = 1
+    other = MockConfigEntry(
+        domain=DOMAIN,
+        title=f"Maico KWL ({HOST})",
+        data={CONF_HOST: HOST, CONF_PORT: PORT, CONF_SLAVE: 11},
+    )
+    await setup_entry(hass, config_entry)
+    await setup_entry(hass, other)
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert other.state is ConfigEntryState.LOADED
+    assert len(device.clients) == 1
+
+    # Open until the last entry on it unloads.
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    assert device.open_connections == 1
+    assert other.runtime_data.coordinator.last_update_success
+    assert await hass.config_entries.async_unload(other.entry_id)
+    assert device.open_connections == 0
+
+
+async def test_setup_error_when_connection_used_with_other_settings(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """E.g. a Modbus hub in YAML that reaches the unit over other link settings."""
+    with patch(
+        "custom_components.maico_kwl.async_get_unit",
+        side_effect=HomeAssistantError("in use over other settings"),
+    ):
+        await setup_entry(hass, config_entry)
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert config_entry.reason == (
+        "The Modbus connection to the Maico KWL is already used with other "
+        "settings: in use over other settings"
+    )
+    assert not device.clients
 
 
 # --- Stored discovery -----------------------------------------------------

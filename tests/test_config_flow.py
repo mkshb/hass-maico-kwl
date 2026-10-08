@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -72,6 +75,41 @@ async def test_user_flow_cannot_connect(hass: HomeAssistant, device: FakeDevice)
         result["flow_id"], USER_INPUT
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_user_flow_uses_the_connection_of_a_running_entry(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """The unit accepts one connection: the check of another address shares it."""
+    await setup_entry(hass, config_entry)
+    device.max_connections = 1
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {**USER_INPUT, CONF_SLAVE: 11}
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert len(device.clients) == 1
+    assert result["result"].state is ConfigEntryState.LOADED
+
+
+async def test_user_flow_connection_used_with_other_settings(
+    hass: HomeAssistant, device: FakeDevice
+) -> None:
+    """E.g. a Modbus hub in YAML that reaches the unit over other link settings."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    with patch(
+        "custom_components.maico_kwl.config_flow.async_get_temporary_unit",
+        side_effect=HomeAssistantError("in use over other settings"),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], USER_INPUT
+        )
+    assert result["errors"] == {"base": "cannot_connect"}
 
 
 async def test_user_flow_unit_without_one_identity_register(

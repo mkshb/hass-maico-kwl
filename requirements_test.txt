@@ -1,3 +1,11 @@
 pytest-homeassistant-custom-component
-pymodbus>=3.11.2
+# The Modbus libraries of the HA modbus integration, pinned as in the manifest of the
+# oldest supported Home Assistant release, 2026.10, which is also the current one.
+# Home Assistant installs these from that manifest, the test environment does not.
+# pymodbus is needed although this integration does not use it: importing
+# `homeassistant.components.modbus` pulls in its `modbus` module for the YAML hub,
+# which imports pymodbus at module level.
+modbus-connection[tmodbus]==4.12.3
+tmodbus==0.6.2
+pymodbus==3.13.1
 mypy

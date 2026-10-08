@@ -4,11 +4,11 @@
   "after_dependencies": ["frontend", "http"],
   "codeowners": ["@mkshb"],
   "config_flow": true,
+  "dependencies": ["modbus"],
   "documentation": "https://github.com/mkshb/hass-maico-kwl",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/mkshb/hass-maico-kwl/issues",
-  "loggers": ["pymodbus"],
-  "requirements": ["pymodbus>=3.11.2"],
-  "version": "0.4.2"
+  "loggers": ["modbus_connection", "tmodbus"],
+  "version": "0.5.0"
 }

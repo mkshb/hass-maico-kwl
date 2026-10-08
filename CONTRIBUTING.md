@@ -27,7 +27,8 @@ pytest --cov --cov-fail-under=95   # tests against a simulated unit
 mypy                               # strict type check
 ```
 
-The tests run a simulated unit behind a fake pymodbus client (`tests/conftest.py`), so the real
+The tests run a simulated unit behind a fake Modbus connection (`tests/conftest.py`) that replaces
+the one the Modbus integration of Home Assistant builds, so its connection sharing and the real
 hub, discovery, coordinator and entities are exercised without a device.
 
 ### Dashboard card (TypeScript)

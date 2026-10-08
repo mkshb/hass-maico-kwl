@@ -1,31 +1,45 @@
-"""Thin async wrapper around pymodbus for a Maico KWL over Modbus TCP.
+"""Thin async wrapper around a Modbus unit of Home Assistant's Modbus integration.
 
-The pymodbus call signatures here match pymodbus 3.11+ as bundled with current
-Home Assistant (verified through 3.13): registers are addressed by keyword and
-the slave id is passed as ``device_id`` (not ``slave``).
+The connection is Home Assistant's (``homeassistant.components.modbus``): it is
+shared with every integration that asks for the same host and port, opens on
+the first request, reopens after a drop and closes with the last holder. The
+hub only maps its errors onto the two kinds the integration tells apart.
 """
 
 from __future__ import annotations
 
-import asyncio
-import copy
 import logging
 
-from pymodbus.client import AsyncModbusTcpClient
-from pymodbus.exceptions import ModbusException
-from pymodbus.pdu import ModbusPDU
+from modbus_connection import (
+    AcknowledgeError,
+    GatewayPathUnavailableError,
+    GatewayTargetError,
+    IllegalDataAddressError,
+    IllegalDataValueError,
+    IllegalFunctionError,
+    ModbusError,
+    ModbusExceptionError,
+    ModbusUnit,
+    ServerDeviceBusyError,
+)
 
 from .register_defs import REGISTER_OFFSET
 
 _LOGGER = logging.getLogger(__name__)
 
-# Modbus protocol exception codes that mean "the device understood the request
-# but this register is not available" -> treat as absent during discovery.
-_ABSENT_CODES = {1, 2, 3}  # illegal function / illegal data address / illegal value
-# Codes that say "try again later" (acknowledge, device busy, gateway path
-# unavailable, gateway target did not respond): nothing is known about the
-# register, so discovery must not store it as absent.
-_TRANSIENT_CODES = {5, 6, 10, 11}
+# Modbus exceptions that mean "the device understood the request but this
+# register is not available" -> treat as absent during discovery.
+# Illegal function / illegal data address / illegal value (0x01 to 0x03).
+_ABSENT_ERRORS = (IllegalFunctionError, IllegalDataAddressError, IllegalDataValueError)
+# Exceptions that say "try again later" (acknowledge, device busy, gateway path
+# unavailable, gateway target did not respond: 0x05, 0x06, 0x0A, 0x0B): nothing
+# is known about the register, so discovery must not store it as absent.
+_TRANSIENT_ERRORS = (
+    AcknowledgeError,
+    ServerDeviceBusyError,
+    GatewayPathUnavailableError,
+    GatewayTargetError,
+)
 
 
 class MaicoModbusError(Exception):
@@ -40,15 +54,13 @@ class MaicoConnectionError(MaicoModbusError):
     """
 
 
-def _checked_registers(result: ModbusPDU, address: int, count: int) -> list[int]:
+def _checked_registers(registers: list[int], address: int, count: int) -> list[int]:
     """The registers of a response, if it holds exactly the ones requested.
 
-    pymodbus takes the length from the response, so a short answer (e.g. from a
-    gateway) would otherwise decode the missing registers as 0. Raised as a
-    rejected read: polling falls back to single reads, discovery to single
-    probes.
+    A short answer (e.g. from a gateway) would otherwise decode the missing
+    registers as 0. Raised as a rejected read: polling falls back to single
+    reads, discovery to single probes.
     """
-    registers = list(result.registers)
     if len(registers) != count:
         raise MaicoModbusError(
             f"read at {address} returned {len(registers)} of {count} registers"
@@ -57,80 +69,43 @@ def _checked_registers(result: ModbusPDU, address: int, count: int) -> list[int]
 
 
 class MaicoModbusHub:
-    """Owns the pymodbus client and serializes access to it."""
+    """Reads and writes the registers of one unit."""
 
-    def __init__(self, host: str, port: int, slave: int, timeout: int = 5) -> None:
-        self._host = host
-        self._port = port
-        self._slave = slave
-        self._client = AsyncModbusTcpClient(host=host, port=port, timeout=timeout)
-        self._lock = asyncio.Lock()
+    def __init__(self, unit: ModbusUnit) -> None:
+        self._unit = unit
         self._closed = False
-        # False for a view (with_slave) that shares another hub's connection.
-        self._owns_client = True
 
-    @property
-    def host(self) -> str:
-        return self._host
+    def close(self) -> None:
+        """Send nothing more (entry unloaded).
 
-    @property
-    def port(self) -> int:
-        return self._port
-
-    @property
-    def slave(self) -> int:
-        return self._slave
-
-    async def connect(self) -> bool:
-        """Open the TCP connection. Returns True on success."""
-        async with self._lock:
-            await self._client.connect()
-            return self._client.connected
-
-    def with_slave(self, slave: int) -> MaicoModbusHub:
-        """This hub's connection, addressing another Modbus address.
-
-        The unit accepts only one Modbus TCP connection at a time, so e.g. a
-        reconfigure check of a running entry must use its connection. The
-        view shares the client and the lock; closing it closes nothing.
+        The connection itself is Home Assistant's and may stay open for other
+        holders, so the hub has to refuse further requests on its own.
         """
-        view = copy.copy(self)
-        view._slave = slave
-        view._owns_client = False
-        return view
-
-    async def close(self) -> None:
         self._closed = True
-        if not self._owns_client:
-            return
-        self._client.close()
 
-    async def _ensure_connected(self) -> None:
-        """Reconnect if needed. Must be called with the lock held."""
+    def _check_open(self) -> None:
         if self._closed:
-            # Never reopen a connection once the hub is closed (entry unloaded).
             raise MaicoConnectionError("connection is closed")
-        if not self._client.connected and not await self._client.connect():
-            raise MaicoConnectionError(f"cannot connect to {self._host}:{self._port}")
 
-    async def _read(self, address: int, count: int) -> ModbusPDU:
-        async with self._lock:
-            await self._ensure_connected()
-            try:
-                return await self._client.read_holding_registers(
-                    address=address + REGISTER_OFFSET,
-                    count=count,
-                    device_id=self._slave,
-                )
-            except ModbusException as err:
-                raise MaicoConnectionError(f"read at {address} failed: {err}") from err
+    async def _read(self, address: int, count: int) -> list[int]:
+        """Read registers; a rejected read raises the ModbusExceptionError."""
+        self._check_open()
+        try:
+            registers = await self._unit.read_holding_registers(
+                address + REGISTER_OFFSET, count
+            )
+        except ModbusExceptionError:
+            raise
+        except ModbusError as err:
+            raise MaicoConnectionError(f"read at {address} failed: {err}") from err
+        return _checked_registers(registers, address, count)
 
     async def read_block(self, address: int, count: int) -> list[int]:
         """Read ``count`` holding registers starting at ``address``."""
-        result = await self._read(address, count)
-        if result.isError():
-            raise MaicoModbusError(f"read at {address} returned {result}")
-        return _checked_registers(result, address, count)
+        try:
+            return await self._read(address, count)
+        except ModbusExceptionError as err:
+            raise MaicoModbusError(f"read at {address} rejected: {err}") from err
 
     async def probe(self, address: int, count: int = 1) -> bool:
         """Return True if the register exists on this device.
@@ -141,35 +116,25 @@ class MaicoModbusHub:
         MaicoConnectionError so discovery can abort instead of marking every
         register as absent.
         """
-        result = await self._read(address, count)
-        if result.isError():
-            code = getattr(result, "exception_code", None)
-            if code in _ABSENT_CODES:
-                return False
-            if code in _TRANSIENT_CODES:
-                raise MaicoConnectionError(f"probe at {address} returned {result}")
-            raise MaicoModbusError(f"probe at {address} returned {result}")
-        _checked_registers(result, address, count)
+        try:
+            await self._read(address, count)
+        except _ABSENT_ERRORS:
+            return False
+        except _TRANSIENT_ERRORS as err:
+            raise MaicoConnectionError(f"probe at {address} rejected: {err}") from err
+        except ModbusExceptionError as err:
+            raise MaicoModbusError(f"probe at {address} rejected: {err}") from err
         return True
 
     async def write(self, address: int, values: list[int]) -> None:
         """Write one or more holding registers (High-Word first)."""
-        async with self._lock:
-            await self._ensure_connected()
-            try:
-                if len(values) == 1:
-                    result = await self._client.write_register(
-                        address=address + REGISTER_OFFSET,
-                        value=values[0],
-                        device_id=self._slave,
-                    )
-                else:
-                    result = await self._client.write_registers(
-                        address=address + REGISTER_OFFSET,
-                        values=values,
-                        device_id=self._slave,
-                    )
-            except ModbusException as err:
-                raise MaicoConnectionError(f"write at {address} failed: {err}") from err
-        if result.isError():
-            raise MaicoModbusError(f"write at {address} returned {result}")
+        self._check_open()
+        try:
+            if len(values) == 1:
+                await self._unit.write_register(address + REGISTER_OFFSET, values[0])
+            else:
+                await self._unit.write_registers(address + REGISTER_OFFSET, values)
+        except ModbusExceptionError as err:
+            raise MaicoModbusError(f"write at {address} rejected: {err}") from err
+        except ModbusError as err:
+            raise MaicoConnectionError(f"write at {address} failed: {err}") from err

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 
@@ -252,26 +253,36 @@ async def test_feed_cancels_pending_writes_on_stop(
     hass.states.async_set("sensor.room", "21.5", CELSIUS)
     await _setup_with_feeds(hass, config_entry)
     feeder = config_entry.runtime_data.feeder
-    hub = config_entry.runtime_data.hub
 
-    async with hub._lock:  # keep the write waiting for the hub
-        hass.states.async_set("sensor.room", "24.0", CELSIUS)
-        await hass.async_block_till_done(wait_background_tasks=False)
-        assert feeder._tasks
-        feeder.async_stop()
+    connection = device.clients[0]
+    original = connection.write_registers
+    release = asyncio.Event()
+
+    async def held(**kwargs):  # keep the write waiting for the unit
+        await release.wait()
+        return await original(**kwargs)
+
+    connection.write_registers = held
+    hass.states.async_set("sensor.room", "24.0", CELSIUS)
+    await hass.async_block_till_done(wait_background_tasks=False)
+    assert feeder._tasks
+    feeder.async_stop()
+    release.set()
     await hass.async_block_till_done()
     assert (707, [240]) not in device.writes
 
 
-async def test_hub_does_not_reconnect_after_close(
+async def test_hub_sends_nothing_after_close(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:
+    """The shared connection may stay open for another holder after unload."""
     await setup_entry(hass, config_entry)
     hub = config_entry.runtime_data.hub
-    await hub.close()
+    hub.close()
+    reads = device.reads
     with pytest.raises(Exception, match="connection is closed"):
         await hub.read_block(700, 1)
-    assert device.open_connections == 0
+    assert device.reads == reads
 
 
 # --- Manual bus numbers of earlier versions ------------------------------
@@ -604,7 +615,7 @@ async def test_feed_retries_every_minute_until_a_write_succeeds(
     await _tick(hass, freezer, timedelta(seconds=61))  # 10 min: the value expired
     issue = _issue(hass, config_entry, "room_temp_bus", "bus_value_not_delivered")
     assert issue.translation_placeholders["register"] == "707"
-    assert "code=4" in issue.translation_placeholders["error"]
+    assert "exception code 4" in issue.translation_placeholders["error"]
     assert not device.writes
 
     device.write_exception = None

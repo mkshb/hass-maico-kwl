@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import voluptuous as vol
+import probatio
 from homeassistant.components.fan import (
     ATTR_PERCENTAGE,
     ATTR_PRESET_MODE,
@@ -242,9 +242,9 @@ async def test_boost_validation(
     with pytest.raises(ServiceValidationError) as err:
         await _boost(hass, eid)
     assert err.value.translation_key == "boost_unavailable"
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(probatio.Invalid):
         await _boost(hass, eid, duration=0)
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(probatio.Invalid):
         await _boost(hass, eid, duration=91)  # longer than 153 can be set
 
 

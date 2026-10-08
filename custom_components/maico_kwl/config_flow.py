@@ -6,7 +6,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import voluptuous as vol
+import probatio
 from modbus_connection import ModbusTcpParams
 
 from homeassistant.components.modbus import async_get_temporary_unit
@@ -135,20 +135,20 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                     title=f"{DEFAULT_NAME} ({host})", data=user_input
                 )
 
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(
+                probatio.Required(
                     CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")
                 ): str,
-                vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=65535)
+                probatio.Optional(CONF_PORT, default=DEFAULT_PORT): probatio.All(
+                    probatio.Coerce(int), probatio.Range(min=1, max=65535)
                 ),
-                vol.Optional(CONF_SLAVE, default=DEFAULT_SLAVE): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=247)
+                probatio.Optional(CONF_SLAVE, default=DEFAULT_SLAVE): probatio.All(
+                    probatio.Coerce(int), probatio.Range(min=1, max=247)
                 ),
-                vol.Optional(
+                probatio.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=3600)),
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=5, max=3600)),
             }
         )
         return self.async_show_form(
@@ -224,15 +224,15 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="reconfigure_successful")
 
         current = user_input or entry.data
-        schema = vol.Schema(
+        schema = probatio.Schema(
             {
-                vol.Required(CONF_HOST, default=current[CONF_HOST]): str,
-                vol.Required(
+                probatio.Required(CONF_HOST, default=current[CONF_HOST]): str,
+                probatio.Required(
                     CONF_PORT, default=current.get(CONF_PORT, DEFAULT_PORT)
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
-                vol.Required(
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=65535)),
+                probatio.Required(
                     CONF_SLAVE, default=current.get(CONF_SLAVE, DEFAULT_SLAVE)
-                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=247)),
+                ): probatio.All(probatio.Coerce(int), probatio.Range(min=1, max=247)),
             }
         )
         return self.async_show_form(
@@ -283,14 +283,14 @@ class MaicoOptionsFlow(OptionsFlow):
             CONF_SCAN_INTERVAL,
             self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        fields: dict[vol.Marker, Any] = {
-            vol.Optional(CONF_SCAN_INTERVAL, default=scan_current): vol.All(
-                vol.Coerce(int), vol.Range(min=5, max=3600)
+        fields: dict[probatio.Marker, Any] = {
+            probatio.Optional(CONF_SCAN_INTERVAL, default=scan_current): probatio.All(
+                probatio.Coerce(int), probatio.Range(min=5, max=3600)
             )
         }
         if offered:
             fields[
-                vol.Optional(
+                probatio.Optional(
                     CONF_ACCESSORIES,
                     default=sorted(active_accessories(cache, opts) & offered),
                 )
@@ -310,12 +310,12 @@ class MaicoOptionsFlow(OptionsFlow):
             )
             current = opts.get(conf_key)
             marker = (
-                vol.Optional(conf_key, description={"suggested_value": current})
+                probatio.Optional(conf_key, description={"suggested_value": current})
                 if current
-                else vol.Optional(conf_key)
+                else probatio.Optional(conf_key)
             )
             fields[marker] = EntitySelector(config)
 
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(fields)
+            step_id="init", data_schema=probatio.Schema(fields)
         )

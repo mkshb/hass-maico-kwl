@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import voluptuous as vol
+import probatio
 
-from homeassistant.components.fan import DOMAIN as FAN_DOMAIN
+from homeassistant.components.fan.const import DOMAIN as FAN_DOMAIN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, service
 
@@ -27,8 +27,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_BOOST,
         entity_domain=FAN_DOMAIN,
         schema={
-            vol.Optional(ATTR_DURATION): vol.All(
-                cv.positive_int, vol.Range(min=1, max=MAX_BOOST_MINUTES)
+            probatio.Optional(ATTR_DURATION): probatio.All(
+                cv.positive_int, probatio.Range(min=1, max=MAX_BOOST_MINUTES)
             )
         },
         func="async_boost",

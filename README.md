@@ -58,8 +58,8 @@ profile of the unit is derived from the registers it finds.
   entities. Failed write actions show an error message in the UI.
 - **Shared connection**: the unit is reached through the Modbus integration of Home Assistant.
   Entries of this integration and other integrations that take their connection from there share one
-  connection for the same host and port, which the unit needs as it accepts only one. From Home
-  Assistant 2026.10 it shows up in the **Modbus** panel under **Settings** > **Connectivity**.
+  connection for the same host and port, which the unit needs as it accepts only one. It shows up in
+  the **Modbus** panel under **Settings** > **Connectivity**.
 - **Multilingual**: English and German translations for both entity names and select/enum state
   values. German names are chosen so that related entities group together via shared prefixes.
 - **Repair issues** under *Settings > System > Repairs* while the unit reports a fault (listing the
@@ -191,9 +191,9 @@ result does not cover or that stores the result in a newer format.
 
 ## Requirements
 
-- Home Assistant **2026.9** or newer (the minimum in `hacs.json`). Development and the automated
+- Home Assistant **2026.10** or newer (the minimum in `hacs.json`). Development and the automated
   tests use the current Home Assistant release; older releases within the supported range are not
-  tested automatically. The integration's icon and logo are shown from Home Assistant 2026.3.
+  tested automatically.
 - The Maico unit must be reachable via **Modbus TCP**, directly or through a gateway / Modbus
   proxy.
 
@@ -518,9 +518,8 @@ in `queued` mode, so frequent triggers do not log "Already running" warnings.
 - The unit accepts only one Modbus TCP connection at a time and ignores further ones: check that no
   other program is connected to it. Integrations that take their connection from the Modbus
   integration share one, a `modbus:` hub in `configuration.yaml` opens its own. The **Modbus** panel
-  under **Settings** > **Connectivity** (Home Assistant 2026.10 or newer) lists both, a hub as a
-  connection of its own. A Modbus TCP proxy lets several clients share the one connection, see
-  [Requirements](#requirements).
+  under **Settings** > **Connectivity** lists both, a hub as a connection of its own. A Modbus TCP
+  proxy lets several clients share the one connection, see [Requirements](#requirements).
 
 **"The device does not look like a Maico KWL"**
 - The device at host, port and Modbus address reports a value a Maico KWL does not have; the

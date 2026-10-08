@@ -3,7 +3,9 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
-## Unreleased
+## 0.5.1 (2026-10-08)
+
+The heat recovery energy counts only heat that comes from the exchanger.
 
 ### What changed
 

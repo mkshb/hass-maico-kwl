@@ -1,5 +1,7 @@
 pytest-homeassistant-custom-component
-# The Modbus libraries of the HA modbus integration, as pinned in its manifest.
+# The Modbus libraries of the HA modbus integration, pinned as in the manifest of the
+# current Home Assistant release (2026.10). The oldest supported release, 2026.9, pins
+# modbus-connection 4.10.0: as the README says, the tests follow the current release.
 modbus-connection[tmodbus]==4.12.3
 tmodbus==0.6.2
 mypy

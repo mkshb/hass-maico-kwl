@@ -8,7 +8,7 @@ when all of them are present, and ``compute`` gets their values in that order.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
 
 # Volumetric heat capacity of air in Wh/(m3*K). The airflow is reported in m3/h,
@@ -96,6 +96,37 @@ def dew_point(temp: float, humidity: float) -> float | None:
         return None
     gamma = math.log(_vapour_pressure(temp, humidity) / MAGNUS_E0)
     return round(MAGNUS_B * gamma / (MAGNUS_A - gamma), 1)
+
+
+# Registers that, while on, mean the supply air is warmed by more than the
+# exchanger: with the summer bypass open only the fan heat is left (0.5 to
+# 1.5 K), the PTC heater and the ZP1 reheating register add their own heat.
+RECOVERY_GATES = ("summer_bypass_open", "ptc_heater_active", "reheating_relay_active")
+
+
+def recovery_counts(present: Collection[str], data: Mapping[str, object]) -> bool:
+    """Whether the supply air currently gains its heat from the exchanger.
+
+    Decides if a reading adds to the recovered energy. A gate register the unit
+    does not have (or whose accessory is not in use) is ignored; one that is
+    present but missing from the poll is treated as on, since it cannot be
+    ruled out. Below MIN_EFFICIENCY_SPREAD between extract and intake air the
+    supply air gains mostly fan heat and sensor tolerance; without an extract
+    air register this check is skipped.
+    """
+    for key in RECOVERY_GATES:
+        if key in present and data.get(key) != 0:
+            return False
+    if "temp_extract_air" not in present:
+        return True
+    readings: list[float] = []
+    for key in ("temp_extract_air", "temp_air_intake"):
+        value = data.get(key)
+        if not isinstance(value, (int, float)) or not valid_input(key, value):
+            return False
+        readings.append(value)
+    extract, intake = readings
+    return extract - intake >= MIN_EFFICIENCY_SPREAD
 
 
 @dataclass(frozen=True)

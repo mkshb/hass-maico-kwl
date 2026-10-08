@@ -3,6 +3,25 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
+## 0.5.1 (2026-10-08)
+
+The heat recovery energy counts only heat that comes from the exchanger.
+
+### What changed
+
+- **Heat recovery energy counts only the exchanger.** Until now every bit of warming of the supply
+  air was added up, also heat that does not come from the exchanger: with the summer bypass open,
+  the fan heat of 0.5 to 1.5 K alone added up to about 2 kWh a day, and a running PTC heater or
+  ZP1 reheating register was counted as recovered heat as well. Readings while the bypass is
+  open, one of the heaters is on, or extract and intake air are less than 5 K apart are now left
+  out like a gap between polls. *Heat recovery power* and *Heat recovery efficiency* still show
+  what is measured and did not change.
+
+### Do I need to do anything?
+
+- **Nothing.** The energy total keeps its value and its entity. What was counted too much before
+  cannot be told apart afterwards, so it stays in the total and in the long-term statistics.
+
 ## 0.5.0 (2026-10-08)
 
 One connection to the unit, shared with the rest of Home Assistant. Needs Home Assistant

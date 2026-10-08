@@ -325,6 +325,112 @@ async def test_heat_recovery_energy_with_a_long_scan_interval(
     assert _energy(hass, config_entry) == pytest.approx(1173 / 4 / 1000, abs=0.001)
 
 
+_PRESENT = {"temp_air_intake", "temp_extract_air", *derived.RECOVERY_GATES}
+_COUNTING = {
+    "temp_air_intake": -5.0,
+    "temp_extract_air": 22.0,
+    "summer_bypass_open": 0,
+    "ptc_heater_active": 0,
+    "reheating_relay_active": 0,
+}
+
+
+@pytest.mark.parametrize(
+    ("present", "changes", "expected"),
+    [
+        (_PRESENT, {}, True),
+        *[(_PRESENT, {gate: 1}, False) for gate in derived.RECOVERY_GATES],
+        # A gate the unit has but the poll did not return: cannot be ruled out.
+        *[(_PRESENT, {gate: None}, False) for gate in derived.RECOVERY_GATES],
+        # Gates the unit does not have are ignored, whatever the data says.
+        ({"temp_air_intake", "temp_extract_air"}, {"summer_bypass_open": 1}, True),
+        (_PRESENT, {"temp_extract_air": 0.0, "temp_air_intake": -4.9}, False),
+        (_PRESENT, {"temp_extract_air": 0.0, "temp_air_intake": -5.0}, True),
+        # Signed: intake warmer than extract air (summer) does not count.
+        (_PRESENT, {"temp_extract_air": 22.0, "temp_air_intake": 30.0}, False),
+        (_PRESENT, {"temp_extract_air": None}, False),
+        (_PRESENT, {"temp_extract_air": 3276.7}, False),  # sensor fault
+        # Without an extract air register the spread is not checked.
+        (_PRESENT - {"temp_extract_air"}, {"temp_air_intake": 21.0}, True),
+    ],
+)
+def test_recovery_counts(
+    present: set[str], changes: dict[str, float | None], expected: bool
+) -> None:
+    data = {**_COUNTING, **changes}
+    assert derived.recovery_counts(present, data) is expected
+
+
+async def _poll(hass: HomeAssistant, entry, freezer, times: int = 1) -> None:
+    for _ in range(times):
+        freezer.tick(timedelta(minutes=5))
+        await _refresh(hass, entry)
+
+
+@pytest.mark.parametrize("register", [802, 803, 805])
+async def test_heat_recovery_energy_not_counted_while_heated_otherwise(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer, register: int
+) -> None:
+    """Bypass open, PTC heater or ZP1 reheating on: no energy, before or after."""
+    device.absent.discard(805)  # a unit with the ZP1 module
+    device.registers[805] = 0
+    await setup_entry(hass, config_entry)
+    power = entity_id(hass, config_entry, "sensor", "heat_recovery_power")
+
+    device.registers[register] = 1
+    await _poll(hass, config_entry, freezer, 3)
+    assert _energy(hass, config_entry) == 0.0
+    # The power stays a measurement and is still shown.
+    assert hass.states.get(power).state == "1173"
+
+    device.registers[register] = 0
+    await _poll(hass, config_entry, freezer)  # first reading after: no interval
+    assert _energy(hass, config_entry) == 0.0
+    await _poll(hass, config_entry, freezer)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 12 / 1000, abs=0.001)
+
+
+async def test_heat_recovery_energy_needs_spread(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """Extract air 22.0 degC; counted from 5 K above the intake air."""
+    await setup_entry(hass, config_entry)
+    device.registers[703] = 180  # 18.0 degC: 4 K
+    device.registers[704] = 200  # 20.0 degC: 2 K warmer, fan heat
+    await _poll(hass, config_entry, freezer, 2)
+    assert _energy(hass, config_entry) == 0.0
+
+    device.registers[703] = 170  # 17.0 degC: 5 K, 3 K warmer: 153 W
+    await _poll(hass, config_entry, freezer, 2)
+    assert _energy(hass, config_entry) == pytest.approx(153 / 12 / 1000, abs=0.001)
+
+
+async def test_heat_recovery_energy_without_gate_registers(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """A unit without bypass, PTC heater and ZP1 module counts as before."""
+    device.absent.update({802, 803, 805})
+    await setup_entry(hass, config_entry)
+    assert not set(derived.RECOVERY_GATES) & config_entry.runtime_data.coordinator.present
+    await _poll(hass, config_entry, freezer)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 12 / 1000, abs=0.001)
+
+
+async def test_heat_recovery_energy_gate_missing_from_poll(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    """The bypass register did not answer: it may be open, so a gap."""
+    await setup_entry(hass, config_entry)
+    device.absent.add(802)
+    await _poll(hass, config_entry, freezer)
+    assert "summer_bypass_open" not in config_entry.runtime_data.coordinator.data
+    device.absent.discard(802)
+    await _poll(hass, config_entry, freezer)
+    assert _energy(hass, config_entry) == 0.0
+    await _poll(hass, config_entry, freezer)
+    assert _energy(hass, config_entry) == pytest.approx(1173 / 12 / 1000, abs=0.001)
+
+
 async def test_heat_recovery_energy_restored(
     hass: HomeAssistant, device: FakeDevice, config_entry
 ) -> None:

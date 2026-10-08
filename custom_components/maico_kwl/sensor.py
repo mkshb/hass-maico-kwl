@@ -26,6 +26,7 @@ from .derived import (
     MAX_RECOVERY_POWER,
     DerivedDef,
     heat_recovery_power,
+    recovery_counts,
 )
 from .entity import (
     MaicoDerivedEntity,
@@ -236,7 +237,9 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
 
     Integrates the heat recovery power between two polls (trapezoidal rule).
     Only recovered heat counts: negative power (the exchanger cooling the
-    supply air) adds nothing, so the total only ever increases.
+    supply air) adds nothing, so the total only ever increases. Neither does
+    heat from elsewhere: a reading with an open bypass, a heater on or too
+    little spread (see recovery_counts) is a gap.
     """
 
     _attr_device_class = SensorDeviceClass.ENERGY
@@ -278,6 +281,11 @@ class MaicoHeatRecoveryEnergySensor(MaicoDerivedEntity, RestoreSensor):
         numbers = self._numbers
         if numbers is None:
             self._last = None  # a gap: start over with the next reading
+            return
+        if not recovery_counts(self.coordinator.present, self.coordinator.data):
+            # The supply air is not (only) warmed by the exchanger: a gap, so
+            # neither the interval before nor the one after it counts.
+            self._last = None
             return
         now = dt_util.utcnow()
         power = max(0.0, heat_recovery_power(*numbers))

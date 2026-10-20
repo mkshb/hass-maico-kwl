@@ -1,0 +1,36 @@
+version: 2
+
+# Python: nothing to update. pytest-homeassistant-custom-component and mypy are
+# not pinned, and the Modbus libraries in requirements_test.txt must stay those
+# of the oldest supported Home Assistant release (see the comment there).
+
+updates:
+  # The actions of the workflows, all in one pull request.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "update"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The dashboard card. Its build is committed, and the CI fails while it does
+  # not match the sources: before merging, run `npm run build` on the branch of
+  # the pull request and commit the result.
+  - package-ecosystem: "npm"
+    directory: "/frontend-src"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "update"
+    groups:
+      # Minor and patch releases in one pull request, major releases each in
+      # their own.
+      card:
+        update-types: ["minor", "patch"]

@@ -11,7 +11,6 @@ from modbus_connection import ModbusTcpParams
 
 from homeassistant.components.modbus import async_get_temporary_unit
 from homeassistant.config_entries import (
-    ConfigEntry,
     ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
@@ -42,6 +41,7 @@ from .const import (
     DEFAULT_SLAVE,
     DOMAIN,
 )
+from .coordinator import MaicoConfigEntry
 from .discovery import (
     active_accessories,
     async_check_identity,
@@ -244,14 +244,14 @@ class MaicoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+    def async_get_options_flow(config_entry: MaicoConfigEntry) -> OptionsFlow:
         return MaicoOptionsFlow(config_entry)
 
 
 class MaicoOptionsFlow(OptionsFlow):
     """Scan interval, fitted accessories and bus feed sources."""
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
+    def __init__(self, config_entry: MaicoConfigEntry) -> None:
         self._entry = config_entry
 
     async def async_step_init(

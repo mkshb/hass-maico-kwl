@@ -101,7 +101,8 @@ same keys and that icons belong to existing entities.
 - One change per commit, with a short lowercase prefix: `add:` for new things, `fix:` for bugs,
   `update:` for changes to existing behaviour, `bump:` for the version.
 - Open the pull request against `main`. The checks (tests, types, hassfest, HACS, card in both
-  engines) have to pass.
+  engines) have to pass. A pull request runs only the checks its files need, e.g. none for a
+  change to the issue templates; `.github/scripts/changes.sh` holds the rules.
 - Describe what changes for users; that text goes into the release notes.
 
 ## Releases

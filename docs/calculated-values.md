@@ -5,6 +5,12 @@
 Some useful values have no register of their own. They are calculated from the registers that are
 there, and each is only created when the unit has all the registers it needs.
 
+> [!NOTE]
+> *Heat recovery power* and *Heat recovery energy* are **estimates**, not a heat meter reading.
+> They rest on the airflow the unit reports, a rounded heat capacity of air (0.34 Wh/(m³·K)), the
+> tolerances of the temperature sensors and readings taken once per scan interval. Use them to
+> follow trends and compare periods, not for billing or exact energy balances.
+
 ## When a value is unavailable
 
 A calculated value is unavailable while one of its inputs is missing from the last poll, or is no
@@ -16,8 +22,8 @@ registers themselves still show what the unit reports.
 
 | Sensor | Calculation |
 |--------|-------------|
-| *Heat recovery power* (W) | Supply airflow (653) × 0.34 Wh/(m³·K) × (supply air (704) − air intake temperature (703)). Negative while the exchanger cools the supply air; the value is not clamped. Since the supply air is measured after the fan and any heater, their heat is included. The *Heat recovery energy* sensor below adds it up. |
-| *Heat recovery energy* (kWh) | The heat recovery power integrated between polls (trapezoidal rule), as a total that only increases: negative power counts as 0. See [Heat recovery energy](#heat-recovery-energy). |
+| *Heat recovery power* (W), estimated | Supply airflow (653) × 0.34 Wh/(m³·K) × (supply air (704) − air intake temperature (703)). Negative while the exchanger cools the supply air; the value is not clamped. Since the supply air is measured after the fan and any heater, their heat is included. The *Heat recovery energy* sensor below adds it up. |
+| *Heat recovery energy* (kWh), estimated | The estimated heat recovery power integrated between polls (trapezoidal rule), as a total that only increases: negative power counts as 0. See [Heat recovery energy](#heat-recovery-energy). |
 | *Heat recovery efficiency* (%) | (supply air − air intake) / (extract air (705) − air intake), the temperature efficiency of the exchanger. Unknown while extract and intake air are less than 5 K apart. Close to 0 while the summer bypass is open; fan heat can push it slightly above 100. A slow decline in winter hints at a dirty exchanger or a leaking bypass damper. |
 | *Airflow imbalance* (m³/h) | Supply minus exhaust airflow (653 − 654, diagnostic). Positive: more air goes in. A lasting deviation hints at a clogged filter on one side or a calibration that is off. |
 | *Absolute humidity extract air* (g/m³), *Dew point extract air* (°C) | From the extract air temperature (705) and humidity (750), Magnus formula (Sonntag 1990). The dew point is unknown at 0 % humidity. The absolute humidity can be compared with an outdoor sensor, e.g. to decide whether more ventilation dries the home. |
@@ -25,8 +31,8 @@ registers themselves still show what the unit reports.
 
 ## Heat recovery energy
 
-The *Heat recovery energy* sensor integrates the *Heat recovery power* between polls with the
-trapezoidal rule. It is a total that only increases: negative power counts as 0. The total is
+The *Heat recovery energy* sensor is an estimate of the heat recovered by the exchanger. It
+integrates the *Heat recovery power* between polls with the trapezoidal rule. It is a total that only increases: negative power counts as 0. The total is
 restored after a restart, and long-term statistics give daily, monthly and yearly values.
 
 Limits of the calculation:

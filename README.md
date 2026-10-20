@@ -37,8 +37,8 @@ comes with it.
   airflow rates, filter intervals and more. Operating mode and level also come as one fan entity.
 - **Dashboard card included**: an airflow diagram with live values and controls, no extra download
   or resource needed.
-- **Calculated values** the unit does not report: heat recovery power, energy and efficiency,
-  airflow imbalance, absolute humidity and dew point, filter change reminders.
+- **Calculated values** the unit does not report: estimated heat recovery power and energy, heat
+  recovery efficiency, airflow imbalance, absolute humidity and dew point, filter change reminders.
 - **Feed external values**: send a room temperature, humidity or air quality sensor from Home
   Assistant to the unit over Modbus, without an automation.
 - **Readable fault and notice codes**, repair issues for faults, due filters and a wrong unit clock,

@@ -54,12 +54,17 @@ decides from those:
 
 | Accessory | Entities | Detected as fitted when |
 |---|---|---|
-| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty. Without such a filter the unit keeps the days at 0, never reports it as dirty and ignores a filter change. Some units do not report a filter that ran out as dirty either, so a filter detected before stays fitted when a later discovery (*Rediscover registers*, a reconfigure with the same connection, or the automatic one after an update) finds it at 0 days. |
+| Outdoor filter, room filter | Interval, reset button, remaining time, *Filter due*, *dirty* binary sensor, repair issue | The filter has days left, or it has run out and the unit reports it as dirty (see below). |
 | Wired sensors | Humidity, CO2 and VOC sensor 1 to 4 | At least one of them reports a value other than 0. |
 | EnOcean wireless sensors | CO2, humidity and VOC of the 8 EnOcean IDs | At least one of them reports a value other than 0. |
 | External room temperature sensor | *Temperature room external* | The *Room temperature source* is set to "External". |
 | PTC heater | *PTC heater active* | Not detectable, counts as fitted. |
 | ZP1 extension module | Reheating relay, brine pump, dampers, their operating hours, outdoor temperature before the air ground heat exchanger | Not detectable, counts as fitted. |
+
+Without an outdoor or room filter the unit keeps its days at 0, never reports it as dirty and
+ignores a filter change. Some units do not report a filter that ran out as dirty either, so a filter
+detected before stays fitted when a later discovery (*Rediscover registers*, a reconfigure with the
+same connection, or the automatic one after an update) finds it at 0 days.
 
 The device filter is always there. Entities of accessories that are not fitted are not created,
 and *Filter next change* only covers the fitted filters. If a value does not allow a decision (e.g.

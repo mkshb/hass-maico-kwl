@@ -229,9 +229,10 @@ result does not cover or that stores the result in a newer format.
 
 ### Via HACS (recommended)
 
-1. In HACS > **Custom repositories**, add `https://github.com/mkshb/hass-maico-kwl` with category
-   **Integration**.
-2. Install "Maico KWL". HACS downloads the `maico_kwl.zip` attached to the release.
+[![Open your Home Assistant instance and open this repository inside HACS.][hacs-repo-badge]][hacs-repo]
+
+1. Open the repository in HACS with the button above, or search HACS for "Maico KWL".
+2. Download "Maico KWL". HACS downloads the `maico_kwl.zip` attached to the release.
 3. Restart Home Assistant.
 
 ### Manual
@@ -247,7 +248,10 @@ browser loads the new card.
 
 ## Configuration
 
-1. **Settings > Devices & Services > Add Integration** > "Maico KWL".
+[![Open your Home Assistant instance and start setting up Maico KWL.][config-flow-badge]][config-flow]
+
+1. Start the setup with the button above, or go to **Settings > Devices & Services > Add
+   Integration** > "Maico KWL".
 2. Enter the connection details:
    - **Host**: IP/hostname of the unit or gateway
    - **Port**: default `502`
@@ -615,7 +619,11 @@ write operations in particular change real device settings.
 [commits]: https://github.com/mkshb/hass-maico-kwl/commits/main
 [license-shield]: https://img.shields.io/github/license/mkshb/hass-maico-kwl.svg?style=for-the-badge
 [hacs]: https://github.com/hacs/integration
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge
+[hacs-repo-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
+[hacs-repo]: https://my.home-assistant.io/redirect/hacs_repository/?owner=mkshb&repository=hass-maico-kwl&category=integration
+[config-flow-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
+[config-flow]: https://my.home-assistant.io/redirect/config_flow_start/?domain=maico_kwl
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40mkshb-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/mkshb
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge

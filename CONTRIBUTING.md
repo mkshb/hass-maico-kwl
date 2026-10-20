@@ -31,6 +31,15 @@ The tests run a simulated unit behind a fake Modbus connection (`tests/conftest.
 the one the Modbus integration of Home Assistant builds, so its connection sharing and the real
 hub, discovery, coordinator and entities are exercised without a device.
 
+`requirements_test.txt` installs the newest Home Assistant release with the Modbus libraries of
+2026.10.0. The CI runs the tests twice, against 2026.10.0 (the minimum in `hacs.json`) and against
+the newest release or beta, each with the Modbus libraries from the manifest of that release. To
+test against the minimum locally:
+
+```bash
+pip install "pytest-homeassistant-custom-component==0.13.371"   # Home Assistant 2026.10.0
+```
+
 ### Dashboard card (TypeScript)
 
 The card lives in `frontend-src` (Lit, TypeScript, Rollup). Node 20:

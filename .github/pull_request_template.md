@@ -8,6 +8,6 @@
 - [ ] Tests added or updated; `pytest` and `mypy` pass
 - [ ] New or renamed entities: `strings.json`, `translations/en.json` and `translations/de.json`
 - [ ] Card changed: `npm run build` committed, `npm test` and `npm run test:webkit` pass, screenshots in `docs/images` refreshed
-- [ ] README and `CHANGELOG.md` updated where users see a difference
+- [ ] README, `docs/` and `CHANGELOG.md` updated where users see a difference
 
 See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) for the details.

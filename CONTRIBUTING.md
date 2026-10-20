@@ -83,6 +83,8 @@ it. Then:
 3. Add or extend a test, e.g. in `tests/test_register_defs.py` for decoding.
 4. If the card should show it, add its key to `frontend-src/src/keys.ts`.
    `tests/test_frontend.py` checks that every key there exists.
+5. Describe it in the user documentation under `docs/`, e.g. [`docs/entities.md`](docs/entities.md),
+   and a deliberate deviation from the CSV in [`docs/modbus.md`](docs/modbus.md).
 
 `tests/test_translations.py` and `tests/test_icons.py` check that the translation files have the
 same keys and that icons belong to existing entities.

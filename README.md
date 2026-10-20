@@ -141,7 +141,8 @@ bus inputs under [Removal](docs/configuration.md#removal).
 - **Bugs**: open a [bug report][bug-report] and attach the diagnostics (**Settings > Devices &
   Services > Maico KWL > ⋮ > Download diagnostics**). They list every register in use with its
   value and raw words, and make most questions answerable without access to the unit.
-  See also [Troubleshooting](docs/troubleshooting.md).
+  Issues are public: look through the file before you attach it, see
+  [Troubleshooting](docs/troubleshooting.md#collecting-information-for-a-bug-report).
 - **Other units**: this project grows from real-world device data. A
   [unit report][device-report] helps, also when everything works, especially from other Maico
   models. Register corrections are just as welcome.

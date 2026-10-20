@@ -97,4 +97,9 @@ their own once the problem is gone, and are removed when the integration is unlo
 - Enable debug logging on the same page (**⋮ > Enable debug logging**), reproduce the problem, then
   disable it again to download the log.
 
+> [!WARNING]
+> Issues on GitHub are public. Look through the diagnostics and the log before you attach them, and
+> remove anything you do not want to share, e.g. entity IDs that name rooms or people. The log is
+> not redacted and can contain the host of the unit.
+
 Then open an issue, see [Support and contributing](../README.md#support-and-contributing).

@@ -1,0 +1,108 @@
+# Home Assistant integration quality scale, rule by rule:
+# https://developers.home-assistant.io/docs/core/integration-quality-scale/
+# hassfest checks this file only for core integrations; here it records the
+# state and what is left. All Bronze, Silver and Platinum rules are met, Gold
+# lacks only discovery.
+rules:
+  # Bronze
+  action-setup:
+    status: done
+    comment: The boost action is registered in async_setup, also while no unit is loaded.
+  appropriate-polling:
+    status: done
+    comment: >
+      Every 30 s by default, which suits the slow changes of a ventilation
+      unit. The interval can be set from 5 to 3600 s in the options.
+  brands:
+    status: done
+    comment: Icon and logo ship in the brand folder of the integration.
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency:
+    status: done
+    comment: >
+      No requirements of its own. The connection comes from the modbus
+      integration of Home Assistant and its libraries.
+  docs-actions: done
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no conditions of its own.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no triggers of its own.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry:
+    status: done
+    comment: >
+      The unit has no serial number. A second entry with the same host, port
+      and Modbus address is refused instead. hassfest would look for
+      _async_abort_entries_match, which cannot compare host names regardless
+      of case.
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: Modbus TCP has no authentication.
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: todo
+    comment: >
+      The unit announces itself neither over mDNS nor SSDP. DHCP discovery
+      would need the MAC prefix or the host name of its network module, which
+      is not known yet.
+  discovery-update-info:
+    status: todo
+    comment: Depends on discovery.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: >
+      An entry is one unit, a single device. Accessories fitted later are
+      picked up with the rediscover button.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: The single device of an entry is removed with the entry.
+
+  # Platinum
+  async-dependency:
+    status: done
+    comment: The modbus integration of Home Assistant talks to the unit asynchronously.
+  inject-websession:
+    status: exempt
+    comment: The integration makes no HTTP requests.
+  strict-typing: done

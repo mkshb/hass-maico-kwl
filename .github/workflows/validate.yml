@@ -1,10 +1,9 @@
 name: "Validate"
 
+# No run after a merge: the pull request was tested already, and the daily
+# run on main catches what two pull requests break only together.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   pull_request:
   schedule:
     - cron: "0 0 * * *"

@@ -1,10 +1,9 @@
 name: "Tests"
 
+# No run after a merge: the pull request was tested already, and the daily
+# run on main catches what two pull requests break only together.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   pull_request:
   # Daily, to catch a new Home Assistant release or beta before the users do.
   # The test package for it usually appears on PyPI in the morning (UTC).

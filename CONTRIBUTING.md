@@ -47,6 +47,9 @@ npm run test:webkit    # the card in WebKit (Safari and the iOS app)
 - The build output in `custom_components/maico_kwl/frontend` is **committed**, because HACS ships
   the repository as it is. Run `npm run build` and commit the result with every card change; the
   CI fails when the committed build does not match the sources.
+- The same holds for the monthly Dependabot pull request for the card's npm packages: its card
+  job fails until someone checks out its branch, runs `npm ci` and `npm run build` and pushes the
+  new build.
 - `npm test` also refreshes the README screenshots in `docs/images` from example data. Commit them
   when the card looks different.
 - `frontend-src/test/browser` renders the card against a simulated `hass` object, in both engines.

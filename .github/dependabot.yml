@@ -34,3 +34,10 @@ updates:
       # their own.
       card:
         update-types: ["minor", "patch"]
+    ignore:
+      # TypeScript 7 is the native compiler and no longer has the JavaScript
+      # API that @rollup/plugin-typescript (12.3.0) builds with: the build
+      # fails with "Cannot read properties of undefined (reading 'ES2015')".
+      # Drop this once the plugin supports it, or the build uses another one.
+      - dependency-name: "typescript"
+        versions: [">=7"]

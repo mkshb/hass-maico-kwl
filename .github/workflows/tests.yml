@@ -13,8 +13,22 @@ permissions:
 
 jobs:
   pytest:
-    name: "Pytest"
+    # The minimum keeps the plain name: "Pytest" is a required check for main.
+    # The latest job only reports, so a beta that breaks something does not
+    # block a pull request.
+    name: "${{ matrix.ha == 'minimum' && 'Pytest' || 'Pytest (latest HA)' }}"
     runs-on: "ubuntu-latest"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest release hacs.json allows, 2026.10.0. Move it along with
+          # "homeassistant" in hacs.json.
+          - ha: "minimum"
+            requirement: "pytest-homeassistant-custom-component==0.13.371"
+          # The newest release on PyPI, a beta in the week before a release.
+          - ha: "latest"
+            requirement: "pytest-homeassistant-custom-component"
     steps:
       - name: "Checkout the repository"
         uses: "actions/checkout@v4"
@@ -27,7 +41,23 @@ jobs:
           cache-dependency-path: "requirements_test.txt"
 
       - name: "Install test requirements"
-        run: pip install -r requirements_test.txt
+        run: pip install -r requirements_test.txt "${{ matrix.requirement }}"
+
+      # Home Assistant installs the libraries of its modbus integration from
+      # that integration's manifest, so they change with the release. Use the
+      # ones of the installed release instead of the pins in
+      # requirements_test.txt, which are those of 2026.10.0.
+      - name: "Modbus libraries of this Home Assistant release"
+        run: |
+          python - > "${RUNNER_TEMP}/modbus.txt" <<'EOF'
+          import importlib.util, json, pathlib
+          ha = pathlib.Path(importlib.util.find_spec("homeassistant").origin).parent
+          manifest = json.loads((ha / "components/modbus/manifest.json").read_text())
+          print("\n".join(manifest["requirements"]))
+          EOF
+          cat "${RUNNER_TEMP}/modbus.txt"
+          pip install -r "${RUNNER_TEMP}/modbus.txt"
+          pip list | grep -i -E "^(homeassistant|modbus-connection|tmodbus|pymodbus) "
 
       - name: "Run tests"
         run: pytest --cov --cov-report=term-missing --cov-fail-under=95

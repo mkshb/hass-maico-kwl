@@ -9,7 +9,7 @@ out what the unit has, and where it deliberately differs from the Maico document
 
 - **Modbus TCP** only, through the Modbus integration of Home Assistant, which keeps one shared
   connection per host and port (see
-  [One connection only](compatibility.md#one-connection-only-use-a-modbus-tcp-proxy)).
+  [One connection only](compatibility.md#one-connection-only)).
 - All registers are **holding registers**, read with FC 03, written with FC 06 (single register)
   or FC 16 (several registers, e.g. the clock).
 - Word order **High-Word/Low-Word**, byte order **High-Byte/Low-Byte**, as documented by Maico.

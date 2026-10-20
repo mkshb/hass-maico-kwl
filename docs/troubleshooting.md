@@ -16,7 +16,7 @@
   integration share one, a `modbus:` hub in `configuration.yaml` opens its own. The **Modbus** panel
   under **Settings** > **Connectivity** lists both, a hub as a connection of its own. A Modbus TCP
   proxy lets several clients share the one connection, see
-  [One connection only](compatibility.md#one-connection-only-use-a-modbus-tcp-proxy).
+  [One connection only](compatibility.md#one-connection-only).
 - *"The Modbus connection to the Maico KWL is already used with other settings"*: another
   integration uses the same host and port with different connection settings. The setup is not
   retried in this case; align the settings or remove the other entry, then reload the integration.

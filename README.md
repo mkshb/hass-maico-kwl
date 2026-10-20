@@ -191,9 +191,9 @@ result does not cover or that stores the result in a newer format.
 
 ## Requirements
 
-- Home Assistant **2026.10** or newer (the minimum in `hacs.json`). Development and the automated
-  tests use the current Home Assistant release; older releases within the supported range are not
-  tested automatically.
+- Home Assistant **2026.10** or newer (the minimum in `hacs.json`). The automated tests run
+  against this minimum and against the newest release, every day and in the week before a
+  release also against its beta. Releases in between are not tested on their own.
 - The Maico unit must be reachable via **Modbus TCP**, directly or through a gateway / Modbus
   proxy.
 

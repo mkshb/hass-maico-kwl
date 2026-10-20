@@ -36,17 +36,22 @@ model nor a serial number. It shows a capability profile instead, see
 > [!NOTE]
 > This integration speaks **Modbus TCP** only. Modbus RTU (serial) is not currently supported.
 
-## One connection only: use a Modbus TCP proxy
+## One connection only
 
-> [!IMPORTANT]
-> **A Modbus TCP proxy is strongly recommended.** The Maico KWL accepts only **one** Modbus TCP
-> connection at a time; it silently ignores a second one (checked on a live unit). Connected
-> directly, Home Assistant holds that one connection. Integrations that take their connection from
-> the Modbus integration share it, a `modbus:` hub in `configuration.yaml` and an integration with
-> a Modbus client of its own do not. Any other Modbus program (a diagnostic tool, a second Home
-> Assistant, a script) cannot connect at all, or blocks Home Assistant while it is connected. A
-> Modbus TCP proxy between the unit and its clients keeps the one connection to the unit and lets
-> several clients share it. The integration is developed and tested behind such a proxy.
+The Maico KWL accepts only **one** Modbus TCP connection at a time; it silently ignores a second one
+(checked on a live unit). Whether you need a Modbus TCP proxy depends on who else talks to the unit:
+
+- **Home Assistant is the only Modbus client**: connect it directly. Home Assistant holds the one
+  connection, and integrations that take their connection from the Modbus integration of Home
+  Assistant share it.
+- **Other Modbus clients as well**: a `modbus:` hub in `configuration.yaml`, an integration with a
+  Modbus client of its own, a diagnostic tool, a second Home Assistant or a script cannot connect
+  at all, or block Home Assistant while they are connected. Put a **Modbus TCP proxy** between the
+  unit and its clients: it keeps the one connection to the unit and lets several clients share it.
+
+> [!NOTE]
+> The integration is developed and tested behind such a proxy. Reports from units connected
+> directly are welcome.
 
 Entries of this integration and other integrations that take their connection from the Modbus
 integration of Home Assistant share one connection for the same host and port. It shows up in the

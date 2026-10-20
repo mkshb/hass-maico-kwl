@@ -37,8 +37,8 @@ comes with it.
   airflow rates, filter intervals and more. Operating mode and level also come as one fan entity.
 - **Dashboard card included**: an airflow diagram with live values and controls, no extra download
   or resource needed.
-- **Calculated values** the unit does not report: heat recovery power, energy and efficiency,
-  airflow imbalance, absolute humidity and dew point, filter change reminders.
+- **Calculated values** the unit does not report: estimated heat recovery power and energy, heat
+  recovery efficiency, airflow imbalance, absolute humidity and dew point, filter change reminders.
 - **Feed external values**: send a room temperature, humidity or air quality sensor from Home
   Assistant to the unit over Modbus, without an automation.
 - **Readable fault and notice codes**, repair issues for faults, due filters and a wrong unit clock,
@@ -56,10 +56,10 @@ comes with it.
 - The integration cannot read the model name; it shows a capability profile of the unit instead.
 
 > [!IMPORTANT]
-> The Maico KWL accepts only **one** Modbus TCP connection at a time. Integrations that use the
-> Modbus integration of Home Assistant share it, every other Modbus client is locked out. A
-> **Modbus TCP proxy** between the unit and its clients is strongly recommended. Details:
-> [Compatibility and requirements](docs/compatibility.md).
+> The Maico KWL accepts only **one** Modbus TCP connection at a time. If Home Assistant is the
+> only Modbus client, connect it directly. If other Modbus clients (a diagnostic tool, a script, a
+> second Home Assistant, a `modbus:` hub) need the unit as well, put a **Modbus TCP proxy** in
+> between. Details: [One connection only](docs/compatibility.md#one-connection-only).
 
 ## Installation
 
@@ -116,7 +116,7 @@ What the card shows and how to choose a unit: [Dashboard card](docs/dashboard-ca
 
 | Topic | What you find there |
 |---|---|
-| [Compatibility and requirements](docs/compatibility.md) | Supported units, Home Assistant versions, the one-connection limit and the Modbus TCP proxy, known limitations |
+| [Compatibility and requirements](docs/compatibility.md) | Supported units, Home Assistant versions, the one-connection limit and when a Modbus TCP proxy helps, known limitations |
 | [Configuration](docs/configuration.md) | Setup, reconfigure, options, accessory detection, how data is updated, removal |
 | [Entities](docs/entities.md) | All entity types, entity IDs, availability, the fan entity, fault and notice codes, unit clock, airflow limits |
 | [Calculated values](docs/calculated-values.md) | Heat recovery power, energy and efficiency, humidity values, filter reminders, formulas and limits |
@@ -141,7 +141,8 @@ bus inputs under [Removal](docs/configuration.md#removal).
 - **Bugs**: open a [bug report][bug-report] and attach the diagnostics (**Settings > Devices &
   Services > Maico KWL > ⋮ > Download diagnostics**). They list every register in use with its
   value and raw words, and make most questions answerable without access to the unit.
-  See also [Troubleshooting](docs/troubleshooting.md).
+  Issues are public: look through the file before you attach it, see
+  [Troubleshooting](docs/troubleshooting.md#collecting-information-for-a-bug-report).
 - **Other units**: this project grows from real-world device data. A
   [unit report][device-report] helps, also when everything works, especially from other Maico
   models. Register corrections are just as welcome.

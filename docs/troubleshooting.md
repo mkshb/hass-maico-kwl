@@ -16,7 +16,7 @@
   integration share one, a `modbus:` hub in `configuration.yaml` opens its own. The **Modbus** panel
   under **Settings** > **Connectivity** lists both, a hub as a connection of its own. A Modbus TCP
   proxy lets several clients share the one connection, see
-  [One connection only](compatibility.md#one-connection-only-use-a-modbus-tcp-proxy).
+  [One connection only](compatibility.md#one-connection-only).
 - *"The Modbus connection to the Maico KWL is already used with other settings"*: another
   integration uses the same host and port with different connection settings. The setup is not
   retried in this case; align the settings or remove the other entry, then reload the integration.
@@ -96,5 +96,10 @@ their own once the problem is gone, and are removed when the integration is unlo
   removed.
 - Enable debug logging on the same page (**⋮ > Enable debug logging**), reproduce the problem, then
   disable it again to download the log.
+
+> [!WARNING]
+> Issues on GitHub are public. Look through the diagnostics and the log before you attach them, and
+> remove anything you do not want to share, e.g. entity IDs that name rooms or people. The log is
+> not redacted and can contain the host of the unit.
 
 Then open an issue, see [Support and contributing](../README.md#support-and-contributing).

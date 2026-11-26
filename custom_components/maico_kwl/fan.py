@@ -16,7 +16,7 @@ from homeassistant.components.fan.const import FanEntityFeature
 from homeassistant.const import Platform
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.util.percentage import (
     ordered_list_item_to_percentage,
@@ -54,7 +54,7 @@ LEVEL_MODES = frozenset({"manual", "auto_sensor"})
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: MaicoConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     fans: list[MaicoFan] = []

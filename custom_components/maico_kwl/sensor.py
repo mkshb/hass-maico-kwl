@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
@@ -53,7 +53,7 @@ MAX_ENERGY_GAP_INTERVALS = 2
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: MaicoConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     entities: list[SensorEntity] = [

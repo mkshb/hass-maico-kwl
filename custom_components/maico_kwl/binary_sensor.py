@@ -6,7 +6,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.binary_sensor.const import BinarySensorDeviceClass
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .derived import FILTER_DUE
@@ -30,7 +30,7 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: MaicoConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     entities: list[BinarySensorEntity] = [

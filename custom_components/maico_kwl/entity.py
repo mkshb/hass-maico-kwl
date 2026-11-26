@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
@@ -59,13 +59,13 @@ async def async_write_register(
             translation_key="write_failed",
             translation_placeholders={"entity": entity_id, "error": str(err)},
         ) from err
-    coordinator.async_notify_write(reg.key, value)
+    coordinator.async_notify_write(reg, raw, value)
 
 
 def async_add_maico_entities(
     entry: MaicoConfigEntry,
     platform: Platform,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
     entities: Iterable[Entity],
 ) -> None:
     """Add a platform's entities and remember them for the orphan cleanup.

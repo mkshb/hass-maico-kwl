@@ -48,6 +48,7 @@
         "description": "Wähle das Zubehör, das an deinem Gerät verbaut ist, und optional Quell-Entitäten, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Ohne Quelle nutzt das Gerät für diesen Wert seinen eigenen Sensor.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
+          "write_gap": "Mindestabstand zwischen Schreibzugriffen (Sekunden)",
           "accessories": "Verbautes Zubehör",
           "room_temp_source_entity": "Quell-Entität Raumtemperatur",
           "humidity_source_entity": "Quell-Entität Feuchte",
@@ -55,6 +56,7 @@
         },
         "data_description": {
           "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen.",
+          "write_gap": "Änderungen gehen mindestens in diesem Abstand an das Gerät, eine zweite Änderung wartet so lange. Manche Geräte trennen die Verbindung und verlieren die Werte, wenn Schreibzugriffe innerhalb weniger Sekunden aufeinander folgen. 0 sendet sofort.",
           "accessories": "Vorbelegt mit dem, was die Integration am Gerät erkannt hat. Entitäten von nicht ausgewähltem Zubehör werden entfernt.",
           "room_temp_source_entity": "Temperatursensor, dessen Wert als Raumtemperatur ans Gerät gesendet wird. Das Gerät nutzt ihn nur, wenn die Raumtemperatur-Quelle auf \"Bus\" steht.",
           "humidity_source_entity": "Feuchtesensor, dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Feuchte über den Bus beziehen soll.",
@@ -604,6 +606,10 @@
     }
   },
   "issues": {
+    "unit_unreachable": {
+      "title": "{name} antwortet nicht",
+      "description": "Das Lüftungsgerät antwortet seit {since} nicht. Seine Entitäten sind nicht verfügbar, bis es wieder antwortet.\n\nPrüfe, ob das Gerät Strom hat und im Netzwerk erreichbar ist. Antwortet es gar nicht mehr, auch nicht auf einen Ping, hängt womöglich seine Netzwerkschnittstelle: Schalte das Gerät aus und wieder ein. Bei manchen Geräten lösen Schreibzugriffe kurz hintereinander das aus: Kam es nach einer Änderung von Einstellungen, erhöhe unter **Konfigurieren** den *Mindestabstand zwischen Schreibzugriffen*. Diese Meldung verschwindet, sobald das Gerät wieder antwortet."
+    },
     "fault_active": {
       "title": "{name} meldet eine Störung",
       "description": "Das Lüftungsgerät meldet eine aktive Störung: {faults}.\n\nPrüfe das Gerät und sein Bedienteil. Ist die Ursache behoben, lässt sich die Störung mit dem Button *Fehler zurücksetzen* quittieren. Dieser Hinweis verschwindet, sobald das Gerät die Störung nicht mehr meldet."

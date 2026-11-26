@@ -35,11 +35,14 @@ from .const import (
     CONF_PORT,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE,
+    CONF_WRITE_GAP,
     DEFAULT_NAME,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
+    DEFAULT_WRITE_GAP,
     DOMAIN,
+    MAX_WRITE_GAP,
 )
 from .coordinator import MaicoConfigEntry
 from .discovery import (
@@ -286,7 +289,12 @@ class MaicoOptionsFlow(OptionsFlow):
         fields: dict[probatio.Marker, Any] = {
             probatio.Optional(CONF_SCAN_INTERVAL, default=scan_current): probatio.All(
                 probatio.Coerce(int), probatio.Range(min=5, max=3600)
-            )
+            ),
+            probatio.Optional(
+                CONF_WRITE_GAP, default=opts.get(CONF_WRITE_GAP, DEFAULT_WRITE_GAP)
+            ): probatio.All(
+                probatio.Coerce(int), probatio.Range(min=0, max=MAX_WRITE_GAP)
+            ),
         }
         if offered:
             fields[

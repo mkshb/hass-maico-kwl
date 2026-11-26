@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
-from custom_components.maico_kwl.const import DOMAIN
+from custom_components.maico_kwl.const import DOMAIN, REFRESH_AFTER_WRITE
 
 # Attributes of bus feed sources in the unit of their register.
 CELSIUS = {"unit_of_measurement": "°C"}
@@ -31,3 +37,11 @@ def entity_id(
     )
     assert eid is not None, f"no {platform} entity for {key}"
     return eid
+
+
+async def refresh_after_write(hass: HomeAssistant) -> None:
+    """Let the delayed refresh after a write run."""
+    async_fire_time_changed(
+        hass, dt_util.utcnow() + timedelta(seconds=REFRESH_AFTER_WRITE + 1)
+    )
+    await hass.async_block_till_done()

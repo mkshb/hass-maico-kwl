@@ -9,10 +9,12 @@ from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .bus_feed import BusFeeder
-from .const import DOMAIN, MAX_BLOCK_SIZE, MaicoProfile
+from .const import DOMAIN, MAX_BLOCK_SIZE, REFRESH_AFTER_WRITE, MaicoProfile
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import (
     BUTTON,
@@ -73,6 +75,12 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
+            # The refresh an entity asks for after a write: not right away,
+            # a full read straight after a write is more than some units
+            # cope with, and later writes share it.
+            request_refresh_debouncer=Debouncer(
+                hass, _LOGGER, cooldown=REFRESH_AFTER_WRITE, immediate=False
+            ),
         )
         self.hub = hub
         self.present = present
@@ -88,7 +96,28 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
         # Set while the last poll did not look like a Maico KWL; nothing is
         # written to the device then (see register_defs.IDENTITY_RANGES).
         self.identity_problem: str | None = None
+        # Since when the polls find the unit unreachable, None while it answers.
+        self.unreachable_since: datetime | None = None
         self._write_listeners: list[Callable[[str, float | datetime], None]] = []
+        self._refresh_listeners: list[Callable[[], None]] = []
+
+    @callback
+    def async_add_refresh_listener(
+        self, listener: Callable[[], None]
+    ) -> Callable[[], None]:
+        """Call listener after every poll, also each failed one.
+
+        The listeners of the coordinator hear only of the first one of
+        several failed polls in a row.
+        """
+        self._refresh_listeners.append(listener)
+        return lambda: self._refresh_listeners.remove(listener)
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        super()._async_refresh_finished()
+        for listener in list(self._refresh_listeners):
+            listener()
 
     @callback
     def async_add_write_listener(
@@ -103,20 +132,34 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
         return lambda: self._write_listeners.remove(listener)
 
     @callback
-    def async_notify_write(self, key: str, value: float | datetime) -> None:
+    def async_notify_write(
+        self, reg: RegisterDef, raw: list[int], value: float | datetime
+    ) -> None:
+        """Note a successful write by an entity and tell the write listeners.
+
+        The written value goes into the data without updating the entities:
+        they show what the unit reports with the refresh after the write. A
+        decision made before that refresh (e.g. whether the fan has to switch
+        to manual first) must not be based on the value before the write.
+        """
+        if self.data is not None and reg.readable and reg.platform != BUTTON:
+            self.data[reg.key] = reg.decode(raw)
         for listener in list(self._write_listeners):
-            listener(key, value)
+            listener(reg.key, value)
 
     async def _async_update_data(self) -> MaicoData:
         try:
             data = await self._read_all()
         except MaicoConnectionError as err:
+            if self.unreachable_since is None:
+                self.unreachable_since = dt_util.utcnow()
             # Retrying register by register would only multiply the timeouts.
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="device_unreachable",
                 translation_placeholders={"error": str(err)},
             ) from err
+        self.unreachable_since = None
         self.identity_problem = identity_problem(data)
         return data
 

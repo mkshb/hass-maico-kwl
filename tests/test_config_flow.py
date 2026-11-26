@@ -22,6 +22,7 @@ from custom_components.maico_kwl.const import (
     CONF_PORT,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
     CONF_SCAN_INTERVAL,
+    CONF_WRITE_GAP,
     CONF_SLAVE,
     DOMAIN,
 )
@@ -242,17 +243,46 @@ async def test_options_flow_saves_and_reloads(
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_SCAN_INTERVAL: 60, CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room"},
+        {
+            CONF_SCAN_INTERVAL: 60,
+            CONF_WRITE_GAP: 10,
+            CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room",
+        },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     assert config_entry.options == {
         CONF_SCAN_INTERVAL: 60,
+        CONF_WRITE_GAP: 10,
         CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room",
     }
     assert config_entry.state is ConfigEntryState.LOADED
     assert config_entry.runtime_data.coordinator.update_interval.total_seconds() == 60
+    assert config_entry.runtime_data.hub._write_gap == 10
+
+
+async def test_options_flow_write_gap_default(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Writes are 30 s apart unless chosen otherwise; 0 sends at once."""
+    await setup_entry(hass, config_entry)
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    marker = next(key for key in result["data_schema"].schema if key == CONF_WRITE_GAP)
+    assert marker.default() == 30
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30}
+    )
+    await hass.async_block_till_done()
+    assert config_entry.options[CONF_WRITE_GAP] == 30
+
+    result = await hass.config_entries.options.async_init(config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30, CONF_WRITE_GAP: 0}
+    )
+    await hass.async_block_till_done()
+    assert config_entry.runtime_data.hub._write_gap == 0
 
 
 async def test_options_flow_suggests_current_source(

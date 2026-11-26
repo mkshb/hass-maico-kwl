@@ -39,6 +39,20 @@
 - If the connection works but no values arrive, the unit may count registers from 1 instead of 0.
   Adjust `REGISTER_OFFSET` in `register_defs.py` and open an issue, see
   [Register addressing](modbus.md#register-addressing).
+- A single poll that fails now and then, e.g. while a backup keeps Home Assistant busy, makes all
+  entities unavailable until the next poll. That is harmless.
+
+### The unit stops answering after changing settings
+
+- Some units drop the connection when writes follow each other within a few seconds, and lose the
+  values they had not stored yet. In one case the network interface of the unit stopped for days
+  until the unit was switched off and on again; the fans kept running.
+- The integration therefore keeps a least time between two writes, 30 seconds by default. If it
+  still happens, increase it under **Configure**, see
+  [How data is updated](configuration.md#how-data-is-updated). If your unit copes with quick
+  writes, you can lower it.
+- If the unit does not answer for 10 minutes, a repair issue says so. If it does not even answer
+  to a ping, switch it off and on again.
 
 ### Entities for accessories the unit does not have, or entities of a fitted accessory are missing
 
@@ -83,6 +97,7 @@ their own once the problem is gone, and are removed when the integration is unlo
 | *... filter of ... is due* | A fitted filter has no days left. |
 | *Clock of ... is off* | The unit clock is off by more than 5 minutes, see [Unit clock](entities.md#unit-clock). |
 | *... does not look like a Maico KWL* | See [above](#the-device-does-not-look-like-a-maico-kwl). |
+| *... does not answer* | The unit has not answered for 10 minutes, see [below](#the-unit-stops-answering-after-changing-settings). A log entry (warning) is written as well. |
 | *Bus source of ... is missing* / *sends no data* | A configured bus source no longer exists, or has given no value that can be sent for more than 30 minutes, see [Bus inputs](bus-inputs.md). |
 | *... gets no bus value* | Writing a bus input has failed for 10 minutes, see [Bus inputs](bus-inputs.md). |
 

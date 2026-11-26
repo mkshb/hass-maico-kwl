@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import MaicoConfigEntry, MaicoCoordinator
 from .entity import MaicoEntity, async_add_maico_entities
@@ -18,7 +18,7 @@ PARALLEL_UPDATES = 1
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: MaicoConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     async_add_maico_entities(

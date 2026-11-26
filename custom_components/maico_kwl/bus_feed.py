@@ -319,7 +319,12 @@ class BusFeeder:
         self._identity_problem = identity_problem
         self._feeds = feeds
         self._unsubs: list[CALLBACK_TYPE] = []
-        self._tasks: set[asyncio.Task[None]] = set()
+        # The write task of each register; at most one at a time, as the hub
+        # may hold a write back for the write gap.
+        self._tasks: dict[str, asyncio.Task[None]] = {}
+        # Registers to write again once their task is done, and whether that
+        # write is forced: their source changed while a write was pending.
+        self._again: dict[str, bool] = {}
         self._log = BusLog(hass, entry)
         self._delivery = {
             reg.key: BusDelivery(
@@ -343,9 +348,7 @@ class BusFeeder:
         return self._sent.get(key)
 
     def _retry_callback(self, reg: RegisterDef, entity_id: str) -> Callable[[], None]:
-        return lambda: self._schedule_write(
-            reg, self.hass.states.get(entity_id), force=True
-        )
+        return lambda: self._schedule_write(reg, entity_id, force=True)
 
     @callback
     def async_add_listener(
@@ -360,8 +363,10 @@ class BusFeeder:
         if not self._feeds:
             return
         self._started_at = dt_util.utcnow()
+        # Not awaited: with the write gap, the second feed would hold up the
+        # setup until the first one's gap is over.
         for reg, entity_id in self._feeds:
-            await self._async_write(reg, self.hass.states.get(entity_id), force=True)
+            self._schedule_write(reg, entity_id, force=True)
         entity_ids = [entity_id for _reg, entity_id in self._feeds]
         self._unsubs.append(
             async_track_state_change_event(
@@ -385,9 +390,10 @@ class BusFeeder:
             unsub()
         self._unsubs.clear()
         # Pending writes must not run against the hub after it is closed.
-        for task in self._tasks:
+        for task in self._tasks.values():
             task.cancel()
         self._tasks.clear()
+        self._again.clear()
         for reg, _entity_id in self._feeds:
             for issue in (_MISSING, _NO_DATA):
                 ir.async_delete_issue(self.hass, DOMAIN, self._issue_id(reg, issue))
@@ -397,23 +403,37 @@ class BusFeeder:
 
     @callback
     def _schedule_write(
-        self, reg: RegisterDef, state: State | None, force: bool = False
+        self, reg: RegisterDef, entity_id: str, force: bool = False
     ) -> None:
+        """Write the source's current value, unless a write is still pending.
+
+        A pending write may wait for the write gap; once it is done, the
+        register is written again with the then current value. So changes in
+        between cost one more write, not one each.
+        """
+        if reg.key in self._tasks:
+            self._again[reg.key] = self._again.get(reg.key, False) or force
+            return
         task = self._entry.async_create_background_task(
             self.hass,
-            self._async_write(reg, state, force),
+            self._async_write(reg, self.hass.states.get(entity_id), force),
             f"maico_kwl bus feed {reg.key}",
         )
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        self._tasks[reg.key] = task
+        task.add_done_callback(lambda _task: self._write_done(reg, entity_id))
+
+    @callback
+    def _write_done(self, reg: RegisterDef, entity_id: str) -> None:
+        self._tasks.pop(reg.key, None)
+        if (force := self._again.pop(reg.key, None)) is not None:
+            self._schedule_write(reg, entity_id, force)
 
     @callback
     def _handle_state_event(self, event: Event[EventStateChangedData]) -> None:
         entity_id = event.data["entity_id"]
-        new_state = event.data.get("new_state")
         for reg, feed_entity_id in self._feeds:
             if feed_entity_id == entity_id:
-                self._schedule_write(reg, new_state)
+                self._schedule_write(reg, entity_id)
 
     @callback
     def _handle_registry_event(
@@ -438,7 +458,7 @@ class BusFeeder:
         self._check_sources(now)
         # Always write here: the unit needs the value refreshed periodically.
         for reg, entity_id in self._feeds:
-            self._schedule_write(reg, self.hass.states.get(entity_id), force=True)
+            self._schedule_write(reg, entity_id, force=True)
 
     @callback
     def _check_sources(self, now: datetime) -> None:

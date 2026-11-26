@@ -290,6 +290,13 @@ def no_probe_retry_delay() -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
+def no_write_gap() -> Generator[None]:
+    """Send writes at once; tests of the write gap set it in the options."""
+    with patch("custom_components.maico_kwl.DEFAULT_WRITE_GAP", 0):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Allow loading the integration from custom_components."""
     return

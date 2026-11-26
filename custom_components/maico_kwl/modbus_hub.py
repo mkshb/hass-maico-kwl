@@ -8,6 +8,7 @@ hub only maps its errors onto the two kinds the integration tells apart.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from modbus_connection import (
@@ -69,22 +70,33 @@ def _checked_registers(registers: list[int], address: int, count: int) -> list[i
 
 
 class MaicoModbusHub:
-    """Reads and writes the registers of one unit."""
+    """Reads and writes the registers of one unit.
 
-    def __init__(self, unit: ModbusUnit) -> None:
+    Writes go out one at a time, at least ``write_gap`` seconds apart. Some
+    units drop the connection when a write follows the previous one within a
+    few seconds and then discard the values they had not stored yet, also
+    ones that already read back as written.
+    """
+
+    def __init__(self, unit: ModbusUnit, write_gap: float = 0) -> None:
         self._unit = unit
-        self._closed = False
+        self._closed = asyncio.Event()
+        self._write_gap = write_gap
+        self._write_lock = asyncio.Lock()
+        # Loop time when the last write ended, None before the first one.
+        self._last_write: float | None = None
 
     def close(self) -> None:
         """Send nothing more (entry unloaded).
 
         The connection itself is Home Assistant's and may stay open for other
-        holders, so the hub has to refuse further requests on its own.
+        holders, so the hub has to refuse further requests on its own. A
+        write waiting for its turn gives up at once.
         """
-        self._closed = True
+        self._closed.set()
 
     def _check_open(self) -> None:
-        if self._closed:
+        if self._closed.is_set():
             raise MaicoConnectionError("connection is closed")
 
     async def _read(self, address: int, count: int) -> list[int]:
@@ -127,14 +139,39 @@ class MaicoModbusHub:
         return True
 
     async def write(self, address: int, values: list[int]) -> None:
-        """Write one or more holding registers (High-Word first)."""
-        self._check_open()
+        """Write one or more holding registers (High-Word first).
+
+        Waits until the write gap since the previous write is over.
+        """
+        async with self._write_lock:
+            await self._wait_for_gap(address)
+            self._check_open()
+            try:
+                if len(values) == 1:
+                    await self._unit.write_register(
+                        address + REGISTER_OFFSET, values[0]
+                    )
+                else:
+                    await self._unit.write_registers(address + REGISTER_OFFSET, values)
+            except ModbusExceptionError as err:
+                raise MaicoModbusError(f"write at {address} rejected: {err}") from err
+            except ModbusError as err:
+                raise MaicoConnectionError(f"write at {address} failed: {err}") from err
+            finally:
+                # Also after a failed write: the unit may have received it.
+                self._last_write = asyncio.get_running_loop().time()
+
+    async def _wait_for_gap(self, address: int) -> None:
+        if self._last_write is None:
+            return
+        remaining = (
+            self._last_write + self._write_gap - asyncio.get_running_loop().time()
+        )
+        if remaining <= 0:
+            return
+        _LOGGER.debug("Write at %s waits %.1f s for the write gap", address, remaining)
         try:
-            if len(values) == 1:
-                await self._unit.write_register(address + REGISTER_OFFSET, values[0])
-            else:
-                await self._unit.write_registers(address + REGISTER_OFFSET, values)
-        except ModbusExceptionError as err:
-            raise MaicoModbusError(f"write at {address} rejected: {err}") from err
-        except ModbusError as err:
-            raise MaicoConnectionError(f"write at {address} failed: {err}") from err
+            async with asyncio.timeout(remaining):
+                await self._closed.wait()
+        except TimeoutError:
+            pass

@@ -32,9 +32,11 @@ from .const import (
     CONF_PORT,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE,
+    CONF_WRITE_GAP,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
+    DEFAULT_WRITE_GAP,
     DOMAIN,
     PLATFORMS,
 )
@@ -50,7 +52,11 @@ from .discovery import (
     registers_in_use,
 )
 from .entity import ORPHANED, maico_device_info
-from .issues import async_delete_issues, async_update_issues
+from .issues import (
+    async_delete_issues,
+    async_update_issues,
+    async_update_unreachable_issue,
+)
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 from .services import async_setup_services
@@ -144,7 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
             translation_key="connection_in_use",
             translation_placeholders={"error": str(err)},
         ) from err
-    hub = MaicoModbusHub(unit)
+    hub = MaicoModbusHub(unit, entry.options.get(CONF_WRITE_GAP, DEFAULT_WRITE_GAP))
     feeder: BusFeeder | None = None
     try:
         coordinator = await _async_discover_and_refresh(
@@ -186,6 +192,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
     async_update_issues(hass, entry)
     entry.async_on_unload(
         coordinator.async_add_listener(lambda: async_update_issues(hass, entry))
+    )
+    entry.async_on_unload(
+        coordinator.async_add_refresh_listener(
+            lambda: async_update_unreachable_issue(hass, entry)
+        )
     )
     entry.async_on_unload(lambda: async_delete_issues(hass, entry))
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

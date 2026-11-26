@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
@@ -79,3 +79,59 @@ async def test_issues_removed_on_unload(
     assert _issue(hass, config_entry, "fault_active") is not None
     await hass.config_entries.async_unload(config_entry.entry_id)
     assert _issue(hass, config_entry, "fault_active") is None
+
+
+async def test_unreachable_issue(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer, caplog
+) -> None:
+    """Shown after 10 minutes without an answer, logged once, gone once it answers."""
+    start = datetime(2026, 9, 26, 10, 30, 15, tzinfo=dt_util.get_default_time_zone())
+    freezer.move_to(start)
+    await setup_entry(hass, config_entry)
+
+    device.online = False
+    await _refresh(hass, config_entry)
+    freezer.move_to(start + timedelta(minutes=9))
+    await _refresh(hass, config_entry)
+    assert _issue(hass, config_entry, "unit_unreachable") is None
+
+    # One failed poll in between (e.g. HA busy) does not count as an outage.
+    device.online = True
+    await _refresh(hass, config_entry)
+    device.online = False
+    freezer.move_to(start + timedelta(minutes=10))
+    await _refresh(hass, config_entry)
+    freezer.move_to(start + timedelta(minutes=19))
+    await _refresh(hass, config_entry)
+    assert _issue(hass, config_entry, "unit_unreachable") is None
+
+    freezer.move_to(start + timedelta(minutes=20))
+    await _refresh(hass, config_entry)
+    await _refresh(hass, config_entry)
+    issue = _issue(hass, config_entry, "unit_unreachable")
+    assert issue.severity is ir.IssueSeverity.ERROR
+    assert issue.translation_placeholders["since"] == "2026-09-26 10:40"
+    warnings = [r for r in caplog.records if "has not answered since" in r.message]
+    assert len(warnings) == 1
+    assert warnings[0].levelname == "WARNING"
+
+    device.online = True
+    await _refresh(hass, config_entry)
+    assert _issue(hass, config_entry, "unit_unreachable") is None
+    assert "answers again" in caplog.text
+
+
+async def test_unreachable_issue_removed_on_unload(
+    hass: HomeAssistant, device: FakeDevice, config_entry, freezer
+) -> None:
+    start = datetime(2026, 9, 26, 10, 30, 15, tzinfo=dt_util.get_default_time_zone())
+    freezer.move_to(start)
+    await setup_entry(hass, config_entry)
+    device.online = False
+    await _refresh(hass, config_entry)
+    freezer.move_to(start + timedelta(minutes=10))
+    await _refresh(hass, config_entry)
+    assert _issue(hass, config_entry, "unit_unreachable") is not None
+
+    await hass.config_entries.async_unload(config_entry.entry_id)
+    assert _issue(hass, config_entry, "unit_unreachable") is None

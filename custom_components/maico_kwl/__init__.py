@@ -52,7 +52,11 @@ from .discovery import (
     registers_in_use,
 )
 from .entity import ORPHANED, maico_device_info
-from .issues import async_delete_issues, async_update_issues
+from .issues import (
+    async_delete_issues,
+    async_update_issues,
+    async_update_unreachable_issue,
+)
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import REGISTERS_BY_KEY
 from .services import async_setup_services
@@ -188,6 +192,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
     async_update_issues(hass, entry)
     entry.async_on_unload(
         coordinator.async_add_listener(lambda: async_update_issues(hass, entry))
+    )
+    entry.async_on_unload(
+        coordinator.async_add_refresh_listener(
+            lambda: async_update_unreachable_issue(hass, entry)
+        )
     )
     entry.async_on_unload(lambda: async_delete_issues(hass, entry))
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

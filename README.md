@@ -41,8 +41,8 @@ comes with it.
   recovery efficiency, airflow imbalance, absolute humidity and dew point, filter change reminders.
 - **Feed external values**: send a room temperature, humidity or air quality sensor from Home
   Assistant to the unit over Modbus, without an automation.
-- **Readable fault and notice codes**, repair issues for faults, due filters and a wrong unit clock,
-  and a diagnostics download.
+- **Readable fault and notice codes**, repair issues for faults, due filters, a wrong unit clock
+  and a unit that stops answering, and a diagnostics download.
 - **Automation blueprints** for demand boost, open windows and summer night cooling, plus a
   `maico_kwl.boost` action.
 - **Full UI setup**, English and German translations, purely local communication without a cloud.

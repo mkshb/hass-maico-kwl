@@ -32,9 +32,11 @@ from .const import (
     CONF_PORT,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE,
+    CONF_WRITE_GAP,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
+    DEFAULT_WRITE_GAP,
     DOMAIN,
     PLATFORMS,
 )
@@ -144,7 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaicoConfigEntry) -> boo
             translation_key="connection_in_use",
             translation_placeholders={"error": str(err)},
         ) from err
-    hub = MaicoModbusHub(unit)
+    hub = MaicoModbusHub(unit, entry.options.get(CONF_WRITE_GAP, DEFAULT_WRITE_GAP))
     feeder: BusFeeder | None = None
     try:
         coordinator = await _async_discover_and_refresh(

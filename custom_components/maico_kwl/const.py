@@ -11,6 +11,8 @@ CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_SLAVE = "slave"
 CONF_SCAN_INTERVAL = "scan_interval"
+# Least time between two writes to the unit, in seconds (option).
+CONF_WRITE_GAP = "write_gap"
 
 # Result of the last discovery, stored in the entry data (see discovery.py).
 CONF_DISCOVERY = "discovery"
@@ -57,6 +59,10 @@ BUS_EVENT_KINDS = (BUS_SENT, BUS_SKIPPED, BUS_FAILED, BUS_RECOVERED, BUS_EXPIRED
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 10
 DEFAULT_SCAN_INTERVAL = 30  # seconds
+# A WS 320 dropped the connection and lost the values when writes came a few
+# seconds apart, and took them all with 70 s in between (issue #40).
+DEFAULT_WRITE_GAP = 30  # seconds
+MAX_WRITE_GAP = 300  # seconds
 
 
 class MaicoProfile(TypedDict):

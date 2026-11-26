@@ -20,6 +20,7 @@ from custom_components.maico_kwl.const import (
     CONF_AIR_QUALITY_SOURCE_ENTITY,
     CONF_HUMIDITY_SOURCE_ENTITY,
     CONF_ROOM_TEMP_SOURCE_ENTITY,
+    CONF_WRITE_GAP,
     DOMAIN,
 )
 
@@ -357,6 +358,40 @@ async def test_feed_skips_unchanged_values(
     async_fire_time_changed(hass, dt_util.utcnow() + REWRITE)
     await hass.async_block_till_done()
     assert device.writes == [(707, [215])]
+
+
+async def test_feed_merges_changes_while_a_write_waits(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """Changes during the write gap cost one more write, not one each."""
+    hass.states.async_set("sensor.room", "21.5", CELSIUS)
+    hass.states.async_set("sensor.humidity", "55", PERCENT)
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry,
+        options={
+            CONF_ROOM_TEMP_SOURCE_ENTITY: "sensor.room",
+            CONF_HUMIDITY_SOURCE_ENTITY: "sensor.humidity",
+            CONF_WRITE_GAP: 30,
+        },
+    )
+    # The second feed waits for the gap; the setup must not.
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=False)
+    assert device.writes == [(707, [215])]
+
+    for value in ("22.0", "23.0", "24.0"):
+        hass.states.async_set("sensor.room", value, CELSIUS)
+        await hass.async_block_till_done(wait_background_tasks=False)
+    assert device.writes == [(707, [215])]
+
+    now = dt_util.utcnow()
+    for step in range(1, 6):
+        async_fire_time_changed(hass, now + timedelta(seconds=31 * step))
+        for _ in range(10):  # let the background writes run
+            await asyncio.sleep(0)
+    # The value read when the write was scheduled, then the latest one.
+    assert device.writes == [(707, [215]), (763, [55]), (707, [220]), (707, [240])]
 
 
 async def test_feed_retries_value_after_failed_write(

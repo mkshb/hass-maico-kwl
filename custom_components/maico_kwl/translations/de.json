@@ -48,6 +48,7 @@
         "description": "Wähle das Zubehör, das an deinem Gerät verbaut ist, und optional Quell-Entitäten, deren Werte zyklisch ans Gerät gesendet werden (die passende Quelle, z. B. Raumtemperatur, muss auf „Bus“ stehen). Ohne Quelle nutzt das Gerät für diesen Wert seinen eigenen Sensor.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
+          "write_gap": "Mindestabstand zwischen Schreibzugriffen (Sekunden)",
           "accessories": "Verbautes Zubehör",
           "room_temp_source_entity": "Quell-Entität Raumtemperatur",
           "humidity_source_entity": "Quell-Entität Feuchte",
@@ -55,6 +56,7 @@
         },
         "data_description": {
           "scan_interval": "Wie oft die Werte vom Gerät gelesen werden. 30 Sekunden reichen für die meisten Anwendungen.",
+          "write_gap": "Änderungen gehen mindestens in diesem Abstand an das Gerät, eine zweite Änderung wartet so lange. Manche Geräte trennen die Verbindung und verlieren die Werte, wenn Schreibzugriffe innerhalb weniger Sekunden aufeinander folgen. 0 sendet sofort.",
           "accessories": "Vorbelegt mit dem, was die Integration am Gerät erkannt hat. Entitäten von nicht ausgewähltem Zubehör werden entfernt.",
           "room_temp_source_entity": "Temperatursensor, dessen Wert als Raumtemperatur ans Gerät gesendet wird. Das Gerät nutzt ihn nur, wenn die Raumtemperatur-Quelle auf \"Bus\" steht.",
           "humidity_source_entity": "Feuchtesensor, dessen Wert ans Gerät gesendet wird. Wird nur genutzt, wenn das Gerät die Feuchte über den Bus beziehen soll.",

@@ -94,8 +94,8 @@ browser loads the new card.
 
 Afterwards:
 
-- **Configure** on the integration changes the scan interval, the fitted accessories and the
-  source entities for the bus inputs.
+- **Configure** on the integration changes the scan interval, the least time between writes, the
+  fitted accessories and the source entities for the bus inputs.
 - **Reconfigure** changes host, port or Modbus address.
 - Check that the detected accessories (filters, sensors, extension module) are right.
 

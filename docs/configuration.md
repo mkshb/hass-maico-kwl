@@ -33,6 +33,8 @@ renamed the entry.
 Use **Configure** on the integration to:
 
 - change the **scan interval**,
+- change the **least time between writes** (default `30` seconds, 0 to 300, see
+  [How data is updated](#how-data-is-updated)),
 - choose the **fitted accessories** (see [Accessories](#accessories)), and
 - pick a **source entity** for each "bus" input (room temperature, humidity, air quality).
 
@@ -84,10 +86,18 @@ instead: your choice stays in force for the accessories it covered.
   read one by one; a register that still fails is unavailable until the next poll. If the unit is
   not reachable, the whole poll fails right away, all entities are unavailable and the next poll
   tries again.
-- **Writes**: changing a control writes the register right away and then asks for a refresh of all
-  values, so the new state shows up without waiting for the next poll. Several changes in quick
-  succession share one refresh, so the last one may take a moment to show. Failed writes show an
-  error message in the UI.
+- **Writes**: changing a control writes the register and then asks for a refresh of all values, so
+  the new state shows up without waiting for the next poll. Several changes in quick succession
+  share one refresh, so the last one may take a moment to show. Failed writes show an error message
+  in the UI.
+- **Least time between writes**: writes go to the unit one at a time and at least this far apart
+  (default 30 s). A change that comes sooner waits until then, and its action only finishes once it
+  is written; reads go on in the meantime. Some units drop the connection when writes follow each
+  other within a few seconds, and then lose the values they had not stored yet, also ones that
+  already read back as written. Changing the fan speed outside the manual and sensor modes takes
+  two writes (mode and level), so it takes that long. Bus input writes count as well; changes of a
+  source while its write waits are sent together with one more write. Set it to 0 to write at once
+  if your unit copes with that.
 - **Bus inputs**: a configured source entity is written on every change and at least every
   8 minutes, and every minute after a failed write, see [Bus inputs](bus-inputs.md). Inputs without
   a source are not written; the unit uses its own sensor.

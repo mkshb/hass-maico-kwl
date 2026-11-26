@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from modbus_connection import ModbusDesyncError
 
@@ -11,7 +13,7 @@ from custom_components.maico_kwl.modbus_hub import (
     MaicoModbusHub,
 )
 
-from .conftest import FakeDevice, FakeExceptionResponse, fake_hub
+from .conftest import SLAVE, FakeConnection, FakeDevice, FakeExceptionResponse, fake_hub
 
 
 @pytest.fixture
@@ -133,3 +135,60 @@ async def test_short_answer_is_a_rejected_read(
         await hub.probe(553, 2)
     assert not isinstance(err.value, MaicoConnectionError)
     assert await hub.read_block(553, 1) == [215]
+
+
+def _gap_hub(device: FakeDevice, gap: float) -> MaicoModbusHub:
+    return MaicoModbusHub(FakeConnection(device).for_unit(SLAVE), gap)
+
+
+async def test_writes_wait_for_the_gap(device: FakeDevice) -> None:
+    """The first write goes out at once, the next one after the gap."""
+    hub = _gap_hub(device, 0.2)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await hub.write(154, [80])
+    assert loop.time() - start < 0.1
+    # Reads are not held back.
+    assert await hub.read_block(154, 1) == [80]
+    assert loop.time() - start < 0.1
+    await hub.write(155, [120])
+    assert loop.time() - start >= 0.2
+    assert device.writes == [(154, [80]), (155, [120])]
+
+
+async def test_writes_go_out_one_at_a_time(device: FakeDevice) -> None:
+    """Writes started together are sent in turn, each after the gap."""
+    hub = _gap_hub(device, 0.1)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await asyncio.gather(
+        hub.write(154, [80]), hub.write(155, [120]), hub.write(156, [160])
+    )
+    assert loop.time() - start >= 0.2
+    assert device.writes == [(154, [80]), (155, [120]), (156, [160])]
+
+
+async def test_failed_write_counts_for_the_gap(device: FakeDevice) -> None:
+    """The unit may have received a write that ended in an error."""
+    hub = _gap_hub(device, 0.2)
+    loop = asyncio.get_running_loop()
+    device.write_exception = 4
+    with pytest.raises(MaicoModbusError):
+        await hub.write(154, [80])
+    device.write_exception = None
+    start = loop.time()
+    await hub.write(154, [80])
+    assert loop.time() - start >= 0.15
+
+
+async def test_close_ends_the_wait(device: FakeDevice) -> None:
+    """A write waiting for its turn gives up when the entry is unloaded."""
+    hub = _gap_hub(device, 30)
+    await hub.write(154, [80])
+    waiting = asyncio.ensure_future(hub.write(155, [120]))
+    await asyncio.sleep(0)
+    assert not waiting.done()
+    hub.close()
+    with pytest.raises(MaicoConnectionError, match="closed"):
+        await asyncio.wait_for(waiting, 1)
+    assert device.writes == [(154, [80])]

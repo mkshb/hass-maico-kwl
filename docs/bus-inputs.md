@@ -29,8 +29,9 @@ feed (see [Options](configuration.md#options)). Changing the options reloads the
 > [!IMPORTANT]
 > - **Only with a source.** With a source entity configured, its value is written right after
 >   setup, on every state change that changes the value sent (after rounding) and every
->   **8 minutes**. Without a source, nothing is sent and
->   the unit uses its own sensor. For a fixed value, use a template sensor with the device class
+>   **8 minutes**, each write after the
+>   [least time between writes](configuration.md#how-data-is-updated). Without a source, nothing
+>   is sent and the unit uses its own sensor. For a fixed value, use a template sensor with the device class
 >   and unit above as the source.
 > - **Only suitable values are sent.** The source needs one of the units above; a source without
 >   a unit (e.g. an air quality index) or in another unit (e.g. µg/m³) is not sent. Values are

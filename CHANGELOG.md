@@ -3,6 +3,44 @@
 What changed in each version of the Maico KWL integration, newest first. The text of each
 [GitHub release](https://github.com/mkshb/hass-maico-kwl/releases) is taken from here.
 
+## 0.6.0 (2026-11-26)
+
+Writes to the unit keep their distance, and a unit that stops answering shows up under Repairs.
+Thanks to @schattie93 for the detailed report in #40.
+
+### What's new
+
+- **Least time between writes.** Changes go to the unit one at a time and at least 30 seconds
+  apart. A WS 320 dropped the connection when three airflow setpoints were changed within a few
+  seconds and lost all three values, also the first one that had already read back as written;
+  once its network interface stopped for three days until it was switched off and on again. With
+  70 seconds between the changes, all of them were kept. A change that comes sooner waits, and its
+  action finishes once it is written; the values are read on as usual in the meantime. The time
+  can be changed under **Configure** (0 to 300 seconds, 0 writes at once).
+- **A repair issue when the unit does not answer.** After 10 minutes without an answer, a repair
+  issue says since when and what to check, and a warning goes to the log. Until now only the
+  first failed poll was logged, so a long outage went unnoticed. A single failed poll now and then,
+  e.g. during a backup, does not count.
+
+### What changed
+
+- **The refresh after a write follows 5 seconds later.** A full read straight after a write is
+  more than some units cope with. Changes within those 5 seconds share one refresh, and an entity
+  shows the new value once the unit reports it.
+- **Changing the fan speed outside the manual and sensor modes takes longer.** It needs two
+  writes, the mode and the level, so the second one waits for the least time between writes. A
+  second speed right after the first one no longer switches the mode again.
+- **Bus inputs keep the distance as well.** Changes of a source while its write waits are sent
+  with one more write, not one each, and starting the integration no longer waits for the first
+  bus writes.
+
+### Do I need to do anything?
+
+- **Update and restart.**
+- **Your unit copes with quick writes and the waiting bothers you?** Lower the least time between
+  writes under **Configure**. With bus inputs, a change of a control may otherwise wait for a bus
+  write that just went out.
+
 ## 0.5.1 (2026-10-08)
 
 The heat recovery energy counts only heat that comes from the exchanger.

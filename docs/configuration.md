@@ -86,10 +86,11 @@ instead: your choice stays in force for the accessories it covered.
   read one by one; a register that still fails is unavailable until the next poll. If the unit is
   not reachable, the whole poll fails right away, all entities are unavailable and the next poll
   tries again.
-- **Writes**: changing a control writes the register and then asks for a refresh of all values, so
-  the new state shows up without waiting for the next poll. Several changes in quick succession
-  share one refresh, so the last one may take a moment to show. Failed writes show an error message
-  in the UI.
+- **Writes**: changing a control writes the register, and all values are read again 5 seconds
+  later, so the new state shows up without waiting for the next poll. Not right away: a full read
+  straight after a write is more than some units cope with. Changes within those 5 seconds share
+  one refresh. The entity shows the new value once the unit reports it. Failed writes show an
+  error message in the UI.
 - **Least time between writes**: writes go to the unit one at a time and at least this far apart
   (default 30 s). A change that comes sooner waits until then, and its action only finishes once it
   is written; reads go on in the meantime. Some units drop the connection when writes follow each

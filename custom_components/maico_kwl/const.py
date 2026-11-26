@@ -63,6 +63,8 @@ DEFAULT_SCAN_INTERVAL = 30  # seconds
 # seconds apart, and took them all with 70 s in between (issue #40).
 DEFAULT_WRITE_GAP = 30  # seconds
 MAX_WRITE_GAP = 300  # seconds
+# Delay of the refresh after a write; writes within it share the refresh.
+REFRESH_AFTER_WRITE = 5  # seconds
 
 
 class MaicoProfile(TypedDict):

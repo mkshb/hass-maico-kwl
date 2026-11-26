@@ -25,7 +25,7 @@ from custom_components.maico_kwl.const import DOMAIN
 from custom_components.maico_kwl.services import MAX_BOOST_MINUTES
 
 from .conftest import FakeDevice
-from .helpers import entity_id, setup_entry
+from .helpers import entity_id, refresh_after_write, setup_entry
 
 COMPONENT = Path(__file__).parent.parent / "custom_components" / "maico_kwl"
 
@@ -40,7 +40,7 @@ async def _call(hass: HomeAssistant, service: str, eid: str, **data) -> None:
     await hass.services.async_call(
         "fan", service, {ATTR_ENTITY_ID: eid, **data}, blocking=True
     )
-    await hass.async_block_till_done()
+    await refresh_after_write(hass)
 
 
 async def test_fan_state(hass: HomeAssistant, fan: str) -> None:
@@ -75,6 +75,27 @@ async def test_fan_percentage_switches_to_manual(
     assert device.writes == [(554, [2])]  # already manual: reduced only
 
 
+async def test_fan_uses_the_written_mode_before_the_refresh(
+    hass: HomeAssistant, device: FakeDevice, config_entry
+) -> None:
+    """A second speed right after the first one does not switch to manual again."""
+    device.registers[550] = 2  # auto_time
+    await setup_entry(hass, config_entry)
+    fan = entity_id(hass, config_entry, "fan", "ventilation")
+    for percentage in (100, 40):
+        await hass.services.async_call(
+            "fan",
+            "set_percentage",
+            {ATTR_ENTITY_ID: fan, "percentage": percentage},
+            blocking=True,
+        )
+    assert device.writes == [(550, [1]), (554, [4]), (554, [2])]
+    # Shown once the unit reports it.
+    assert hass.states.get(fan).attributes[ATTR_PRESET_MODE] == "auto_time"
+    await refresh_after_write(hass)
+    assert hass.states.get(fan).attributes[ATTR_PRESET_MODE] == "manual"
+
+
 async def test_fan_preset(hass: HomeAssistant, device: FakeDevice, fan: str) -> None:
     await _call(hass, "set_preset_mode", fan, preset_mode="eco_supply_air")
     assert device.writes[-1] == (550, [4])
@@ -94,8 +115,9 @@ async def test_fan_off_and_on_again(
     await _call(hass, "turn_on", fan)
     assert device.writes[-1] == (550, [3])  # auto_sensor again
 
+    # auto_sensor keeps a speed: only the level, humidity protection.
     await _call(hass, "turn_on", fan, percentage=25)
-    assert device.writes[-2:] == [(550, [1]), (554, [1])]  # humidity protection
+    assert device.writes[-2:] == [(550, [3]), (554, [1])]
 
     await _call(hass, "set_percentage", fan, percentage=0)
     assert device.writes[-1] == (550, [0])
@@ -133,7 +155,7 @@ async def _boost(hass: HomeAssistant, eid: str, **data) -> None:
     await hass.services.async_call(
         DOMAIN, "boost", {ATTR_ENTITY_ID: eid, **data}, blocking=True
     )
-    await hass.async_block_till_done()
+    await refresh_after_write(hass)
 
 
 async def _after(hass: HomeAssistant, minutes: float) -> None:

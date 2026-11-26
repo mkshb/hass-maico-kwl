@@ -9,10 +9,11 @@ from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .bus_feed import BusFeeder
-from .const import DOMAIN, MAX_BLOCK_SIZE, MaicoProfile
+from .const import DOMAIN, MAX_BLOCK_SIZE, REFRESH_AFTER_WRITE, MaicoProfile
 from .modbus_hub import MaicoConnectionError, MaicoModbusError, MaicoModbusHub
 from .register_defs import (
     BUTTON,
@@ -73,6 +74,12 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
+            # The refresh an entity asks for after a write: not right away,
+            # a full read straight after a write is more than some units
+            # cope with, and later writes share it.
+            request_refresh_debouncer=Debouncer(
+                hass, _LOGGER, cooldown=REFRESH_AFTER_WRITE, immediate=False
+            ),
         )
         self.hub = hub
         self.present = present
@@ -103,9 +110,20 @@ class MaicoCoordinator(DataUpdateCoordinator[MaicoData]):
         return lambda: self._write_listeners.remove(listener)
 
     @callback
-    def async_notify_write(self, key: str, value: float | datetime) -> None:
+    def async_notify_write(
+        self, reg: RegisterDef, raw: list[int], value: float | datetime
+    ) -> None:
+        """Note a successful write by an entity and tell the write listeners.
+
+        The written value goes into the data without updating the entities:
+        they show what the unit reports with the refresh after the write. A
+        decision made before that refresh (e.g. whether the fan has to switch
+        to manual first) must not be based on the value before the write.
+        """
+        if self.data is not None and reg.readable and reg.platform != BUTTON:
+            self.data[reg.key] = reg.decode(raw)
         for listener in list(self._write_listeners):
-            listener(key, value)
+            listener(reg.key, value)
 
     async def _async_update_data(self) -> MaicoData:
         try:

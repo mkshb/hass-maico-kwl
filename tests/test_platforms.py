@@ -25,7 +25,7 @@ from custom_components.maico_kwl.entity import async_write_register
 from custom_components.maico_kwl.register_defs import REGISTERS_BY_KEY
 
 from .conftest import FakeDevice
-from .helpers import entity_id, setup_entry
+from .helpers import entity_id, refresh_after_write, setup_entry
 
 
 @pytest.fixture
@@ -162,7 +162,30 @@ async def test_number_state_and_write(
     await hass.async_block_till_done()
     assert (553, [225]) in device.writes
     assert (300, [0xFFF1]) in device.writes
+    await refresh_after_write(hass)
     assert hass.states.get(setpoint).state == "22.5"
+
+
+async def test_refresh_after_writes_is_delayed_and_shared(
+    hass: HomeAssistant, device: FakeDevice, loaded
+) -> None:
+    """No full read right after a write; writes in a row share one refresh."""
+    coordinator = loaded.runtime_data.coordinator
+    blocks = len(coordinator._blocks)
+    setpoint = entity_id(hass, loaded, "number", "room_setpoint")
+    reads = device.reads
+    for value in (22.0, 22.5, 23.0):
+        await hass.services.async_call(
+            "number", "set_value", {ATTR_ENTITY_ID: setpoint, "value": value},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert device.reads == reads
+    assert hass.states.get(setpoint).state == "21.5"
+
+    await refresh_after_write(hass)
+    assert device.reads == reads + blocks
+    assert hass.states.get(setpoint).state == "23.0"
 
 
 async def test_select_state_and_write(
@@ -175,7 +198,7 @@ async def test_select_state_and_write(
         "select", "select_option", {ATTR_ENTITY_ID: mode, "option": "manual"},
         blocking=True,
     )
-    await hass.async_block_till_done()
+    await refresh_after_write(hass)
     assert device.writes[-1] == (550, [1])
     assert hass.states.get(mode).state == "manual"
 
@@ -200,7 +223,7 @@ async def test_switch_turn_on_and_off(
     await hass.services.async_call(
         "switch", "turn_on", {ATTR_ENTITY_ID: boost}, blocking=True
     )
-    await hass.async_block_till_done()
+    await refresh_after_write(hass)
     assert device.writes[-1] == (551, [1])
     assert hass.states.get(boost).state == STATE_ON
 
